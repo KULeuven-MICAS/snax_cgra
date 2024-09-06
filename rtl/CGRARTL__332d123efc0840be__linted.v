@@ -1,47 +1,47 @@
 
 typedef struct packed {
   logic [63:0] payload;
-  logic [0:0] predicate;
+  logic  predicate;
 } CGRAData_64_1__payload_64__predicate_1;
 
 typedef struct packed {
   logic [5:0] ctrl;
-  logic [0:0] predicate;
+  logic  predicate;
   logic [3:0][2:0] fu_in;
   logic [7:0][2:0] outport;
-  logic [5:0][0:0] predicate_in;
+  logic [5:0] predicate_in;
   logic [5:0] out_routine;
 } CGRAConfig_6_4_6_8_6__70c95bde83d8947c;
 
 typedef struct packed {
-  logic [0:0] predicate;
+  logic  predicate;
 } CGRAData_1__predicate_1;
 
 
 module NormalQueueCtrl__num_entries_2__dry_run_enable_True
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
+  input  logic  clk ,
+  input  logic  config_ini ,
   output logic [1:0] count ,
-  input  logic [0:0] deq_en ,
-  output logic [0:0] deq_valid ,
-  input  logic [0:0] dry_run_done ,
-  input  logic [0:0] enq_en ,
-  output logic [0:0] enq_rdy ,
-  output logic [0:0] raddr ,
-  output logic [0:0] ren ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] sync_dry_run ,
-  output logic [0:0] waddr ,
-  output logic [0:0] wen 
+  input  logic  deq_en ,
+  output logic  deq_valid ,
+  input  logic  dry_run_done ,
+  input  logic  enq_en ,
+  output logic  enq_rdy ,
+  output logic  raddr ,
+  output logic  ren ,
+  input  logic  reset ,
+  input  logic  sync_dry_run ,
+  output logic  waddr ,
+  output logic  wen 
 );
   logic [1:0] count_ini;
-  logic [0:0] deq_xfer;
-  logic [0:0] enq_xfer;
-  logic [0:0] head;
-  logic [0:0] head_ini;
-  logic [0:0] tail;
-  logic [0:0] tail_ini;
+  logic  deq_xfer;
+  logic  enq_xfer;
+  logic  head;
+  logic  head_ini;
+  logic  tail;
+  logic  tail_ini;
 
   
   always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_deq_valid
@@ -116,18 +116,18 @@ endmodule
 
 module NormalQueueDpath__667be9aa0698ac40
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
+  input  logic  clk ,
+  input  logic  config_ini ,
   output CGRAData_64_1__payload_64__predicate_1 deq_msg ,
   input  CGRAData_64_1__payload_64__predicate_1 enq_msg ,
-  input  logic [0:0] raddr ,
-  input  logic [0:0] ren ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] waddr ,
-  input  logic [0:0] wen 
+  input  logic  raddr ,
+  input  logic  ren ,
+  input  logic  reset ,
+  input  logic  waddr ,
+  input  logic  wen 
 );
   localparam logic [1:0] __const__num_entries_at_up_rf_write  = 2'd2;
-  CGRAData_64_1__payload_64__predicate_1 regs [0:1];
+  CGRAData_64_1__payload_64__predicate_1 regs [2];
   CGRAData_64_1__payload_64__predicate_1 regs_rdata;
 
   
@@ -156,33 +156,33 @@ endmodule
 
 module NormalQueue__89ec7419267774bb
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
-  input  logic [0:0] deq_en ,
+  input  logic  clk ,
+  input  logic  config_ini ,
+  input  logic  deq_en ,
   output CGRAData_64_1__payload_64__predicate_1 deq_msg ,
-  output logic [0:0] deq_valid ,
-  input  logic [0:0] dry_run_done ,
-  input  logic [0:0] enq_en ,
+  output logic  deq_valid ,
+  input  logic  dry_run_done ,
+  input  logic  enq_en ,
   input  CGRAData_64_1__payload_64__predicate_1 enq_msg ,
-  output logic [0:0] enq_rdy ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] sync_dry_run 
+  output logic  enq_rdy ,
+  input  logic  reset ,
+  input  logic  sync_dry_run 
 );
 
-  logic [0:0] ctrl__clk;
-  logic [0:0] ctrl__config_ini;
+  logic  ctrl__clk;
+  logic  ctrl__config_ini;
   logic [1:0] ctrl__count;
-  logic [0:0] ctrl__deq_en;
-  logic [0:0] ctrl__deq_valid;
-  logic [0:0] ctrl__dry_run_done;
-  logic [0:0] ctrl__enq_en;
-  logic [0:0] ctrl__enq_rdy;
-  logic [0:0] ctrl__raddr;
-  logic [0:0] ctrl__ren;
-  logic [0:0] ctrl__reset;
-  logic [0:0] ctrl__sync_dry_run;
-  logic [0:0] ctrl__waddr;
-  logic [0:0] ctrl__wen;
+  logic  ctrl__deq_en;
+  logic  ctrl__deq_valid;
+  logic  ctrl__dry_run_done;
+  logic  ctrl__enq_en;
+  logic  ctrl__enq_rdy;
+  logic  ctrl__raddr;
+  logic  ctrl__ren;
+  logic  ctrl__reset;
+  logic  ctrl__sync_dry_run;
+  logic  ctrl__waddr;
+  logic  ctrl__wen;
 
   NormalQueueCtrl__num_entries_2__dry_run_enable_True ctrl
   (
@@ -204,15 +204,15 @@ module NormalQueue__89ec7419267774bb
 
 
 
-  logic [0:0] dpath__clk;
-  logic [0:0] dpath__config_ini;
+  logic  dpath__clk;
+  logic  dpath__config_ini;
   CGRAData_64_1__payload_64__predicate_1 dpath__deq_msg;
   CGRAData_64_1__payload_64__predicate_1 dpath__enq_msg;
-  logic [0:0] dpath__raddr;
-  logic [0:0] dpath__ren;
-  logic [0:0] dpath__reset;
-  logic [0:0] dpath__waddr;
-  logic [0:0] dpath__wen;
+  logic  dpath__raddr;
+  logic  dpath__ren;
+  logic  dpath__reset;
+  logic  dpath__waddr;
+  logic  dpath__wen;
 
   NormalQueueDpath__667be9aa0698ac40 dpath
   (
@@ -253,30 +253,30 @@ endmodule
 
 module ChannelRTL__511b7cda5540ec2e
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
-  input  logic [0:0] dry_run_done ,
-  input  logic [0:0] recv_en ,
+  input  logic  clk ,
+  input  logic  config_ini ,
+  input  logic  dry_run_done ,
+  input  logic  recv_en ,
   input  CGRAData_64_1__payload_64__predicate_1 recv_msg ,
-  output logic [0:0] recv_rdy ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] send_en ,
+  output logic  recv_rdy ,
+  input  logic  reset ,
+  input  logic  send_en ,
   output CGRAData_64_1__payload_64__predicate_1 send_msg ,
-  output logic [0:0] send_valid ,
-  input  logic [0:0] sync_dry_run 
+  output logic  send_valid ,
+  input  logic  sync_dry_run 
 );
 
-  logic [0:0] queue__clk;
-  logic [0:0] queue__config_ini;
-  logic [0:0] queue__deq_en;
+  logic  queue__clk;
+  logic  queue__config_ini;
+  logic  queue__deq_en;
   CGRAData_64_1__payload_64__predicate_1 queue__deq_msg;
-  logic [0:0] queue__deq_valid;
-  logic [0:0] queue__dry_run_done;
-  logic [0:0] queue__enq_en;
+  logic  queue__deq_valid;
+  logic  queue__dry_run_done;
+  logic  queue__enq_en;
   CGRAData_64_1__payload_64__predicate_1 queue__enq_msg;
-  logic [0:0] queue__enq_rdy;
-  logic [0:0] queue__reset;
-  logic [0:0] queue__sync_dry_run;
+  logic  queue__enq_rdy;
+  logic  queue__reset;
+  logic  queue__sync_dry_run;
 
   NormalQueue__89ec7419267774bb queue
   (
@@ -312,17 +312,17 @@ endmodule
 
 module RegisterFile__8c50dafb5bf22f7b
 (
-  input  logic [0:0] clk ,
-  input  logic [4:0] raddr [0:0],
-  output logic [31:0] rdata [0:0],
-  input  logic [0:0] reset ,
-  input  logic [4:0] waddr [0:0],
-  input  logic [31:0] wdata [0:0],
-  input  logic [0:0] wen [0:0]
+  input  logic  clk ,
+  input  logic [4:0] raddr [1],
+  output logic [31:0] rdata [1],
+  input  logic  reset ,
+  input  logic [4:0] waddr [1],
+  input  logic [31:0] wdata [1],
+  input  logic  wen [1]
 );
-  localparam logic [0:0] __const__rd_ports_at_up_rf_read  = 1'd1;
-  localparam logic [0:0] __const__wr_ports_at_up_rf_write  = 1'd1;
-  logic [31:0] regs [0:31];
+  localparam logic  __const__rd_ports_at_up_rf_read  = 1'd1;
+  localparam logic  __const__wr_ports_at_up_rf_write  = 1'd1;
+  logic [31:0] regs [32];
 
   
   always_comb begin : up_rf_read
@@ -344,15 +344,15 @@ endmodule
 
 module ConstQueueRTL__a158caae8f1a5180
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
-  input  logic [0:0] dry_run_done ,
-  input  logic [0:0] execution_ini ,
+  input  logic  clk ,
+  input  logic  config_ini ,
+  input  logic  dry_run_done ,
+  input  logic  execution_ini ,
   input  logic [31:0] recv_const ,
-  input  logic [0:0] recv_const_en ,
+  input  logic  recv_const_en ,
   input  logic [4:0] recv_const_waddr ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] send_const_en ,
+  input  logic  reset ,
+  input  logic  send_const_en ,
   output logic [31:0] send_const_msg 
 );
   localparam logic [5:0] __const__const_mem_size_at_dry_run_th  = 6'd32;
@@ -360,13 +360,13 @@ module ConstQueueRTL__a158caae8f1a5180
   logic [5:0] data_counter_th;
   logic [5:0] data_counter_th_ini;
 
-  logic [0:0] reg_file__clk;
-  logic [4:0] reg_file__raddr [0:0];
-  logic [31:0] reg_file__rdata [0:0];
-  logic [0:0] reg_file__reset;
-  logic [4:0] reg_file__waddr [0:0];
-  logic [31:0] reg_file__wdata [0:0];
-  logic [0:0] reg_file__wen [0:0];
+  logic  reg_file__clk;
+  logic [4:0] reg_file__raddr [1];
+  logic [31:0] reg_file__rdata [1];
+  logic  reg_file__reset;
+  logic [4:0] reg_file__waddr [1];
+  logic [31:0] reg_file__wdata [1];
+  logic  reg_file__wen [1];
 
   RegisterFile__8c50dafb5bf22f7b reg_file
   (
@@ -431,28 +431,28 @@ endmodule
 
 module CrossbarRTL__9e234a3e66000aaa
 (
-  input  logic [0:0] clk ,
-  input  logic [2:0] recv_opt_msg_outport [0:7],
+  input  logic  clk ,
+  input  logic [2:0] recv_opt_msg_outport [8],
   input  logic [5:0] recv_opt_msg_predicate_in ,
-  input  CGRAData_64_1__payload_64__predicate_1 recv_port_data [0:5],
-  output logic [0:0] recv_port_fu_out_ack ,
+  input  CGRAData_64_1__payload_64__predicate_1 recv_port_data [6],
+  output logic  recv_port_fu_out_ack ,
   output logic [3:0] recv_port_mesh_in_ack ,
   input  logic [5:0] recv_port_valid ,
-  input  logic [0:0] reset ,
+  input  logic  reset ,
   output logic [3:0] send_bypass_data_valid ,
   input  logic [3:0] send_bypass_port_ack ,
   output logic [3:0] send_bypass_req ,
-  output CGRAData_64_1__payload_64__predicate_1 send_data_bypass [0:3],
-  output CGRAData_64_1__payload_64__predicate_1 send_port_data [0:7],
+  output CGRAData_64_1__payload_64__predicate_1 send_data_bypass [4],
+  output CGRAData_64_1__payload_64__predicate_1 send_port_data [8],
   output logic [8:0] send_port_en ,
   input  logic [7:0] send_port_rdy ,
   output CGRAData_1__predicate_1 send_predicate ,
-  input  logic [0:0] send_predicate_rdy ,
-  input  logic [0:0] xbar_dry_run_ack ,
-  input  logic [0:0] xbar_dry_run_begin ,
-  input  logic [0:0] xbar_opt_enable ,
-  input  logic [0:0] xbar_propagate_en ,
-  output logic [0:0] xbar_propagate_rdy 
+  input  logic  send_predicate_rdy ,
+  input  logic  xbar_dry_run_ack ,
+  input  logic  xbar_dry_run_begin ,
+  input  logic  xbar_opt_enable ,
+  input  logic  xbar_propagate_en ,
+  output logic  xbar_propagate_rdy 
 );
   localparam logic [1:0] __const__STAGE_NORMAL  = 2'd0;
   localparam logic [1:0] __const__STAGE_WAIT_FOR_NOC  = 2'd2;
@@ -473,29 +473,29 @@ module CrossbarRTL__9e234a3e66000aaa
   localparam logic [2:0] __const__num_xbar_inports_at_data_routing  = 3'd6;
   localparam logic [3:0] __const__num_xbar_outports_at_xbar_propagate_sync  = 4'd8;
   logic [1:0] cur_stage;
-  logic [0:0] fu_handshake_vector_fu_out_req_bypass_met;
+  logic  fu_handshake_vector_fu_out_req_bypass_met;
   logic [1:0] fu_handshake_vector_fu_out_req_local_met;
   logic [3:0] fu_handshake_vector_mesh_in_recv_port_req_met;
-  logic [1:0] fu_handshake_vector_send_bypass_data_valid_met [0:3];
+  logic [1:0] fu_handshake_vector_send_bypass_data_valid_met [4];
   logic [8:0] fu_handshake_vector_send_port_req_nxt_met;
-  logic [0:0] fu_handshake_vector_xbar_fu_out_req_met;
-  logic [0:0] fu_handshake_vector_xbar_mesh_in_req_met;
+  logic  fu_handshake_vector_xbar_fu_out_req_met;
+  logic  fu_handshake_vector_xbar_mesh_in_req_met;
   logic [1:0] nxt_stage;
   logic [5:0] recv_port_req;
   logic [8:0] send_port_rdy_vector;
   logic [8:0] send_port_req_fu_out;
   logic [8:0] send_port_req_mesh_in;
   logic [8:0] send_port_req_nxt;
-  logic [0:0] xbar_fu_out_done;
-  logic [0:0] xbar_fu_out_okay;
-  logic [8:0] xbar_inport_sel [0:5];
-  logic [8:0] xbar_inport_sel_nxt [0:5];
-  logic [0:0] xbar_mesh_in_done;
-  logic [0:0] xbar_mesh_in_okay;
-  logic [0:0] xbar_nxt_out_ready;
-  logic [5:0] xbar_outport_sel [0:8];
-  logic [5:0] xbar_outport_sel_nxt [0:8];
-  logic [6:0] xbar_outport_sel_nxt_decode [0:7];
+  logic  xbar_fu_out_done;
+  logic  xbar_fu_out_okay;
+  logic [8:0] xbar_inport_sel [6];
+  logic [8:0] xbar_inport_sel_nxt [6];
+  logic  xbar_mesh_in_done;
+  logic  xbar_mesh_in_okay;
+  logic  xbar_nxt_out_ready;
+  logic [5:0] xbar_outport_sel [9];
+  logic [5:0] xbar_outport_sel_nxt [9];
+  logic [6:0] xbar_outport_sel_nxt_decode [8];
 
   
   always_comb begin : data_routing
@@ -663,15 +663,15 @@ module CrossbarRTL__9e234a3e66000aaa
     end
   end
 
-  assign send_port_rdy_vector[0:0] = send_port_rdy[0:0];
-  assign send_port_rdy_vector[1:1] = send_port_rdy[1:1];
-  assign send_port_rdy_vector[2:2] = send_port_rdy[2:2];
-  assign send_port_rdy_vector[3:3] = send_port_rdy[3:3];
-  assign send_port_rdy_vector[4:4] = send_port_rdy[4:4];
-  assign send_port_rdy_vector[5:5] = send_port_rdy[5:5];
-  assign send_port_rdy_vector[6:6] = send_port_rdy[6:6];
-  assign send_port_rdy_vector[7:7] = send_port_rdy[7:7];
-  assign send_port_rdy_vector[8:8] = send_predicate_rdy;
+  assign send_port_rdy_vector = send_port_rdy;
+  assign send_port_rdy_vector[1] = send_port_rdy[1];
+  assign send_port_rdy_vector[2] = send_port_rdy[2];
+  assign send_port_rdy_vector[3] = send_port_rdy[3];
+  assign send_port_rdy_vector[4] = send_port_rdy[4];
+  assign send_port_rdy_vector[5] = send_port_rdy[5];
+  assign send_port_rdy_vector[6] = send_port_rdy[6];
+  assign send_port_rdy_vector[7] = send_port_rdy[7];
+  assign send_port_rdy_vector[8] = send_predicate_rdy;
 
 endmodule
 
@@ -679,17 +679,17 @@ endmodule
 
 module RegisterFile__f54f54c28dab18db
 (
-  input  logic [0:0] clk ,
-  input  logic [4:0] raddr [0:0],
-  output CGRAConfig_6_4_6_8_6__70c95bde83d8947c rdata [0:0],
-  input  logic [0:0] reset ,
-  input  logic [4:0] waddr [0:0],
-  input  CGRAConfig_6_4_6_8_6__70c95bde83d8947c wdata [0:0],
-  input  logic [0:0] wen [0:0]
+  input  logic  clk ,
+  input  logic [4:0] raddr [1],
+  output CGRAConfig_6_4_6_8_6__70c95bde83d8947c rdata [1],
+  input  logic  reset ,
+  input  logic [4:0] waddr [1],
+  input  CGRAConfig_6_4_6_8_6__70c95bde83d8947c wdata [1],
+  input  logic  wen [1]
 );
-  localparam logic [0:0] __const__rd_ports_at_up_rf_read  = 1'd1;
-  localparam logic [0:0] __const__wr_ports_at_up_rf_write  = 1'd1;
-  CGRAConfig_6_4_6_8_6__70c95bde83d8947c regs [0:31];
+  localparam logic  __const__rd_ports_at_up_rf_read  = 1'd1;
+  localparam logic  __const__wr_ports_at_up_rf_write  = 1'd1;
+  CGRAConfig_6_4_6_8_6__70c95bde83d8947c regs [32];
 
   
   always_comb begin : up_rf_read
@@ -711,31 +711,31 @@ endmodule
 
 module CtrlMemRTL__a01c7414dc24348f
 (
-  input  logic [0:0] clk ,
+  input  logic  clk ,
   input  logic [5:0] cmd_counter_th ,
-  input  logic [0:0] execution_ini ,
-  input  logic [0:0] nxt_ctrl_en ,
+  input  logic  execution_ini ,
+  input  logic  nxt_ctrl_en ,
   output CGRAConfig_6_4_6_8_6__70c95bde83d8947c recv_ctrl_msg ,
   input  logic [31:0] recv_ctrl_slice ,
-  input  logic [0:0] recv_ctrl_slice_en ,
-  input  logic [0:0] recv_ctrl_slice_idx ,
+  input  logic  recv_ctrl_slice_en ,
+  input  logic  recv_ctrl_slice_idx ,
   input  logic [4:0] recv_waddr ,
-  input  logic [0:0] recv_waddr_en ,
-  input  logic [0:0] reset ,
+  input  logic  recv_waddr_en ,
+  input  logic  reset ,
   output CGRAConfig_6_4_6_8_6__70c95bde83d8947c send_ctrl_msg 
 );
   localparam logic [1:0] __const__num_opt_slice_at_buffer_opt_slice  = 2'd2;
   logic [5:0] cmd_counter;
   logic [63:0] concat_ctrl_msg;
-  logic [31:0] opt_slice_regs [0:1];
+  logic [31:0] opt_slice_regs [2];
 
-  logic [0:0] reg_file__clk;
-  logic [4:0] reg_file__raddr [0:0];
-  CGRAConfig_6_4_6_8_6__70c95bde83d8947c reg_file__rdata [0:0];
-  logic [0:0] reg_file__reset;
-  logic [4:0] reg_file__waddr [0:0];
-  CGRAConfig_6_4_6_8_6__70c95bde83d8947c reg_file__wdata [0:0];
-  logic [0:0] reg_file__wen [0:0];
+  logic  reg_file__clk;
+  logic [4:0] reg_file__raddr [1];
+  CGRAConfig_6_4_6_8_6__70c95bde83d8947c reg_file__rdata [1];
+  logic  reg_file__reset;
+  logic [4:0] reg_file__waddr [1];
+  CGRAConfig_6_4_6_8_6__70c95bde83d8947c reg_file__wdata [1];
+  logic  reg_file__wen [1];
 
   RegisterFile__f54f54c28dab18db reg_file
   (
@@ -791,14 +791,14 @@ endmodule
 
 module Demux__Type_Bits1__noutputs_2
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] in_ ,
-  output logic [0:0] out [0:1],
-  input  logic [0:0] reset ,
-  input  logic [0:0] sel 
+  input  logic  clk ,
+  input  logic  in_ ,
+  output logic  out [2],
+  input  logic  reset ,
+  input  logic  sel 
 );
   localparam logic [1:0] __const__noutputs_at_up_mux  = 2'd2;
-  localparam logic [0:0] __const__default_value_at_up_mux  = 1'd0;
+  localparam logic  __const__default_value_at_up_mux  = 1'd0;
 
   
   always_comb begin : up_mux
@@ -813,45 +813,45 @@ endmodule
 
 module AdderRTL__cad2bcaa3a8de18d
 (
-  input  logic [0:0] clk ,
-  output logic [0:0] fu_fin_req ,
-  input  logic [0:0] opt_launch_en ,
-  output logic [0:0] opt_launch_rdy ,
-  output logic [0:0] opt_launch_rdy_nxt ,
-  input  logic [0:0] opt_pipeline_fin_en ,
-  input  logic [0:0] opt_pipeline_fin_propagate_en ,
-  input  logic [0:0] opt_pipeline_inter_en ,
-  input  logic [0:0] opt_propagate_en ,
+  input  logic  clk ,
+  output logic  fu_fin_req ,
+  input  logic  opt_launch_en ,
+  output logic  opt_launch_rdy ,
+  output logic  opt_launch_rdy_nxt ,
+  input  logic  opt_pipeline_fin_en ,
+  input  logic  opt_pipeline_fin_propagate_en ,
+  input  logic  opt_pipeline_inter_en ,
+  input  logic  opt_propagate_en ,
   input  logic [31:0] recv_const_msg ,
-  output logic [0:0] recv_const_req ,
-  input  logic [0:0] recv_opt_en ,
+  output logic  recv_const_req ,
+  input  logic  recv_opt_en ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [0:0] recv_predicate_en ,
+  input  logic  recv_predicate_en ,
   input  CGRAData_1__predicate_1 recv_predicate_msg ,
-  input  logic [0:0] reset ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  reset ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  input logic [0:0] recv_in__en [0:3] ,
-  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [0:3] ,
-  output logic [0:0] recv_in__rdy [0:3] ,
-  output logic [0:0] send_out__en [0:1] ,
-  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [0:1] ,
-  input logic [0:0] send_out__rdy [0:1] ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  input logic  recv_in__en [4] ,
+  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [4] ,
+  output logic  recv_in__rdy [4] ,
+  output logic  send_out__en [2] ,
+  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [2] ,
+  input logic  send_out__rdy [2] ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   localparam CGRAData_64_1__payload_64__predicate_1 const_zero  = { 64'd0, 1'd0 };
-  localparam logic [0:0] __const__LOCAL_OPT_NAH  = 1'd0;
+  localparam logic  __const__LOCAL_OPT_NAH  = 1'd0;
   localparam logic [5:0] __const__OPT_ADD  = 6'd2;
-  localparam logic [0:0] __const__LOCAL_OPT_ADD  = 1'd1;
+  localparam logic  __const__LOCAL_OPT_ADD  = 1'd1;
   localparam logic [5:0] __const__OPT_ADD_CONST  = 6'd25;
   localparam logic [1:0] __const__LOCAL_OPT_ADD_CONST  = 2'd2;
   localparam logic [5:0] __const__OPT_INC  = 6'd3;
@@ -861,9 +861,9 @@ module AdderRTL__cad2bcaa3a8de18d
   localparam logic [5:0] __const__OPT_PAS  = 6'd31;
   localparam logic [2:0] __const__LOCAL_OPT_PAS  = 3'd5;
   localparam logic [1:0] __const__num_outports_at_opt_launch  = 2'd2;
-  logic [0:0] latency;
-  logic [0:0] launch_rdy;
-  logic [0:0] launch_rdy_nxt;
+  logic  latency;
+  logic  launch_rdy;
+  logic  launch_rdy_nxt;
   logic [2:0] local_opt_ctrl;
   logic [2:0] local_opt_ctrl_nxt;
 
@@ -971,51 +971,51 @@ endmodule
 
 module PhiRTL__cad2bcaa3a8de18d
 (
-  input  logic [0:0] clk ,
-  output logic [0:0] fu_fin_req ,
-  input  logic [0:0] opt_launch_en ,
-  output logic [0:0] opt_launch_rdy ,
-  output logic [0:0] opt_launch_rdy_nxt ,
-  input  logic [0:0] opt_pipeline_fin_en ,
-  input  logic [0:0] opt_pipeline_fin_propagate_en ,
-  input  logic [0:0] opt_pipeline_inter_en ,
-  input  logic [0:0] opt_propagate_en ,
+  input  logic  clk ,
+  output logic  fu_fin_req ,
+  input  logic  opt_launch_en ,
+  output logic  opt_launch_rdy ,
+  output logic  opt_launch_rdy_nxt ,
+  input  logic  opt_pipeline_fin_en ,
+  input  logic  opt_pipeline_fin_propagate_en ,
+  input  logic  opt_pipeline_inter_en ,
+  input  logic  opt_propagate_en ,
   input  logic [31:0] recv_const_msg ,
-  output logic [0:0] recv_const_req ,
-  input  logic [0:0] recv_opt_en ,
+  output logic  recv_const_req ,
+  input  logic  recv_opt_en ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [0:0] recv_predicate_en ,
+  input  logic  recv_predicate_en ,
   input  CGRAData_1__predicate_1 recv_predicate_msg ,
-  input  logic [0:0] reset ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  reset ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  input logic [0:0] recv_in__en [0:3] ,
-  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [0:3] ,
-  output logic [0:0] recv_in__rdy [0:3] ,
-  output logic [0:0] send_out__en [0:1] ,
-  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [0:1] ,
-  input logic [0:0] send_out__rdy [0:1] ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  input logic  recv_in__en [4] ,
+  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [4] ,
+  output logic  recv_in__rdy [4] ,
+  output logic  send_out__en [2] ,
+  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [2] ,
+  input logic  send_out__rdy [2] ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   localparam CGRAData_64_1__payload_64__predicate_1 const_zero  = { 64'd0, 1'd0 };
-  localparam logic [0:0] __const__LOCAL_OPT_NAH  = 1'd0;
+  localparam logic  __const__LOCAL_OPT_NAH  = 1'd0;
   localparam logic [5:0] __const__OPT_PHI  = 6'd17;
-  localparam logic [0:0] __const__LOCAL_OPT_PHI  = 1'd1;
+  localparam logic  __const__LOCAL_OPT_PHI  = 1'd1;
   localparam logic [5:0] __const__OPT_PHI_CONST  = 6'd32;
   localparam logic [1:0] __const__LOCAL_OPT_PHI_CONST  = 2'd2;
   localparam logic [1:0] __const__num_outports_at_opt_launch  = 2'd2;
-  logic [0:0] latency;
-  logic [0:0] launch_rdy;
-  logic [0:0] launch_rdy_nxt;
+  logic  latency;
+  logic  launch_rdy;
+  logic  launch_rdy_nxt;
   logic [1:0] local_opt_ctrl;
   logic [1:0] local_opt_ctrl_nxt;
 
@@ -1110,54 +1110,54 @@ endmodule
 
 module CompRTL__cad2bcaa3a8de18d
 (
-  input  logic [0:0] clk ,
-  output logic [0:0] fu_fin_req ,
-  input  logic [0:0] opt_launch_en ,
-  output logic [0:0] opt_launch_rdy ,
-  output logic [0:0] opt_launch_rdy_nxt ,
-  input  logic [0:0] opt_pipeline_fin_en ,
-  input  logic [0:0] opt_pipeline_fin_propagate_en ,
-  input  logic [0:0] opt_pipeline_inter_en ,
-  input  logic [0:0] opt_propagate_en ,
+  input  logic  clk ,
+  output logic  fu_fin_req ,
+  input  logic  opt_launch_en ,
+  output logic  opt_launch_rdy ,
+  output logic  opt_launch_rdy_nxt ,
+  input  logic  opt_pipeline_fin_en ,
+  input  logic  opt_pipeline_fin_propagate_en ,
+  input  logic  opt_pipeline_inter_en ,
+  input  logic  opt_propagate_en ,
   input  logic [31:0] recv_const_msg ,
-  output logic [0:0] recv_const_req ,
-  input  logic [0:0] recv_opt_en ,
+  output logic  recv_const_req ,
+  input  logic  recv_opt_en ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [0:0] recv_predicate_en ,
+  input  logic  recv_predicate_en ,
   input  CGRAData_1__predicate_1 recv_predicate_msg ,
-  input  logic [0:0] reset ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  reset ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  input logic [0:0] recv_in__en [0:3] ,
-  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [0:3] ,
-  output logic [0:0] recv_in__rdy [0:3] ,
-  output logic [0:0] send_out__en [0:1] ,
-  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [0:1] ,
-  input logic [0:0] send_out__rdy [0:1] ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  input logic  recv_in__en [4] ,
+  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [4] ,
+  output logic  recv_in__rdy [4] ,
+  output logic  send_out__en [2] ,
+  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [2] ,
+  input logic  send_out__rdy [2] ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   localparam CGRAData_64_1__payload_64__predicate_1 const_one  = { 64'd1, 1'd0 };
   localparam CGRAData_64_1__payload_64__predicate_1 const_zero  = { 64'd0, 1'd0 };
-  localparam logic [0:0] __const__LOCAL_OPT_NAH  = 1'd0;
+  localparam logic  __const__LOCAL_OPT_NAH  = 1'd0;
   localparam logic [5:0] __const__OPT_EQ  = 6'd14;
-  localparam logic [0:0] __const__LOCAL_OPT_EQ  = 1'd1;
+  localparam logic  __const__LOCAL_OPT_EQ  = 1'd1;
   localparam logic [5:0] __const__OPT_EQ_CONST  = 6'd33;
   localparam logic [1:0] __const__LOCAL_OPT_EQ_CONST  = 2'd2;
   localparam logic [5:0] __const__OPT_LE  = 6'd15;
   localparam logic [1:0] __const__LOCAL_OPT_LE  = 2'd3;
   localparam logic [1:0] __const__num_outports_at_opt_launch  = 2'd2;
-  logic [0:0] latency;
-  logic [0:0] launch_rdy;
-  logic [0:0] launch_rdy_nxt;
+  logic  latency;
+  logic  launch_rdy;
+  logic  launch_rdy_nxt;
   logic [1:0] local_opt_ctrl;
   logic [1:0] local_opt_ctrl_nxt;
 
@@ -1261,53 +1261,53 @@ endmodule
 
 module MulRTL__cad2bcaa3a8de18d
 (
-  input  logic [0:0] clk ,
-  output logic [0:0] fu_fin_req ,
-  input  logic [0:0] opt_launch_en ,
-  output logic [0:0] opt_launch_rdy ,
-  output logic [0:0] opt_launch_rdy_nxt ,
-  input  logic [0:0] opt_pipeline_fin_en ,
-  input  logic [0:0] opt_pipeline_fin_propagate_en ,
-  input  logic [0:0] opt_pipeline_inter_en ,
-  input  logic [0:0] opt_propagate_en ,
+  input  logic  clk ,
+  output logic  fu_fin_req ,
+  input  logic  opt_launch_en ,
+  output logic  opt_launch_rdy ,
+  output logic  opt_launch_rdy_nxt ,
+  input  logic  opt_pipeline_fin_en ,
+  input  logic  opt_pipeline_fin_propagate_en ,
+  input  logic  opt_pipeline_inter_en ,
+  input  logic  opt_propagate_en ,
   input  logic [31:0] recv_const_msg ,
-  output logic [0:0] recv_const_req ,
-  input  logic [0:0] recv_opt_en ,
+  output logic  recv_const_req ,
+  input  logic  recv_opt_en ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [0:0] recv_predicate_en ,
+  input  logic  recv_predicate_en ,
   input  CGRAData_1__predicate_1 recv_predicate_msg ,
-  input  logic [0:0] reset ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  reset ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  input logic [0:0] recv_in__en [0:3] ,
-  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [0:3] ,
-  output logic [0:0] recv_in__rdy [0:3] ,
-  output logic [0:0] send_out__en [0:1] ,
-  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [0:1] ,
-  input logic [0:0] send_out__rdy [0:1] ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  input logic  recv_in__en [4] ,
+  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [4] ,
+  output logic  recv_in__rdy [4] ,
+  output logic  send_out__en [2] ,
+  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [2] ,
+  input logic  send_out__rdy [2] ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   localparam CGRAData_64_1__payload_64__predicate_1 const_zero  = { 64'd0, 1'd0 };
-  localparam logic [0:0] __const__LOCAL_OPT_NAH  = 1'd0;
+  localparam logic  __const__LOCAL_OPT_NAH  = 1'd0;
   localparam logic [5:0] __const__OPT_MUL  = 6'd7;
-  localparam logic [0:0] __const__LOCAL_OPT_MUL  = 1'd1;
+  localparam logic  __const__LOCAL_OPT_MUL  = 1'd1;
   localparam logic [5:0] __const__OPT_MUL_CONST  = 6'd29;
   localparam logic [1:0] __const__LOCAL_OPT_MUL_CONST  = 2'd2;
   localparam logic [5:0] __const__OPT_DIV  = 6'd26;
   localparam logic [1:0] __const__LOCAL_OPT_DIV  = 2'd3;
   localparam logic [1:0] __const__num_outports_at_opt_launch  = 2'd2;
-  logic [0:0] latency;
-  logic [0:0] launch_rdy;
-  logic [0:0] launch_rdy_nxt;
+  logic  latency;
+  logic  launch_rdy;
+  logic  launch_rdy_nxt;
   logic [1:0] local_opt_ctrl;
   logic [1:0] local_opt_ctrl_nxt;
 
@@ -1399,52 +1399,52 @@ endmodule
 
 module BranchRTL__cad2bcaa3a8de18d
 (
-  input  logic [0:0] clk ,
-  output logic [0:0] fu_fin_req ,
-  input  logic [0:0] opt_launch_en ,
-  output logic [0:0] opt_launch_rdy ,
-  output logic [0:0] opt_launch_rdy_nxt ,
-  input  logic [0:0] opt_pipeline_fin_en ,
-  input  logic [0:0] opt_pipeline_fin_propagate_en ,
-  input  logic [0:0] opt_pipeline_inter_en ,
-  input  logic [0:0] opt_propagate_en ,
+  input  logic  clk ,
+  output logic  fu_fin_req ,
+  input  logic  opt_launch_en ,
+  output logic  opt_launch_rdy ,
+  output logic  opt_launch_rdy_nxt ,
+  input  logic  opt_pipeline_fin_en ,
+  input  logic  opt_pipeline_fin_propagate_en ,
+  input  logic  opt_pipeline_inter_en ,
+  input  logic  opt_propagate_en ,
   input  logic [31:0] recv_const_msg ,
-  output logic [0:0] recv_const_req ,
-  input  logic [0:0] recv_opt_en ,
+  output logic  recv_const_req ,
+  input  logic  recv_opt_en ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [0:0] recv_predicate_en ,
+  input  logic  recv_predicate_en ,
   input  CGRAData_1__predicate_1 recv_predicate_msg ,
-  input  logic [0:0] reset ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  reset ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  input logic [0:0] recv_in__en [0:3] ,
-  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [0:3] ,
-  output logic [0:0] recv_in__rdy [0:3] ,
-  output logic [0:0] send_out__en [0:1] ,
-  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [0:1] ,
-  input logic [0:0] send_out__rdy [0:1] ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  input logic  recv_in__en [4] ,
+  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [4] ,
+  output logic  recv_in__rdy [4] ,
+  output logic  send_out__en [2] ,
+  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [2] ,
+  input logic  send_out__rdy [2] ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   localparam CGRAData_64_1__payload_64__predicate_1 const_zero  = { 64'd0, 1'd0 };
-  localparam logic [0:0] __const__LOCAL_OPT_NAH  = 1'd0;
+  localparam logic  __const__LOCAL_OPT_NAH  = 1'd0;
   localparam logic [5:0] __const__OPT_BRH  = 6'd16;
-  localparam logic [0:0] __const__LOCAL_OPT_BRH  = 1'd1;
+  localparam logic  __const__LOCAL_OPT_BRH  = 1'd1;
   localparam logic [5:0] __const__OPT_BRH_START  = 6'd34;
   localparam logic [1:0] __const__LOCAL_OPT_BRH_START  = 2'd2;
   localparam logic [1:0] __const__num_outports_at_opt_launch  = 2'd2;
-  logic [0:0] first;
-  logic [0:0] latency;
-  logic [0:0] launch_rdy;
-  logic [0:0] launch_rdy_nxt;
+  logic  first;
+  logic  latency;
+  logic  launch_rdy;
+  logic  launch_rdy_nxt;
   logic [1:0] local_opt_ctrl;
   logic [1:0] local_opt_ctrl_nxt;
 
@@ -3445,45 +3445,45 @@ endmodule
 
 module ALURTL__cad2bcaa3a8de18d
 (
-  input  logic [0:0] clk ,
-  output logic [0:0] fu_fin_req ,
-  input  logic [0:0] opt_launch_en ,
-  output logic [0:0] opt_launch_rdy ,
-  output logic [0:0] opt_launch_rdy_nxt ,
-  input  logic [0:0] opt_pipeline_fin_en ,
-  input  logic [0:0] opt_pipeline_fin_propagate_en ,
-  input  logic [0:0] opt_pipeline_inter_en ,
-  input  logic [0:0] opt_propagate_en ,
+  input  logic  clk ,
+  output logic  fu_fin_req ,
+  input  logic  opt_launch_en ,
+  output logic  opt_launch_rdy ,
+  output logic  opt_launch_rdy_nxt ,
+  input  logic  opt_pipeline_fin_en ,
+  input  logic  opt_pipeline_fin_propagate_en ,
+  input  logic  opt_pipeline_inter_en ,
+  input  logic  opt_propagate_en ,
   input  logic [31:0] recv_const_msg ,
-  output logic [0:0] recv_const_req ,
-  input  logic [0:0] recv_opt_en ,
+  output logic  recv_const_req ,
+  input  logic  recv_opt_en ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [0:0] recv_predicate_en ,
+  input  logic  recv_predicate_en ,
   input  CGRAData_1__predicate_1 recv_predicate_msg ,
-  input  logic [0:0] reset ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  reset ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  input logic [0:0] recv_in__en [0:3] ,
-  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [0:3] ,
-  output logic [0:0] recv_in__rdy [0:3] ,
-  output logic [0:0] send_out__en [0:1] ,
-  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [0:1] ,
-  input logic [0:0] send_out__rdy [0:1] ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  input logic  recv_in__en [4] ,
+  input CGRAData_64_1__payload_64__predicate_1 recv_in__msg [4] ,
+  output logic  recv_in__rdy [4] ,
+  output logic  send_out__en [2] ,
+  output CGRAData_64_1__payload_64__predicate_1 send_out__msg [2] ,
+  input logic  send_out__rdy [2] ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   localparam CGRAData_64_1__payload_64__predicate_1 const_zero  = { 64'd0, 1'd0 };
-  localparam logic [0:0] __const__LOCAL_OPT_NAH  = 1'd0;
+  localparam logic  __const__LOCAL_OPT_NAH  = 1'd0;
   localparam logic [5:0] __const__OPT_ADD  = 6'd2;
-  localparam logic [0:0] __const__LOCAL_OPT_ADD  = 1'd1;
+  localparam logic  __const__LOCAL_OPT_ADD  = 1'd1;
   localparam logic [5:0] __const__OPT_ADD_CONST  = 6'd25;
   localparam logic [1:0] __const__LOCAL_OPT_ADD_CONST  = 2'd2;
   localparam logic [5:0] __const__OPT_INC  = 6'd3;
@@ -3493,30 +3493,30 @@ module ALURTL__cad2bcaa3a8de18d
   localparam logic [5:0] __const__OPT_PAS  = 6'd31;
   localparam logic [2:0] __const__LOCAL_OPT_PAS  = 3'd5;
   localparam logic [1:0] __const__num_outports_at_opt_launch  = 2'd2;
-  logic [0:0] latency;
-  logic [0:0] launch_rdy;
-  logic [0:0] launch_rdy_nxt;
+  logic  latency;
+  logic  launch_rdy;
+  logic  launch_rdy_nxt;
   logic [2:0] local_opt_ctrl;
   logic [2:0] local_opt_ctrl_nxt;
 
-  logic [4:0] alu_element_bmask_a_i [0:1];
-  logic [4:0] alu_element_bmask_b_i [0:1];
-  logic [0:0] alu_element_clk [0:1];
-  logic [1:0] alu_element_clpx_shift_i [0:1];
-  logic [0:0] alu_element_comparison_result_o [0:1];
-  logic [0:0] alu_element_enable_i [0:1];
-  logic [0:0] alu_element_ex_ready_i [0:1];
-  logic [1:0] alu_element_imm_vec_ext_i [0:1];
-  logic [0:0] alu_element_is_clpx_i [0:1];
-  logic [0:0] alu_element_is_subrot_i [0:1];
-  logic [31:0] alu_element_operand_a_i [0:1];
-  logic [31:0] alu_element_operand_b_i [0:1];
-  logic [31:0] alu_element_operand_c_i [0:1];
-  logic [6:0] alu_element_operator_i [0:1];
-  logic [0:0] alu_element_ready_o [0:1];
-  logic [0:0] alu_element_reset [0:1];
-  logic [31:0] alu_element_result_o [0:1];
-  logic [1:0] alu_element_vector_mode_i [0:1];
+  logic [4:0] alu_element_bmask_a_i [2];
+  logic [4:0] alu_element_bmask_b_i [2];
+  logic  alu_element_clk [2];
+  logic [1:0] alu_element_clpx_shift_i [2];
+  logic  alu_element_comparison_result_o [2];
+  logic  alu_element_enable_i [2];
+  logic  alu_element_ex_ready_i [2];
+  logic [1:0] alu_element_imm_vec_ext_i [2];
+  logic  alu_element_is_clpx_i [2];
+  logic  alu_element_is_subrot_i [2];
+  logic [31:0] alu_element_operand_a_i [2];
+  logic [31:0] alu_element_operand_b_i [2];
+  logic [31:0] alu_element_operand_c_i [2];
+  logic [6:0] alu_element_operator_i [2];
+  logic  alu_element_ready_o [2];
+  logic  alu_element_reset [2];
+  logic [31:0] alu_element_result_o [2];
+  logic [1:0] alu_element_vector_mode_i [2];
 
   CV32E40P_ALU_noparam alu_element__0
   (
@@ -3672,42 +3672,42 @@ endmodule
 
 module FlexibleFuRTL__91761f0c1c309163
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] fu_dry_run_ack ,
-  input  logic [0:0] fu_dry_run_begin ,
-  input  logic [0:0] fu_execution_ini ,
-  input  logic [0:0] fu_execution_valid ,
-  input  logic [0:0] fu_opt_enable ,
-  input  logic [0:0] fu_propagate_en ,
-  output logic [0:0] fu_propagate_rdy ,
-  output logic [0:0] recv_const_ack ,
+  input  logic  clk ,
+  input  logic  fu_dry_run_ack ,
+  input  logic  fu_dry_run_begin ,
+  input  logic  fu_execution_ini ,
+  input  logic  fu_execution_valid ,
+  input  logic  fu_opt_enable ,
+  input  logic  fu_propagate_en ,
+  output logic  fu_propagate_rdy ,
+  output logic  recv_const_ack ,
   input  logic [31:0] recv_const_data ,
   input  logic [5:0] recv_opt_msg_ctrl ,
-  input  logic [2:0] recv_opt_msg_fu_in [0:3],
+  input  logic [2:0] recv_opt_msg_fu_in [4],
   input  logic [5:0] recv_opt_msg_out_routine ,
-  input  logic [0:0] recv_opt_msg_predicate ,
+  input  logic  recv_opt_msg_predicate ,
   output logic [3:0] recv_port_ack ,
-  input  CGRAData_64_1__payload_64__predicate_1 recv_port_data [0:3],
+  input  CGRAData_64_1__payload_64__predicate_1 recv_port_data [4],
   input  logic [3:0] recv_port_valid ,
-  output logic [0:0] recv_predicate_ack ,
+  output logic  recv_predicate_ack ,
   input  CGRAData_1__predicate_1 recv_predicate_data ,
-  input  logic [0:0] recv_predicate_valid ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] send_port_ack ,
-  output CGRAData_64_1__payload_64__predicate_1 send_port_data [0:1],
+  input  logic  recv_predicate_valid ,
+  input  logic  reset ,
+  input  logic  send_port_ack ,
+  output CGRAData_64_1__payload_64__predicate_1 send_port_data [2],
   output logic [1:0] send_port_valid ,
-  input logic [0:0] from_mem_rdata__en [0:5] ,
-  input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg [0:5] ,
-  output logic [0:0] from_mem_rdata__rdy [0:5] ,
-  output logic [0:0] to_mem_raddr__en [0:5] ,
-  output logic [6:0] to_mem_raddr__msg [0:5] ,
-  input logic [0:0] to_mem_raddr__rdy [0:5] ,
-  output logic [0:0] to_mem_waddr__en [0:5] ,
-  output logic [6:0] to_mem_waddr__msg [0:5] ,
-  input logic [0:0] to_mem_waddr__rdy [0:5] ,
-  output logic [0:0] to_mem_wdata__en [0:5] ,
-  output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg [0:5] ,
-  input logic [0:0] to_mem_wdata__rdy [0:5] 
+  input logic  from_mem_rdata__en [6] ,
+  input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg [6] ,
+  output logic  from_mem_rdata__rdy [6] ,
+  output logic  to_mem_raddr__en [6] ,
+  output logic [6:0] to_mem_raddr__msg [6] ,
+  input logic  to_mem_raddr__rdy [6] ,
+  output logic  to_mem_waddr__en [6] ,
+  output logic [6:0] to_mem_waddr__msg [6] ,
+  input logic  to_mem_waddr__rdy [6] ,
+  output logic  to_mem_wdata__en [6] ,
+  output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg [6] ,
+  input logic  to_mem_wdata__rdy [6] 
 );
   localparam logic [2:0] __const__num_xbar_outports_at_decode_process  = 3'd4;
   localparam logic [2:0] __const__num_xbar_inports_at_decode_process  = 3'd4;
@@ -3725,74 +3725,74 @@ module FlexibleFuRTL__91761f0c1c309163
   localparam logic [2:0] __const__num_xbar_inports_at_data_routing  = 3'd4;
   localparam logic [2:0] __const__fu_list_size_at_data_routing  = 3'd6;
   logic [1:0] cur_stage;
-  logic [0:0] fu_fin_rdy_nxt;
+  logic  fu_fin_rdy_nxt;
   logic [5:0] fu_handshake_vector_fu_fin_req_met;
   logic [3:0] fu_handshake_vector_xbar_mesh_in_valid_met;
-  logic [0:0] fu_launch_enable;
-  logic [0:0] fu_launch_finish;
-  logic [0:0] fu_launch_rdy;
-  logic [0:0] fu_launch_rdy_nxt;
+  logic  fu_launch_enable;
+  logic  fu_launch_finish;
+  logic  fu_launch_rdy;
+  logic  fu_launch_rdy_nxt;
   logic [5:0] fu_launch_rdy_nxt_vector;
   logic [5:0] fu_launch_rdy_vector;
-  logic [0:0] fu_mesh_in_done;
+  logic  fu_mesh_in_done;
   logic [5:0] fu_out_routine;
   logic [5:0] fu_pipeline_fin_en;
   logic [5:0] fu_pipeline_fin_propagate_en;
   logic [5:0] fu_pipeline_fin_req;
-  logic [0:0] fu_pipeline_fin_req_ack;
+  logic  fu_pipeline_fin_req_ack;
   logic [5:0] fu_pipeline_inter_en;
   logic [5:0] fu_recv_const_req_nxt_vector;
-  logic [0:0] fu_send_out_done;
-  logic [0:0] fu_send_out_finish;
-  logic [0:0] fu_send_out_okay;
-  logic [0:0] fu_send_out_valid;
-  logic [5:0] fu_send_port_valid_vector [0:1];
-  logic [3:0] fu_xbar_inport_sel [0:3];
-  logic [0:0] fu_xbar_mesh_in_valid;
-  logic [3:0] fu_xbar_outport_sel [0:3];
-  logic [3:0] fu_xbar_outport_sel_nxt [0:3];
-  logic [4:0] fu_xbar_outport_sel_nxt_decode [0:3];
-  logic [0:0] fu_xbar_recv_const_req;
-  logic [0:0] fu_xbar_recv_predicate_req;
-  CGRAData_64_1__payload_64__predicate_1 fu_xbar_send_data [0:3];
+  logic  fu_send_out_done;
+  logic  fu_send_out_finish;
+  logic  fu_send_out_okay;
+  logic  fu_send_out_valid;
+  logic [5:0] fu_send_port_valid_vector [2];
+  logic [3:0] fu_xbar_inport_sel [4];
+  logic  fu_xbar_mesh_in_valid;
+  logic [3:0] fu_xbar_outport_sel [4];
+  logic [3:0] fu_xbar_outport_sel_nxt [4];
+  logic [4:0] fu_xbar_outport_sel_nxt_decode [4];
+  logic  fu_xbar_recv_const_req;
+  logic  fu_xbar_recv_predicate_req;
+  CGRAData_64_1__payload_64__predicate_1 fu_xbar_send_data [4];
   logic [1:0] nxt_stage;
-  logic [0:0] recv_predicate_req_nxt;
+  logic  recv_predicate_req_nxt;
   logic [3:0] xbar_recv_port_req;
 
-  logic [0:0] fu__clk [0:5];
-  logic [0:0] fu__fu_fin_req [0:5];
-  logic [0:0] fu__opt_launch_en [0:5];
-  logic [0:0] fu__opt_launch_rdy [0:5];
-  logic [0:0] fu__opt_launch_rdy_nxt [0:5];
-  logic [0:0] fu__opt_pipeline_fin_en [0:5];
-  logic [0:0] fu__opt_pipeline_fin_propagate_en [0:5];
-  logic [0:0] fu__opt_pipeline_inter_en [0:5];
-  logic [0:0] fu__opt_propagate_en [0:5];
-  logic [31:0] fu__recv_const_msg [0:5];
-  logic [0:0] fu__recv_const_req [0:5];
-  logic [0:0] fu__recv_opt_en [0:5];
-  logic [5:0] fu__recv_opt_msg_ctrl [0:5];
-  logic [0:0] fu__recv_predicate_en [0:5];
-  CGRAData_1__predicate_1 fu__recv_predicate_msg [0:5];
-  logic [0:0] fu__reset [0:5];
-  logic [0:0] fu__from_mem_rdata__en [0:5];
-  CGRAData_64_1__payload_64__predicate_1 fu__from_mem_rdata__msg [0:5];
-  logic [0:0] fu__from_mem_rdata__rdy [0:5];
-  logic [0:0] fu__recv_in__en [0:5][0:3];
-  CGRAData_64_1__payload_64__predicate_1 fu__recv_in__msg [0:5][0:3];
-  logic [0:0] fu__recv_in__rdy [0:5][0:3];
-  logic [0:0] fu__send_out__en [0:5][0:1];
-  CGRAData_64_1__payload_64__predicate_1 fu__send_out__msg [0:5][0:1];
-  logic [0:0] fu__send_out__rdy [0:5][0:1];
-  logic [0:0] fu__to_mem_raddr__en [0:5];
-  logic [6:0] fu__to_mem_raddr__msg [0:5];
-  logic [0:0] fu__to_mem_raddr__rdy [0:5];
-  logic [0:0] fu__to_mem_waddr__en [0:5];
-  logic [6:0] fu__to_mem_waddr__msg [0:5];
-  logic [0:0] fu__to_mem_waddr__rdy [0:5];
-  logic [0:0] fu__to_mem_wdata__en [0:5];
-  CGRAData_64_1__payload_64__predicate_1 fu__to_mem_wdata__msg [0:5];
-  logic [0:0] fu__to_mem_wdata__rdy [0:5];
+  logic  fu__clk [6];
+  logic  fu__fu_fin_req [6];
+  logic  fu__opt_launch_en [6];
+  logic  fu__opt_launch_rdy [6];
+  logic  fu__opt_launch_rdy_nxt [6];
+  logic  fu__opt_pipeline_fin_en [6];
+  logic  fu__opt_pipeline_fin_propagate_en [6];
+  logic  fu__opt_pipeline_inter_en [6];
+  logic  fu__opt_propagate_en [6];
+  logic [31:0] fu__recv_const_msg [6];
+  logic  fu__recv_const_req [6];
+  logic  fu__recv_opt_en [6];
+  logic [5:0] fu__recv_opt_msg_ctrl [6];
+  logic  fu__recv_predicate_en [6];
+  CGRAData_1__predicate_1 fu__recv_predicate_msg [6];
+  logic  fu__reset [6];
+  logic  fu__from_mem_rdata__en [6];
+  CGRAData_64_1__payload_64__predicate_1 fu__from_mem_rdata__msg [6];
+  logic  fu__from_mem_rdata__rdy [6];
+  logic  fu__recv_in__en [6][4];
+  CGRAData_64_1__payload_64__predicate_1 fu__recv_in__msg [6][4];
+  logic  fu__recv_in__rdy [6][4];
+  logic  fu__send_out__en [6][2];
+  CGRAData_64_1__payload_64__predicate_1 fu__send_out__msg [6][2];
+  logic  fu__send_out__rdy [6][2];
+  logic  fu__to_mem_raddr__en [6];
+  logic [6:0] fu__to_mem_raddr__msg [6];
+  logic  fu__to_mem_raddr__rdy [6];
+  logic  fu__to_mem_waddr__en [6];
+  logic [6:0] fu__to_mem_waddr__msg [6];
+  logic  fu__to_mem_waddr__rdy [6];
+  logic  fu__to_mem_wdata__en [6];
+  CGRAData_64_1__payload_64__predicate_1 fu__to_mem_wdata__msg [6];
+  logic  fu__to_mem_wdata__rdy [6];
 
   AdderRTL__cad2bcaa3a8de18d fu__0
   (
@@ -4257,13 +4257,13 @@ module FlexibleFuRTL__91761f0c1c309163
   assign fu__to_mem_wdata__rdy[5] = to_mem_wdata__rdy[5];
   assign fu__recv_opt_msg_ctrl[0] = recv_opt_msg_ctrl;
   assign fu__recv_opt_en[0] = fu_opt_enable;
-  assign fu_recv_const_req_nxt_vector[0:0] = fu__recv_const_req[0];
-  assign fu_pipeline_fin_req[0:0] = fu__fu_fin_req[0];
-  assign fu_launch_rdy_nxt_vector[0:0] = fu__opt_launch_rdy_nxt[0];
-  assign fu_launch_rdy_vector[0:0] = fu__opt_launch_rdy[0];
-  assign fu__opt_pipeline_inter_en[0] = fu_pipeline_inter_en[0:0];
-  assign fu__opt_pipeline_fin_propagate_en[0] = fu_pipeline_fin_propagate_en[0:0];
-  assign fu__opt_pipeline_fin_en[0] = fu_pipeline_fin_en[0:0];
+  assign fu_recv_const_req_nxt_vector = fu__recv_const_req[0];
+  assign fu_pipeline_fin_req = fu__fu_fin_req[0];
+  assign fu_launch_rdy_nxt_vector = fu__opt_launch_rdy_nxt[0];
+  assign fu_launch_rdy_vector = fu__opt_launch_rdy[0];
+  assign fu__opt_pipeline_inter_en[0] = fu_pipeline_inter_en;
+  assign fu__opt_pipeline_fin_propagate_en[0] = fu_pipeline_fin_propagate_en;
+  assign fu__opt_pipeline_fin_en[0] = fu_pipeline_fin_en;
   assign fu__recv_in__msg[0][0] = fu_xbar_send_data[0];
   assign fu__recv_in__msg[0][1] = fu_xbar_send_data[1];
   assign fu__recv_in__msg[0][2] = fu_xbar_send_data[2];
@@ -4275,13 +4275,13 @@ module FlexibleFuRTL__91761f0c1c309163
   assign fu__recv_predicate_en[0] = fu_xbar_recv_predicate_req;
   assign fu__recv_opt_msg_ctrl[1] = recv_opt_msg_ctrl;
   assign fu__recv_opt_en[1] = fu_opt_enable;
-  assign fu_recv_const_req_nxt_vector[1:1] = fu__recv_const_req[1];
-  assign fu_pipeline_fin_req[1:1] = fu__fu_fin_req[1];
-  assign fu_launch_rdy_nxt_vector[1:1] = fu__opt_launch_rdy_nxt[1];
-  assign fu_launch_rdy_vector[1:1] = fu__opt_launch_rdy[1];
-  assign fu__opt_pipeline_inter_en[1] = fu_pipeline_inter_en[1:1];
-  assign fu__opt_pipeline_fin_propagate_en[1] = fu_pipeline_fin_propagate_en[1:1];
-  assign fu__opt_pipeline_fin_en[1] = fu_pipeline_fin_en[1:1];
+  assign fu_recv_const_req_nxt_vector[1] = fu__recv_const_req[1];
+  assign fu_pipeline_fin_req[1] = fu__fu_fin_req[1];
+  assign fu_launch_rdy_nxt_vector[1] = fu__opt_launch_rdy_nxt[1];
+  assign fu_launch_rdy_vector[1] = fu__opt_launch_rdy[1];
+  assign fu__opt_pipeline_inter_en[1] = fu_pipeline_inter_en[1];
+  assign fu__opt_pipeline_fin_propagate_en[1] = fu_pipeline_fin_propagate_en[1];
+  assign fu__opt_pipeline_fin_en[1] = fu_pipeline_fin_en[1];
   assign fu__recv_in__msg[1][0] = fu_xbar_send_data[0];
   assign fu__recv_in__msg[1][1] = fu_xbar_send_data[1];
   assign fu__recv_in__msg[1][2] = fu_xbar_send_data[2];
@@ -4293,13 +4293,13 @@ module FlexibleFuRTL__91761f0c1c309163
   assign fu__recv_predicate_en[1] = fu_xbar_recv_predicate_req;
   assign fu__recv_opt_msg_ctrl[2] = recv_opt_msg_ctrl;
   assign fu__recv_opt_en[2] = fu_opt_enable;
-  assign fu_recv_const_req_nxt_vector[2:2] = fu__recv_const_req[2];
-  assign fu_pipeline_fin_req[2:2] = fu__fu_fin_req[2];
-  assign fu_launch_rdy_nxt_vector[2:2] = fu__opt_launch_rdy_nxt[2];
-  assign fu_launch_rdy_vector[2:2] = fu__opt_launch_rdy[2];
-  assign fu__opt_pipeline_inter_en[2] = fu_pipeline_inter_en[2:2];
-  assign fu__opt_pipeline_fin_propagate_en[2] = fu_pipeline_fin_propagate_en[2:2];
-  assign fu__opt_pipeline_fin_en[2] = fu_pipeline_fin_en[2:2];
+  assign fu_recv_const_req_nxt_vector[2] = fu__recv_const_req[2];
+  assign fu_pipeline_fin_req[2] = fu__fu_fin_req[2];
+  assign fu_launch_rdy_nxt_vector[2] = fu__opt_launch_rdy_nxt[2];
+  assign fu_launch_rdy_vector[2] = fu__opt_launch_rdy[2];
+  assign fu__opt_pipeline_inter_en[2] = fu_pipeline_inter_en[2];
+  assign fu__opt_pipeline_fin_propagate_en[2] = fu_pipeline_fin_propagate_en[2];
+  assign fu__opt_pipeline_fin_en[2] = fu_pipeline_fin_en[2];
   assign fu__recv_in__msg[2][0] = fu_xbar_send_data[0];
   assign fu__recv_in__msg[2][1] = fu_xbar_send_data[1];
   assign fu__recv_in__msg[2][2] = fu_xbar_send_data[2];
@@ -4311,13 +4311,13 @@ module FlexibleFuRTL__91761f0c1c309163
   assign fu__recv_predicate_en[2] = fu_xbar_recv_predicate_req;
   assign fu__recv_opt_msg_ctrl[3] = recv_opt_msg_ctrl;
   assign fu__recv_opt_en[3] = fu_opt_enable;
-  assign fu_recv_const_req_nxt_vector[3:3] = fu__recv_const_req[3];
-  assign fu_pipeline_fin_req[3:3] = fu__fu_fin_req[3];
-  assign fu_launch_rdy_nxt_vector[3:3] = fu__opt_launch_rdy_nxt[3];
-  assign fu_launch_rdy_vector[3:3] = fu__opt_launch_rdy[3];
-  assign fu__opt_pipeline_inter_en[3] = fu_pipeline_inter_en[3:3];
-  assign fu__opt_pipeline_fin_propagate_en[3] = fu_pipeline_fin_propagate_en[3:3];
-  assign fu__opt_pipeline_fin_en[3] = fu_pipeline_fin_en[3:3];
+  assign fu_recv_const_req_nxt_vector[3] = fu__recv_const_req[3];
+  assign fu_pipeline_fin_req[3] = fu__fu_fin_req[3];
+  assign fu_launch_rdy_nxt_vector[3] = fu__opt_launch_rdy_nxt[3];
+  assign fu_launch_rdy_vector[3] = fu__opt_launch_rdy[3];
+  assign fu__opt_pipeline_inter_en[3] = fu_pipeline_inter_en[3];
+  assign fu__opt_pipeline_fin_propagate_en[3] = fu_pipeline_fin_propagate_en[3];
+  assign fu__opt_pipeline_fin_en[3] = fu_pipeline_fin_en[3];
   assign fu__recv_in__msg[3][0] = fu_xbar_send_data[0];
   assign fu__recv_in__msg[3][1] = fu_xbar_send_data[1];
   assign fu__recv_in__msg[3][2] = fu_xbar_send_data[2];
@@ -4329,13 +4329,13 @@ module FlexibleFuRTL__91761f0c1c309163
   assign fu__recv_predicate_en[3] = fu_xbar_recv_predicate_req;
   assign fu__recv_opt_msg_ctrl[4] = recv_opt_msg_ctrl;
   assign fu__recv_opt_en[4] = fu_opt_enable;
-  assign fu_recv_const_req_nxt_vector[4:4] = fu__recv_const_req[4];
-  assign fu_pipeline_fin_req[4:4] = fu__fu_fin_req[4];
-  assign fu_launch_rdy_nxt_vector[4:4] = fu__opt_launch_rdy_nxt[4];
-  assign fu_launch_rdy_vector[4:4] = fu__opt_launch_rdy[4];
-  assign fu__opt_pipeline_inter_en[4] = fu_pipeline_inter_en[4:4];
-  assign fu__opt_pipeline_fin_propagate_en[4] = fu_pipeline_fin_propagate_en[4:4];
-  assign fu__opt_pipeline_fin_en[4] = fu_pipeline_fin_en[4:4];
+  assign fu_recv_const_req_nxt_vector[4] = fu__recv_const_req[4];
+  assign fu_pipeline_fin_req[4] = fu__fu_fin_req[4];
+  assign fu_launch_rdy_nxt_vector[4] = fu__opt_launch_rdy_nxt[4];
+  assign fu_launch_rdy_vector[4] = fu__opt_launch_rdy[4];
+  assign fu__opt_pipeline_inter_en[4] = fu_pipeline_inter_en[4];
+  assign fu__opt_pipeline_fin_propagate_en[4] = fu_pipeline_fin_propagate_en[4];
+  assign fu__opt_pipeline_fin_en[4] = fu_pipeline_fin_en[4];
   assign fu__recv_in__msg[4][0] = fu_xbar_send_data[0];
   assign fu__recv_in__msg[4][1] = fu_xbar_send_data[1];
   assign fu__recv_in__msg[4][2] = fu_xbar_send_data[2];
@@ -4347,13 +4347,13 @@ module FlexibleFuRTL__91761f0c1c309163
   assign fu__recv_predicate_en[4] = fu_xbar_recv_predicate_req;
   assign fu__recv_opt_msg_ctrl[5] = recv_opt_msg_ctrl;
   assign fu__recv_opt_en[5] = fu_opt_enable;
-  assign fu_recv_const_req_nxt_vector[5:5] = fu__recv_const_req[5];
-  assign fu_pipeline_fin_req[5:5] = fu__fu_fin_req[5];
-  assign fu_launch_rdy_nxt_vector[5:5] = fu__opt_launch_rdy_nxt[5];
-  assign fu_launch_rdy_vector[5:5] = fu__opt_launch_rdy[5];
-  assign fu__opt_pipeline_inter_en[5] = fu_pipeline_inter_en[5:5];
-  assign fu__opt_pipeline_fin_propagate_en[5] = fu_pipeline_fin_propagate_en[5:5];
-  assign fu__opt_pipeline_fin_en[5] = fu_pipeline_fin_en[5:5];
+  assign fu_recv_const_req_nxt_vector[5] = fu__recv_const_req[5];
+  assign fu_pipeline_fin_req[5] = fu__fu_fin_req[5];
+  assign fu_launch_rdy_nxt_vector[5] = fu__opt_launch_rdy_nxt[5];
+  assign fu_launch_rdy_vector[5] = fu__opt_launch_rdy[5];
+  assign fu__opt_pipeline_inter_en[5] = fu_pipeline_inter_en[5];
+  assign fu__opt_pipeline_fin_propagate_en[5] = fu_pipeline_fin_propagate_en[5];
+  assign fu__opt_pipeline_fin_en[5] = fu_pipeline_fin_en[5];
   assign fu__recv_in__msg[5][0] = fu_xbar_send_data[0];
   assign fu__recv_in__msg[5][1] = fu_xbar_send_data[1];
   assign fu__recv_in__msg[5][2] = fu_xbar_send_data[2];
@@ -4370,11 +4370,11 @@ endmodule
 
 module Mux__Type_CGRAData_64_1__payload_64__predicate_1__ninputs_2
 (
-  input  logic [0:0] clk ,
-  input  CGRAData_64_1__payload_64__predicate_1 in_ [0:1],
+  input  logic  clk ,
+  input  CGRAData_64_1__payload_64__predicate_1 in_ [2],
   output CGRAData_64_1__payload_64__predicate_1 out ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] sel 
+  input  logic  reset ,
+  input  logic  sel 
 );
 
   
@@ -4388,11 +4388,11 @@ endmodule
 
 module Mux__Type_Bits1__ninputs_2
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] in_ [0:1],
-  output logic [0:0] out ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] sel 
+  input  logic  clk ,
+  input  logic  in_ [2],
+  output logic  out ,
+  input  logic  reset ,
+  input  logic  sel 
 );
 
   
@@ -4406,18 +4406,18 @@ endmodule
 
 module NormalQueueDpath__43e370cfe3e82577
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
+  input  logic  clk ,
+  input  logic  config_ini ,
   output CGRAData_1__predicate_1 deq_msg ,
   input  CGRAData_1__predicate_1 enq_msg ,
-  input  logic [0:0] raddr ,
-  input  logic [0:0] ren ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] waddr ,
-  input  logic [0:0] wen 
+  input  logic  raddr ,
+  input  logic  ren ,
+  input  logic  reset ,
+  input  logic  waddr ,
+  input  logic  wen 
 );
   localparam logic [1:0] __const__num_entries_at_up_rf_write  = 2'd2;
-  CGRAData_1__predicate_1 regs [0:1];
+  CGRAData_1__predicate_1 regs [2];
   CGRAData_1__predicate_1 regs_rdata;
 
   
@@ -4446,33 +4446,33 @@ endmodule
 
 module NormalQueue__3f9a19444e1f3cf6
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
-  input  logic [0:0] deq_en ,
+  input  logic  clk ,
+  input  logic  config_ini ,
+  input  logic  deq_en ,
   output CGRAData_1__predicate_1 deq_msg ,
-  output logic [0:0] deq_valid ,
-  input  logic [0:0] dry_run_done ,
-  input  logic [0:0] enq_en ,
+  output logic  deq_valid ,
+  input  logic  dry_run_done ,
+  input  logic  enq_en ,
   input  CGRAData_1__predicate_1 enq_msg ,
-  output logic [0:0] enq_rdy ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] sync_dry_run 
+  output logic  enq_rdy ,
+  input  logic  reset ,
+  input  logic  sync_dry_run 
 );
 
-  logic [0:0] ctrl__clk;
-  logic [0:0] ctrl__config_ini;
+  logic  ctrl__clk;
+  logic  ctrl__config_ini;
   logic [1:0] ctrl__count;
-  logic [0:0] ctrl__deq_en;
-  logic [0:0] ctrl__deq_valid;
-  logic [0:0] ctrl__dry_run_done;
-  logic [0:0] ctrl__enq_en;
-  logic [0:0] ctrl__enq_rdy;
-  logic [0:0] ctrl__raddr;
-  logic [0:0] ctrl__ren;
-  logic [0:0] ctrl__reset;
-  logic [0:0] ctrl__sync_dry_run;
-  logic [0:0] ctrl__waddr;
-  logic [0:0] ctrl__wen;
+  logic  ctrl__deq_en;
+  logic  ctrl__deq_valid;
+  logic  ctrl__dry_run_done;
+  logic  ctrl__enq_en;
+  logic  ctrl__enq_rdy;
+  logic  ctrl__raddr;
+  logic  ctrl__ren;
+  logic  ctrl__reset;
+  logic  ctrl__sync_dry_run;
+  logic  ctrl__waddr;
+  logic  ctrl__wen;
 
   NormalQueueCtrl__num_entries_2__dry_run_enable_True ctrl
   (
@@ -4494,15 +4494,15 @@ module NormalQueue__3f9a19444e1f3cf6
 
 
 
-  logic [0:0] dpath__clk;
-  logic [0:0] dpath__config_ini;
+  logic  dpath__clk;
+  logic  dpath__config_ini;
   CGRAData_1__predicate_1 dpath__deq_msg;
   CGRAData_1__predicate_1 dpath__enq_msg;
-  logic [0:0] dpath__raddr;
-  logic [0:0] dpath__ren;
-  logic [0:0] dpath__reset;
-  logic [0:0] dpath__waddr;
-  logic [0:0] dpath__wen;
+  logic  dpath__raddr;
+  logic  dpath__ren;
+  logic  dpath__reset;
+  logic  dpath__waddr;
+  logic  dpath__wen;
 
   NormalQueueDpath__43e370cfe3e82577 dpath
   (
@@ -4543,30 +4543,30 @@ endmodule
 
 module ChannelRTL__da1c96117c8ab406
 (
-  input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
-  input  logic [0:0] dry_run_done ,
-  input  logic [0:0] recv_en ,
+  input  logic  clk ,
+  input  logic  config_ini ,
+  input  logic  dry_run_done ,
+  input  logic  recv_en ,
   input  CGRAData_1__predicate_1 recv_msg ,
-  output logic [0:0] recv_rdy ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] send_en ,
+  output logic  recv_rdy ,
+  input  logic  reset ,
+  input  logic  send_en ,
   output CGRAData_1__predicate_1 send_msg ,
-  output logic [0:0] send_valid ,
-  input  logic [0:0] sync_dry_run 
+  output logic  send_valid ,
+  input  logic  sync_dry_run 
 );
 
-  logic [0:0] queue__clk;
-  logic [0:0] queue__config_ini;
-  logic [0:0] queue__deq_en;
+  logic  queue__clk;
+  logic  queue__config_ini;
+  logic  queue__deq_en;
   CGRAData_1__predicate_1 queue__deq_msg;
-  logic [0:0] queue__deq_valid;
-  logic [0:0] queue__dry_run_done;
-  logic [0:0] queue__enq_en;
+  logic  queue__deq_valid;
+  logic  queue__dry_run_done;
+  logic  queue__enq_en;
   CGRAData_1__predicate_1 queue__enq_msg;
-  logic [0:0] queue__enq_rdy;
-  logic [0:0] queue__reset;
-  logic [0:0] queue__sync_dry_run;
+  logic  queue__enq_rdy;
+  logic  queue__reset;
+  logic  queue__sync_dry_run;
 
   NormalQueue__3f9a19444e1f3cf6 queue
   (
@@ -4602,11 +4602,11 @@ endmodule
 
 module Mux__Type_CGRAConfig_6_4_6_8_6__70c95bde83d8947c__ninputs_2
 (
-  input  logic [0:0] clk ,
-  input  CGRAConfig_6_4_6_8_6__70c95bde83d8947c in_ [0:1],
+  input  logic  clk ,
+  input  CGRAConfig_6_4_6_8_6__70c95bde83d8947c in_ [2],
   output CGRAConfig_6_4_6_8_6__70c95bde83d8947c out ,
-  input  logic [0:0] reset ,
-  input  logic [0:0] sel 
+  input  logic  reset ,
+  input  logic  sel 
 );
 
   
@@ -4620,61 +4620,61 @@ endmodule
 
 module TileRTL__4db54fb92d7fbf49
 (
-  input  logic [0:0] clk ,
+  input  logic  clk ,
   input  logic [5:0] config_cmd_counter_th ,
   input  logic [5:0] config_data_counter_th ,
-  input  logic [0:0] ctrl_slice_idx ,
+  input  logic  ctrl_slice_idx ,
   input  logic [31:0] recv_const ,
-  input  logic [0:0] recv_const_en ,
+  input  logic  recv_const_en ,
   input  logic [4:0] recv_const_waddr ,
-  input  CGRAData_64_1__payload_64__predicate_1 recv_data [0:3],
-  output logic [0:0] recv_data_ack [0:3],
-  input  logic [0:0] recv_data_valid [0:3],
+  input  CGRAData_64_1__payload_64__predicate_1 recv_data [4],
+  output logic  recv_data_ack [4],
+  input  logic  recv_data_valid [4],
   input  logic [4:0] recv_opt_waddr ,
-  input  logic [0:0] recv_opt_waddr_en ,
+  input  logic  recv_opt_waddr_en ,
   input  logic [31:0] recv_wopt ,
-  input  logic [0:0] recv_wopt_en ,
-  input  logic [0:0] reset ,
-  output CGRAData_64_1__payload_64__predicate_1 send_data [0:3],
-  input  logic [0:0] send_data_ack [0:3],
-  output logic [0:0] send_data_valid [0:3],
-  input  logic [0:0] tile_config_ini_begin ,
-  input  logic [0:0] tile_dry_run_ack ,
-  input  logic [0:0] tile_dry_run_done ,
-  input  logic [0:0] tile_execution_begin ,
-  input  logic [0:0] tile_execution_ini_begin ,
-  input  logic [0:0] tile_execution_valid ,
-  output logic [0:0] tile_fu_propagate_rdy ,
-  output logic [0:0] tile_xbar_propagate_rdy ,
-  input logic [0:0] from_mem_rdata__en  ,
+  input  logic  recv_wopt_en ,
+  input  logic  reset ,
+  output CGRAData_64_1__payload_64__predicate_1 send_data [4],
+  input  logic  send_data_ack [4],
+  output logic  send_data_valid [4],
+  input  logic  tile_config_ini_begin ,
+  input  logic  tile_dry_run_ack ,
+  input  logic  tile_dry_run_done ,
+  input  logic  tile_execution_begin ,
+  input  logic  tile_execution_ini_begin ,
+  input  logic  tile_execution_valid ,
+  output logic  tile_fu_propagate_rdy ,
+  output logic  tile_xbar_propagate_rdy ,
+  input logic  from_mem_rdata__en  ,
   input CGRAData_64_1__payload_64__predicate_1 from_mem_rdata__msg  ,
-  output logic [0:0] from_mem_rdata__rdy  ,
-  output logic [0:0] to_mem_raddr__en  ,
+  output logic  from_mem_rdata__rdy  ,
+  output logic  to_mem_raddr__en  ,
   output logic [6:0] to_mem_raddr__msg  ,
-  input logic [0:0] to_mem_raddr__rdy  ,
-  output logic [0:0] to_mem_waddr__en  ,
+  input logic  to_mem_raddr__rdy  ,
+  output logic  to_mem_waddr__en  ,
   output logic [6:0] to_mem_waddr__msg  ,
-  input logic [0:0] to_mem_waddr__rdy  ,
-  output logic [0:0] to_mem_wdata__en  ,
+  input logic  to_mem_waddr__rdy  ,
+  output logic  to_mem_wdata__en  ,
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
-  input logic [0:0] to_mem_wdata__rdy  
+  input logic  to_mem_wdata__rdy  
 );
   CGRAConfig_6_4_6_8_6__70c95bde83d8947c tile_ctrl_msg;
-  logic [0:0] tile_dry_run_begin;
-  logic [0:0] tile_opt_enable;
-  logic [0:0] tile_propagate_en;
+  logic  tile_dry_run_begin;
+  logic  tile_opt_enable;
+  logic  tile_propagate_en;
 
-  logic [0:0] channel__clk [0:7];
-  logic [0:0] channel__config_ini [0:7];
-  logic [0:0] channel__dry_run_done [0:7];
-  logic [0:0] channel__recv_en [0:7];
-  CGRAData_64_1__payload_64__predicate_1 channel__recv_msg [0:7];
-  logic [0:0] channel__recv_rdy [0:7];
-  logic [0:0] channel__reset [0:7];
-  logic [0:0] channel__send_en [0:7];
-  CGRAData_64_1__payload_64__predicate_1 channel__send_msg [0:7];
-  logic [0:0] channel__send_valid [0:7];
-  logic [0:0] channel__sync_dry_run [0:7];
+  logic  channel__clk [8];
+  logic  channel__config_ini [8];
+  logic  channel__dry_run_done [8];
+  logic  channel__recv_en [8];
+  CGRAData_64_1__payload_64__predicate_1 channel__recv_msg [8];
+  logic  channel__recv_rdy [8];
+  logic  channel__reset [8];
+  logic  channel__send_en [8];
+  CGRAData_64_1__payload_64__predicate_1 channel__send_msg [8];
+  logic  channel__send_valid [8];
+  logic  channel__sync_dry_run [8];
 
   ChannelRTL__511b7cda5540ec2e channel__0
   (
@@ -4798,15 +4798,15 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] const_queue__clk;
-  logic [0:0] const_queue__config_ini;
-  logic [0:0] const_queue__dry_run_done;
-  logic [0:0] const_queue__execution_ini;
+  logic  const_queue__clk;
+  logic  const_queue__config_ini;
+  logic  const_queue__dry_run_done;
+  logic  const_queue__execution_ini;
   logic [31:0] const_queue__recv_const;
-  logic [0:0] const_queue__recv_const_en;
+  logic  const_queue__recv_const_en;
   logic [4:0] const_queue__recv_const_waddr;
-  logic [0:0] const_queue__reset;
-  logic [0:0] const_queue__send_const_en;
+  logic  const_queue__reset;
+  logic  const_queue__send_const_en;
   logic [31:0] const_queue__send_const_msg;
 
   ConstQueueRTL__a158caae8f1a5180 const_queue
@@ -4825,28 +4825,28 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] crossbar__clk;
-  logic [2:0] crossbar__recv_opt_msg_outport [0:7];
+  logic  crossbar__clk;
+  logic [2:0] crossbar__recv_opt_msg_outport [8];
   logic [5:0] crossbar__recv_opt_msg_predicate_in;
-  CGRAData_64_1__payload_64__predicate_1 crossbar__recv_port_data [0:5];
-  logic [0:0] crossbar__recv_port_fu_out_ack;
+  CGRAData_64_1__payload_64__predicate_1 crossbar__recv_port_data [6];
+  logic  crossbar__recv_port_fu_out_ack;
   logic [3:0] crossbar__recv_port_mesh_in_ack;
   logic [5:0] crossbar__recv_port_valid;
-  logic [0:0] crossbar__reset;
+  logic  crossbar__reset;
   logic [3:0] crossbar__send_bypass_data_valid;
   logic [3:0] crossbar__send_bypass_port_ack;
   logic [3:0] crossbar__send_bypass_req;
-  CGRAData_64_1__payload_64__predicate_1 crossbar__send_data_bypass [0:3];
-  CGRAData_64_1__payload_64__predicate_1 crossbar__send_port_data [0:7];
+  CGRAData_64_1__payload_64__predicate_1 crossbar__send_data_bypass [4];
+  CGRAData_64_1__payload_64__predicate_1 crossbar__send_port_data [8];
   logic [8:0] crossbar__send_port_en;
   logic [7:0] crossbar__send_port_rdy;
   CGRAData_1__predicate_1 crossbar__send_predicate;
-  logic [0:0] crossbar__send_predicate_rdy;
-  logic [0:0] crossbar__xbar_dry_run_ack;
-  logic [0:0] crossbar__xbar_dry_run_begin;
-  logic [0:0] crossbar__xbar_opt_enable;
-  logic [0:0] crossbar__xbar_propagate_en;
-  logic [0:0] crossbar__xbar_propagate_rdy;
+  logic  crossbar__send_predicate_rdy;
+  logic  crossbar__xbar_dry_run_ack;
+  logic  crossbar__xbar_dry_run_begin;
+  logic  crossbar__xbar_opt_enable;
+  logic  crossbar__xbar_propagate_en;
+  logic  crossbar__xbar_propagate_rdy;
 
   CrossbarRTL__9e234a3e66000aaa crossbar
   (
@@ -4876,17 +4876,17 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] ctrl_mem__clk;
+  logic  ctrl_mem__clk;
   logic [5:0] ctrl_mem__cmd_counter_th;
-  logic [0:0] ctrl_mem__execution_ini;
-  logic [0:0] ctrl_mem__nxt_ctrl_en;
+  logic  ctrl_mem__execution_ini;
+  logic  ctrl_mem__nxt_ctrl_en;
   CGRAConfig_6_4_6_8_6__70c95bde83d8947c ctrl_mem__recv_ctrl_msg;
   logic [31:0] ctrl_mem__recv_ctrl_slice;
-  logic [0:0] ctrl_mem__recv_ctrl_slice_en;
-  logic [0:0] ctrl_mem__recv_ctrl_slice_idx;
+  logic  ctrl_mem__recv_ctrl_slice_en;
+  logic  ctrl_mem__recv_ctrl_slice_idx;
   logic [4:0] ctrl_mem__recv_waddr;
-  logic [0:0] ctrl_mem__recv_waddr_en;
-  logic [0:0] ctrl_mem__reset;
+  logic  ctrl_mem__recv_waddr_en;
+  logic  ctrl_mem__reset;
   CGRAConfig_6_4_6_8_6__70c95bde83d8947c ctrl_mem__send_ctrl_msg;
 
   CtrlMemRTL__a01c7414dc24348f ctrl_mem
@@ -4907,11 +4907,11 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] demux_bypass_ack__clk [0:3];
-  logic [0:0] demux_bypass_ack__in_ [0:3];
-  logic [0:0] demux_bypass_ack__out [0:3][0:1];
-  logic [0:0] demux_bypass_ack__reset [0:3];
-  logic [0:0] demux_bypass_ack__sel [0:3];
+  logic  demux_bypass_ack__clk [4];
+  logic  demux_bypass_ack__in_ [4];
+  logic  demux_bypass_ack__out [4][2];
+  logic  demux_bypass_ack__reset [4];
+  logic  demux_bypass_ack__sel [4];
 
   Demux__Type_Bits1__noutputs_2 demux_bypass_ack__0
   (
@@ -4951,42 +4951,42 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] element__clk;
-  logic [0:0] element__fu_dry_run_ack;
-  logic [0:0] element__fu_dry_run_begin;
-  logic [0:0] element__fu_execution_ini;
-  logic [0:0] element__fu_execution_valid;
-  logic [0:0] element__fu_opt_enable;
-  logic [0:0] element__fu_propagate_en;
-  logic [0:0] element__fu_propagate_rdy;
-  logic [0:0] element__recv_const_ack;
+  logic  element__clk;
+  logic  element__fu_dry_run_ack;
+  logic  element__fu_dry_run_begin;
+  logic  element__fu_execution_ini;
+  logic  element__fu_execution_valid;
+  logic  element__fu_opt_enable;
+  logic  element__fu_propagate_en;
+  logic  element__fu_propagate_rdy;
+  logic  element__recv_const_ack;
   logic [31:0] element__recv_const_data;
   logic [5:0] element__recv_opt_msg_ctrl;
-  logic [2:0] element__recv_opt_msg_fu_in [0:3];
+  logic [2:0] element__recv_opt_msg_fu_in [4];
   logic [5:0] element__recv_opt_msg_out_routine;
-  logic [0:0] element__recv_opt_msg_predicate;
+  logic  element__recv_opt_msg_predicate;
   logic [3:0] element__recv_port_ack;
-  CGRAData_64_1__payload_64__predicate_1 element__recv_port_data [0:3];
+  CGRAData_64_1__payload_64__predicate_1 element__recv_port_data [4];
   logic [3:0] element__recv_port_valid;
-  logic [0:0] element__recv_predicate_ack;
+  logic  element__recv_predicate_ack;
   CGRAData_1__predicate_1 element__recv_predicate_data;
-  logic [0:0] element__recv_predicate_valid;
-  logic [0:0] element__reset;
-  logic [0:0] element__send_port_ack;
-  CGRAData_64_1__payload_64__predicate_1 element__send_port_data [0:1];
+  logic  element__recv_predicate_valid;
+  logic  element__reset;
+  logic  element__send_port_ack;
+  CGRAData_64_1__payload_64__predicate_1 element__send_port_data [2];
   logic [1:0] element__send_port_valid;
-  logic [0:0] element__from_mem_rdata__en [0:5];
-  CGRAData_64_1__payload_64__predicate_1 element__from_mem_rdata__msg [0:5];
-  logic [0:0] element__from_mem_rdata__rdy [0:5];
-  logic [0:0] element__to_mem_raddr__en [0:5];
-  logic [6:0] element__to_mem_raddr__msg [0:5];
-  logic [0:0] element__to_mem_raddr__rdy [0:5];
-  logic [0:0] element__to_mem_waddr__en [0:5];
-  logic [6:0] element__to_mem_waddr__msg [0:5];
-  logic [0:0] element__to_mem_waddr__rdy [0:5];
-  logic [0:0] element__to_mem_wdata__en [0:5];
-  CGRAData_64_1__payload_64__predicate_1 element__to_mem_wdata__msg [0:5];
-  logic [0:0] element__to_mem_wdata__rdy [0:5];
+  logic  element__from_mem_rdata__en [6];
+  CGRAData_64_1__payload_64__predicate_1 element__from_mem_rdata__msg [6];
+  logic  element__from_mem_rdata__rdy [6];
+  logic  element__to_mem_raddr__en [6];
+  logic [6:0] element__to_mem_raddr__msg [6];
+  logic  element__to_mem_raddr__rdy [6];
+  logic  element__to_mem_waddr__en [6];
+  logic [6:0] element__to_mem_waddr__msg [6];
+  logic  element__to_mem_waddr__rdy [6];
+  logic  element__to_mem_wdata__en [6];
+  CGRAData_64_1__payload_64__predicate_1 element__to_mem_wdata__msg [6];
+  logic  element__to_mem_wdata__rdy [6];
 
   FlexibleFuRTL__91761f0c1c309163 element
   (
@@ -5030,11 +5030,11 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] mux_bypass_data__clk [0:3];
-  CGRAData_64_1__payload_64__predicate_1 mux_bypass_data__in_ [0:3][0:1];
-  CGRAData_64_1__payload_64__predicate_1 mux_bypass_data__out [0:3];
-  logic [0:0] mux_bypass_data__reset [0:3];
-  logic [0:0] mux_bypass_data__sel [0:3];
+  logic  mux_bypass_data__clk [4];
+  CGRAData_64_1__payload_64__predicate_1 mux_bypass_data__in_ [4][2];
+  CGRAData_64_1__payload_64__predicate_1 mux_bypass_data__out [4];
+  logic  mux_bypass_data__reset [4];
+  logic  mux_bypass_data__sel [4];
 
   Mux__Type_CGRAData_64_1__payload_64__predicate_1__ninputs_2 mux_bypass_data__0
   (
@@ -5074,11 +5074,11 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] mux_bypass_valid__clk [0:3];
-  logic [0:0] mux_bypass_valid__in_ [0:3][0:1];
-  logic [0:0] mux_bypass_valid__out [0:3];
-  logic [0:0] mux_bypass_valid__reset [0:3];
-  logic [0:0] mux_bypass_valid__sel [0:3];
+  logic  mux_bypass_valid__clk [4];
+  logic  mux_bypass_valid__in_ [4][2];
+  logic  mux_bypass_valid__out [4];
+  logic  mux_bypass_valid__reset [4];
+  logic  mux_bypass_valid__sel [4];
 
   Mux__Type_Bits1__ninputs_2 mux_bypass_valid__0
   (
@@ -5118,17 +5118,17 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] reg_predicate__clk;
-  logic [0:0] reg_predicate__config_ini;
-  logic [0:0] reg_predicate__dry_run_done;
-  logic [0:0] reg_predicate__recv_en;
+  logic  reg_predicate__clk;
+  logic  reg_predicate__config_ini;
+  logic  reg_predicate__dry_run_done;
+  logic  reg_predicate__recv_en;
   CGRAData_1__predicate_1 reg_predicate__recv_msg;
-  logic [0:0] reg_predicate__recv_rdy;
-  logic [0:0] reg_predicate__reset;
-  logic [0:0] reg_predicate__send_en;
+  logic  reg_predicate__recv_rdy;
+  logic  reg_predicate__reset;
+  logic  reg_predicate__send_en;
   CGRAData_1__predicate_1 reg_predicate__send_msg;
-  logic [0:0] reg_predicate__send_valid;
-  logic [0:0] reg_predicate__sync_dry_run;
+  logic  reg_predicate__send_valid;
+  logic  reg_predicate__sync_dry_run;
 
   ChannelRTL__da1c96117c8ab406 reg_predicate
   (
@@ -5147,11 +5147,11 @@ module TileRTL__4db54fb92d7fbf49
 
 
 
-  logic [0:0] tile_ctrl_mux__clk;
-  CGRAConfig_6_4_6_8_6__70c95bde83d8947c tile_ctrl_mux__in_ [0:1];
+  logic  tile_ctrl_mux__clk;
+  CGRAConfig_6_4_6_8_6__70c95bde83d8947c tile_ctrl_mux__in_ [2];
   CGRAConfig_6_4_6_8_6__70c95bde83d8947c tile_ctrl_mux__out;
-  logic [0:0] tile_ctrl_mux__reset;
-  logic [0:0] tile_ctrl_mux__sel;
+  logic  tile_ctrl_mux__reset;
+  logic  tile_ctrl_mux__sel;
 
   Mux__Type_CGRAConfig_6_4_6_8_6__70c95bde83d8947c__ninputs_2 tile_ctrl_mux
   (
@@ -5279,103 +5279,103 @@ module TileRTL__4db54fb92d7fbf49
   assign crossbar__recv_opt_msg_outport[5] = tile_ctrl_msg.outport[5];
   assign crossbar__recv_opt_msg_outport[6] = tile_ctrl_msg.outport[6];
   assign crossbar__recv_opt_msg_outport[7] = tile_ctrl_msg.outport[7];
-  assign crossbar__recv_opt_msg_predicate_in[0:0] = tile_ctrl_msg.predicate_in[0];
-  assign crossbar__recv_opt_msg_predicate_in[1:1] = tile_ctrl_msg.predicate_in[1];
-  assign crossbar__recv_opt_msg_predicate_in[2:2] = tile_ctrl_msg.predicate_in[2];
-  assign crossbar__recv_opt_msg_predicate_in[3:3] = tile_ctrl_msg.predicate_in[3];
-  assign crossbar__recv_opt_msg_predicate_in[4:4] = tile_ctrl_msg.predicate_in[4];
-  assign crossbar__recv_opt_msg_predicate_in[5:5] = tile_ctrl_msg.predicate_in[5];
+  assign crossbar__recv_opt_msg_predicate_in = tile_ctrl_msg.predicate_in[0];
+  assign crossbar__recv_opt_msg_predicate_in[1] = tile_ctrl_msg.predicate_in[1];
+  assign crossbar__recv_opt_msg_predicate_in[2] = tile_ctrl_msg.predicate_in[2];
+  assign crossbar__recv_opt_msg_predicate_in[3] = tile_ctrl_msg.predicate_in[3];
+  assign crossbar__recv_opt_msg_predicate_in[4] = tile_ctrl_msg.predicate_in[4];
+  assign crossbar__recv_opt_msg_predicate_in[5] = tile_ctrl_msg.predicate_in[5];
   assign crossbar__xbar_opt_enable = tile_opt_enable;
   assign crossbar__xbar_dry_run_begin = tile_dry_run_begin;
   assign crossbar__xbar_dry_run_ack = tile_dry_run_ack;
   assign crossbar__xbar_propagate_en = tile_propagate_en;
   assign crossbar__recv_port_data[0] = recv_data[0];
-  assign recv_data_ack[0] = crossbar__recv_port_mesh_in_ack[0:0];
-  assign crossbar__recv_port_valid[0:0] = recv_data_valid[0];
+  assign recv_data_ack[0] = crossbar__recv_port_mesh_in_ack;
+  assign crossbar__recv_port_valid = recv_data_valid[0];
   assign crossbar__recv_port_data[1] = recv_data[1];
-  assign recv_data_ack[1] = crossbar__recv_port_mesh_in_ack[1:1];
-  assign crossbar__recv_port_valid[1:1] = recv_data_valid[1];
+  assign recv_data_ack[1] = crossbar__recv_port_mesh_in_ack[1];
+  assign crossbar__recv_port_valid[1] = recv_data_valid[1];
   assign crossbar__recv_port_data[2] = recv_data[2];
-  assign recv_data_ack[2] = crossbar__recv_port_mesh_in_ack[2:2];
-  assign crossbar__recv_port_valid[2:2] = recv_data_valid[2];
+  assign recv_data_ack[2] = crossbar__recv_port_mesh_in_ack[2];
+  assign crossbar__recv_port_valid[2] = recv_data_valid[2];
   assign crossbar__recv_port_data[3] = recv_data[3];
-  assign recv_data_ack[3] = crossbar__recv_port_mesh_in_ack[3:3];
-  assign crossbar__recv_port_valid[3:3] = recv_data_valid[3];
+  assign recv_data_ack[3] = crossbar__recv_port_mesh_in_ack[3];
+  assign crossbar__recv_port_valid[3] = recv_data_valid[3];
   assign channel__recv_msg[0] = crossbar__send_port_data[0];
-  assign channel__recv_en[0] = crossbar__send_port_en[0:0];
-  assign crossbar__send_port_rdy[0:0] = channel__recv_rdy[0];
+  assign channel__recv_en[0] = crossbar__send_port_en;
+  assign crossbar__send_port_rdy = channel__recv_rdy[0];
   assign channel__recv_msg[1] = crossbar__send_port_data[1];
-  assign channel__recv_en[1] = crossbar__send_port_en[1:1];
-  assign crossbar__send_port_rdy[1:1] = channel__recv_rdy[1];
+  assign channel__recv_en[1] = crossbar__send_port_en[1];
+  assign crossbar__send_port_rdy[1] = channel__recv_rdy[1];
   assign channel__recv_msg[2] = crossbar__send_port_data[2];
-  assign channel__recv_en[2] = crossbar__send_port_en[2:2];
-  assign crossbar__send_port_rdy[2:2] = channel__recv_rdy[2];
+  assign channel__recv_en[2] = crossbar__send_port_en[2];
+  assign crossbar__send_port_rdy[2] = channel__recv_rdy[2];
   assign channel__recv_msg[3] = crossbar__send_port_data[3];
-  assign channel__recv_en[3] = crossbar__send_port_en[3:3];
-  assign crossbar__send_port_rdy[3:3] = channel__recv_rdy[3];
+  assign channel__recv_en[3] = crossbar__send_port_en[3];
+  assign crossbar__send_port_rdy[3] = channel__recv_rdy[3];
   assign channel__recv_msg[4] = crossbar__send_port_data[4];
-  assign channel__recv_en[4] = crossbar__send_port_en[4:4];
-  assign crossbar__send_port_rdy[4:4] = channel__recv_rdy[4];
+  assign channel__recv_en[4] = crossbar__send_port_en[4];
+  assign crossbar__send_port_rdy[4] = channel__recv_rdy[4];
   assign channel__recv_msg[5] = crossbar__send_port_data[5];
-  assign channel__recv_en[5] = crossbar__send_port_en[5:5];
-  assign crossbar__send_port_rdy[5:5] = channel__recv_rdy[5];
+  assign channel__recv_en[5] = crossbar__send_port_en[5];
+  assign crossbar__send_port_rdy[5] = channel__recv_rdy[5];
   assign channel__recv_msg[6] = crossbar__send_port_data[6];
-  assign channel__recv_en[6] = crossbar__send_port_en[6:6];
-  assign crossbar__send_port_rdy[6:6] = channel__recv_rdy[6];
+  assign channel__recv_en[6] = crossbar__send_port_en[6];
+  assign crossbar__send_port_rdy[6] = channel__recv_rdy[6];
   assign channel__recv_msg[7] = crossbar__send_port_data[7];
-  assign channel__recv_en[7] = crossbar__send_port_en[7:7];
-  assign crossbar__send_port_rdy[7:7] = channel__recv_rdy[7];
+  assign channel__recv_en[7] = crossbar__send_port_en[7];
+  assign crossbar__send_port_rdy[7] = channel__recv_rdy[7];
   assign reg_predicate__recv_msg = crossbar__send_predicate;
   assign crossbar__send_predicate_rdy = reg_predicate__recv_rdy;
-  assign reg_predicate__recv_en = crossbar__send_port_en[8:8];
+  assign reg_predicate__recv_en = crossbar__send_port_en[8];
   assign demux_bypass_ack__in_[0] = send_data_ack[0];
   assign channel__send_en[0] = demux_bypass_ack__out[0][0];
-  assign crossbar__send_bypass_port_ack[0:0] = demux_bypass_ack__out[0][1];
-  assign demux_bypass_ack__sel[0] = crossbar__send_bypass_req[0:0];
+  assign crossbar__send_bypass_port_ack = demux_bypass_ack__out[0][1];
+  assign demux_bypass_ack__sel[0] = crossbar__send_bypass_req;
   assign mux_bypass_valid__in_[0][0] = channel__send_valid[0];
-  assign mux_bypass_valid__in_[0][1] = crossbar__send_bypass_data_valid[0:0];
+  assign mux_bypass_valid__in_[0][1] = crossbar__send_bypass_data_valid;
   assign send_data_valid[0] = mux_bypass_valid__out[0];
-  assign mux_bypass_valid__sel[0] = crossbar__send_bypass_req[0:0];
+  assign mux_bypass_valid__sel[0] = crossbar__send_bypass_req;
   assign mux_bypass_data__in_[0][0] = channel__send_msg[0];
   assign mux_bypass_data__in_[0][1] = crossbar__send_data_bypass[0];
   assign send_data[0] = mux_bypass_data__out[0];
-  assign mux_bypass_data__sel[0] = crossbar__send_bypass_req[0:0];
+  assign mux_bypass_data__sel[0] = crossbar__send_bypass_req;
   assign demux_bypass_ack__in_[1] = send_data_ack[1];
   assign channel__send_en[1] = demux_bypass_ack__out[1][0];
-  assign crossbar__send_bypass_port_ack[1:1] = demux_bypass_ack__out[1][1];
-  assign demux_bypass_ack__sel[1] = crossbar__send_bypass_req[1:1];
+  assign crossbar__send_bypass_port_ack[1] = demux_bypass_ack__out[1][1];
+  assign demux_bypass_ack__sel[1] = crossbar__send_bypass_req[1];
   assign mux_bypass_valid__in_[1][0] = channel__send_valid[1];
-  assign mux_bypass_valid__in_[1][1] = crossbar__send_bypass_data_valid[1:1];
+  assign mux_bypass_valid__in_[1][1] = crossbar__send_bypass_data_valid[1];
   assign send_data_valid[1] = mux_bypass_valid__out[1];
-  assign mux_bypass_valid__sel[1] = crossbar__send_bypass_req[1:1];
+  assign mux_bypass_valid__sel[1] = crossbar__send_bypass_req[1];
   assign mux_bypass_data__in_[1][0] = channel__send_msg[1];
   assign mux_bypass_data__in_[1][1] = crossbar__send_data_bypass[1];
   assign send_data[1] = mux_bypass_data__out[1];
-  assign mux_bypass_data__sel[1] = crossbar__send_bypass_req[1:1];
+  assign mux_bypass_data__sel[1] = crossbar__send_bypass_req[1];
   assign demux_bypass_ack__in_[2] = send_data_ack[2];
   assign channel__send_en[2] = demux_bypass_ack__out[2][0];
-  assign crossbar__send_bypass_port_ack[2:2] = demux_bypass_ack__out[2][1];
-  assign demux_bypass_ack__sel[2] = crossbar__send_bypass_req[2:2];
+  assign crossbar__send_bypass_port_ack[2] = demux_bypass_ack__out[2][1];
+  assign demux_bypass_ack__sel[2] = crossbar__send_bypass_req[2];
   assign mux_bypass_valid__in_[2][0] = channel__send_valid[2];
-  assign mux_bypass_valid__in_[2][1] = crossbar__send_bypass_data_valid[2:2];
+  assign mux_bypass_valid__in_[2][1] = crossbar__send_bypass_data_valid[2];
   assign send_data_valid[2] = mux_bypass_valid__out[2];
-  assign mux_bypass_valid__sel[2] = crossbar__send_bypass_req[2:2];
+  assign mux_bypass_valid__sel[2] = crossbar__send_bypass_req[2];
   assign mux_bypass_data__in_[2][0] = channel__send_msg[2];
   assign mux_bypass_data__in_[2][1] = crossbar__send_data_bypass[2];
   assign send_data[2] = mux_bypass_data__out[2];
-  assign mux_bypass_data__sel[2] = crossbar__send_bypass_req[2:2];
+  assign mux_bypass_data__sel[2] = crossbar__send_bypass_req[2];
   assign demux_bypass_ack__in_[3] = send_data_ack[3];
   assign channel__send_en[3] = demux_bypass_ack__out[3][0];
-  assign crossbar__send_bypass_port_ack[3:3] = demux_bypass_ack__out[3][1];
-  assign demux_bypass_ack__sel[3] = crossbar__send_bypass_req[3:3];
+  assign crossbar__send_bypass_port_ack[3] = demux_bypass_ack__out[3][1];
+  assign demux_bypass_ack__sel[3] = crossbar__send_bypass_req[3];
   assign mux_bypass_valid__in_[3][0] = channel__send_valid[3];
-  assign mux_bypass_valid__in_[3][1] = crossbar__send_bypass_data_valid[3:3];
+  assign mux_bypass_valid__in_[3][1] = crossbar__send_bypass_data_valid[3];
   assign send_data_valid[3] = mux_bypass_valid__out[3];
-  assign mux_bypass_valid__sel[3] = crossbar__send_bypass_req[3:3];
+  assign mux_bypass_valid__sel[3] = crossbar__send_bypass_req[3];
   assign mux_bypass_data__in_[3][0] = channel__send_msg[3];
   assign mux_bypass_data__in_[3][1] = crossbar__send_data_bypass[3];
   assign send_data[3] = mux_bypass_data__out[3];
-  assign mux_bypass_data__sel[3] = crossbar__send_bypass_req[3:3];
+  assign mux_bypass_data__sel[3] = crossbar__send_bypass_req[3];
   assign element__recv_opt_msg_ctrl = tile_ctrl_msg.ctrl;
   assign element__recv_opt_msg_predicate = tile_ctrl_msg.predicate;
   assign element__recv_opt_msg_out_routine = tile_ctrl_msg.out_routine;
@@ -5390,26 +5390,26 @@ module TileRTL__4db54fb92d7fbf49
   assign element__fu_opt_enable = tile_opt_enable;
   assign element__fu_propagate_en = tile_propagate_en;
   assign element__recv_port_data[0] = channel__send_msg[4];
-  assign element__recv_port_valid[0:0] = channel__send_valid[4];
-  assign channel__send_en[4] = element__recv_port_ack[0:0];
+  assign element__recv_port_valid = channel__send_valid[4];
+  assign channel__send_en[4] = element__recv_port_ack;
   assign element__recv_port_data[1] = channel__send_msg[5];
-  assign element__recv_port_valid[1:1] = channel__send_valid[5];
-  assign channel__send_en[5] = element__recv_port_ack[1:1];
+  assign element__recv_port_valid[1] = channel__send_valid[5];
+  assign channel__send_en[5] = element__recv_port_ack[1];
   assign element__recv_port_data[2] = channel__send_msg[6];
-  assign element__recv_port_valid[2:2] = channel__send_valid[6];
-  assign channel__send_en[6] = element__recv_port_ack[2:2];
+  assign element__recv_port_valid[2] = channel__send_valid[6];
+  assign channel__send_en[6] = element__recv_port_ack[2];
   assign element__recv_port_data[3] = channel__send_msg[7];
-  assign element__recv_port_valid[3:3] = channel__send_valid[7];
-  assign channel__send_en[7] = element__recv_port_ack[3:3];
+  assign element__recv_port_valid[3] = channel__send_valid[7];
+  assign channel__send_en[7] = element__recv_port_ack[3];
   assign element__recv_predicate_data = reg_predicate__send_msg;
   assign element__recv_predicate_valid = reg_predicate__send_valid;
   assign reg_predicate__send_en = element__recv_predicate_ack;
   assign element__recv_const_data = const_queue__send_const_msg;
   assign const_queue__send_const_en = element__recv_const_ack;
   assign crossbar__recv_port_data[4] = element__send_port_data[0];
-  assign crossbar__recv_port_valid[4:4] = element__send_port_valid[0:0];
+  assign crossbar__recv_port_valid[4:4] = element__send_port_valid;
   assign crossbar__recv_port_data[5] = element__send_port_data[1];
-  assign crossbar__recv_port_valid[5:5] = element__send_port_valid[1:1];
+  assign crossbar__recv_port_valid[5:5] = element__send_port_valid[1];
   assign element__send_port_ack = crossbar__recv_port_fu_out_ack;
   assign element__to_mem_raddr__rdy[0] = 1'd0;
   assign element__from_mem_rdata__en[0] = 1'd0;
@@ -5450,21 +5450,21 @@ endmodule
 
 module CGRARTL__332d123efc0840be
 (
-  output logic [31:0] cgra_csr_ro [0:3],
-  input  logic [31:0] cgra_csr_rw [0:0],
-  output logic [0:0] cgra_csr_rw_ack ,
-  input  logic [0:0] cgra_csr_rw_valid ,
+  output logic [31:0] cgra_csr_ro [4],
+  input  logic [31:0] cgra_csr_rw [1],
+  output logic  cgra_csr_rw_ack ,
+  input  logic  cgra_csr_rw_valid ,
   input  logic clk ,
-  input  logic [0:0] reset ,
-  input logic [0:0] cgra_recv_ni_data__en [0:7] ,
-  input logic [63:0] cgra_recv_ni_data__msg [0:7] ,
-  output logic [0:0] cgra_recv_ni_data__rdy [0:7] ,
-  output logic [0:0] cgra_send_ni_data__en [0:7] ,
-  output logic [63:0] cgra_send_ni_data__msg [0:7] ,
-  input logic [0:0] cgra_send_ni_data__rdy [0:7] 
+  input  logic  reset ,
+  input logic  cgra_recv_ni_data__en [8] ,
+  input logic [63:0] cgra_recv_ni_data__msg [8] ,
+  output logic  cgra_recv_ni_data__rdy [8] ,
+  output logic  cgra_send_ni_data__en [8] ,
+  output logic [63:0] cgra_send_ni_data__msg [8] ,
+  input logic  cgra_send_ni_data__rdy [8] 
 );
-  localparam logic [0:0] __const__i_at__lambda__s_cgra_recv_ni_data_0__rdy  = 1'd0;
-  localparam logic [0:0] __const__i_at__lambda__s_cgra_recv_ni_data_1__rdy  = 1'd1;
+  localparam logic  __const__i_at__lambda__s_cgra_recv_ni_data_0__rdy  = 1'd0;
+  localparam logic  __const__i_at__lambda__s_cgra_recv_ni_data_1__rdy  = 1'd1;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_recv_ni_data_2__rdy  = 2'd2;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_recv_ni_data_3__rdy  = 2'd3;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_4__rdy  = 3'd4;
@@ -5478,91 +5478,91 @@ module CGRARTL__332d123efc0840be
   localparam logic [2:0] __const__STAGE_CONFIG_DONE  = 3'd4;
   localparam logic [2:0] __const__STAGE_COMP  = 3'd5;
   localparam logic [2:0] __const__STAGE_COMP_HALT  = 3'd6;
-  logic [0:0] cgra_cmd_dry_run_begin;
-  logic [0:0] cgra_computation_en;
-  logic [0:0] cgra_config_cmd_begin;
+  logic  cgra_cmd_dry_run_begin;
+  logic  cgra_computation_en;
+  logic  cgra_config_cmd_begin;
   logic [5:0] cgra_config_cmd_counter_th;
-  logic [0:0] cgra_config_cmd_done;
-  logic [0:0] cgra_config_cmd_en;
-  logic [0:0] cgra_config_cmd_wopt_done;
-  logic [0:0] cgra_config_data_begin;
+  logic  cgra_config_cmd_done;
+  logic  cgra_config_cmd_en;
+  logic  cgra_config_cmd_wopt_done;
+  logic  cgra_config_data_begin;
   logic [5:0] cgra_config_data_counter_th;
-  logic [0:0] cgra_config_data_done;
-  logic [0:0] cgra_config_data_en;
-  logic [0:0] cgra_config_ini_begin;
-  logic [0:0] cgra_config_ini_en;
+  logic  cgra_config_data_done;
+  logic  cgra_config_data_en;
+  logic  cgra_config_ini_begin;
+  logic  cgra_config_ini_en;
   logic [31:0] cgra_cur_stage_info;
   logic [15:0] cgra_cycle_counter;
   logic [15:0] cgra_cycle_counter_th;
-  logic [0:0] cgra_cycle_th_hit;
+  logic  cgra_cycle_th_hit;
   logic [1:0] cgra_dmem_io_mode;
-  logic [0:0] cgra_execution_begin;
-  logic [0:0] cgra_execution_ini_begin;
-  logic [0:0] cgra_execution_valid;
+  logic  cgra_execution_begin;
+  logic  cgra_execution_ini_begin;
+  logic  cgra_execution_valid;
   logic [31:0] cgra_nxt_stage_info;
   logic [31:0] cgra_propagate_rdy_info;
   logic [511:0] cgra_recv_wi_data;
-  logic [0:0] cgra_recv_wi_data_ack;
-  logic [0:0] cgra_recv_wi_data_rdy;
-  logic [0:0] cgra_recv_wi_data_valid;
-  logic [0:0] cgra_restart_comp_en;
+  logic  cgra_recv_wi_data_ack;
+  logic  cgra_recv_wi_data_rdy;
+  logic  cgra_recv_wi_data_valid;
+  logic  cgra_restart_comp_en;
   logic [4:0] counter_config_cmd_addr;
-  logic [0:0] counter_config_cmd_slice;
+  logic  counter_config_cmd_slice;
   logic [4:0] counter_config_data_addr;
   logic [2:0] cur_stage;
   logic [2:0] nxt_stage;
   logic [511:0] recv_wconst_flattened;
-  logic [0:0] recv_wconst_flattened_en;
-  logic [0:0] recv_wconst_flattened_rdy;
+  logic  recv_wconst_flattened_en;
+  logic  recv_wconst_flattened_rdy;
   logic [511:0] recv_wopt_sliced_flattened;
-  logic [0:0] recv_wopt_sliced_flattened_en;
-  logic [0:0] recv_wopt_sliced_flattened_rdy;
-  logic [0:0] tile_dry_run_ack;
-  logic [0:0] tile_dry_run_fin;
+  logic  recv_wopt_sliced_flattened_en;
+  logic  recv_wopt_sliced_flattened_rdy;
+  logic  tile_dry_run_ack;
+  logic  tile_dry_run_fin;
   logic [15:0] tile_fu_propagate_rdy_vector;
   logic [7:0] tile_recv_ni_data_ack;
   logic [7:0] tile_recv_ni_data_valid;
-  logic [0:0] tile_recv_opt_waddr_en;
+  logic  tile_recv_opt_waddr_en;
   logic [15:0] tile_xbar_propagate_rdy_vector;
 
-  logic [0:0] tile__clk [0:15];
-  logic [5:0] tile__config_cmd_counter_th [0:15];
-  logic [5:0] tile__config_data_counter_th [0:15];
-  logic [0:0] tile__ctrl_slice_idx [0:15];
-  logic [31:0] tile__recv_const [0:15];
-  logic [0:0] tile__recv_const_en [0:15];
-  logic [4:0] tile__recv_const_waddr [0:15];
-  CGRAData_64_1__payload_64__predicate_1 tile__recv_data [0:15][0:3];
-  logic [0:0] tile__recv_data_ack [0:15][0:3];
-  logic [0:0] tile__recv_data_valid [0:15][0:3];
-  logic [4:0] tile__recv_opt_waddr [0:15];
-  logic [0:0] tile__recv_opt_waddr_en [0:15];
-  logic [31:0] tile__recv_wopt [0:15];
-  logic [0:0] tile__recv_wopt_en [0:15];
-  logic [0:0] tile__reset [0:15];
-  CGRAData_64_1__payload_64__predicate_1 tile__send_data [0:15][0:3];
-  logic [0:0] tile__send_data_ack [0:15][0:3];
-  logic [0:0] tile__send_data_valid [0:15][0:3];
-  logic [0:0] tile__tile_config_ini_begin [0:15];
-  logic [0:0] tile__tile_dry_run_ack [0:15];
-  logic [0:0] tile__tile_dry_run_done [0:15];
-  logic [0:0] tile__tile_execution_begin [0:15];
-  logic [0:0] tile__tile_execution_ini_begin [0:15];
-  logic [0:0] tile__tile_execution_valid [0:15];
-  logic [0:0] tile__tile_fu_propagate_rdy [0:15];
-  logic [0:0] tile__tile_xbar_propagate_rdy [0:15];
-  logic [0:0] tile__from_mem_rdata__en [0:15];
-  CGRAData_64_1__payload_64__predicate_1 tile__from_mem_rdata__msg [0:15];
-  logic [0:0] tile__from_mem_rdata__rdy [0:15];
-  logic [0:0] tile__to_mem_raddr__en [0:15];
-  logic [6:0] tile__to_mem_raddr__msg [0:15];
-  logic [0:0] tile__to_mem_raddr__rdy [0:15];
-  logic [0:0] tile__to_mem_waddr__en [0:15];
-  logic [6:0] tile__to_mem_waddr__msg [0:15];
-  logic [0:0] tile__to_mem_waddr__rdy [0:15];
-  logic [0:0] tile__to_mem_wdata__en [0:15];
-  CGRAData_64_1__payload_64__predicate_1 tile__to_mem_wdata__msg [0:15];
-  logic [0:0] tile__to_mem_wdata__rdy [0:15];
+  logic  tile__clk [16];
+  logic [5:0] tile__config_cmd_counter_th [16];
+  logic [5:0] tile__config_data_counter_th [16];
+  logic  tile__ctrl_slice_idx [16];
+  logic [31:0] tile__recv_const [16];
+  logic  tile__recv_const_en [16];
+  logic [4:0] tile__recv_const_waddr [16];
+  CGRAData_64_1__payload_64__predicate_1 tile__recv_data [16][4];
+  logic  tile__recv_data_ack [16][4];
+  logic  tile__recv_data_valid [16][4];
+  logic [4:0] tile__recv_opt_waddr [16];
+  logic  tile__recv_opt_waddr_en [16];
+  logic [31:0] tile__recv_wopt [16];
+  logic  tile__recv_wopt_en [16];
+  logic  tile__reset [16];
+  CGRAData_64_1__payload_64__predicate_1 tile__send_data [16][4];
+  logic  tile__send_data_ack [16][4];
+  logic  tile__send_data_valid [16][4];
+  logic  tile__tile_config_ini_begin [16];
+  logic  tile__tile_dry_run_ack [16];
+  logic  tile__tile_dry_run_done [16];
+  logic  tile__tile_execution_begin [16];
+  logic  tile__tile_execution_ini_begin [16];
+  logic  tile__tile_execution_valid [16];
+  logic  tile__tile_fu_propagate_rdy [16];
+  logic  tile__tile_xbar_propagate_rdy [16];
+  logic  tile__from_mem_rdata__en [16];
+  CGRAData_64_1__payload_64__predicate_1 tile__from_mem_rdata__msg [16];
+  logic  tile__from_mem_rdata__rdy [16];
+  logic  tile__to_mem_raddr__en [16];
+  logic [6:0] tile__to_mem_raddr__msg [16];
+  logic  tile__to_mem_raddr__rdy [16];
+  logic  tile__to_mem_waddr__en [16];
+  logic [6:0] tile__to_mem_waddr__msg [16];
+  logic  tile__to_mem_waddr__rdy [16];
+  logic  tile__to_mem_wdata__en [16];
+  CGRAData_64_1__payload_64__predicate_1 tile__to_mem_wdata__msg [16];
+  logic  tile__to_mem_wdata__rdy [16];
 
   TileRTL__4db54fb92d7fbf49 tile__0
   (
@@ -6517,21 +6517,21 @@ module CGRARTL__332d123efc0840be
   end
 
   assign cgra_recv_wi_data[63:0] = cgra_recv_ni_data__msg[0];
-  assign tile_recv_ni_data_valid[0:0] = cgra_recv_ni_data__en[0];
+  assign tile_recv_ni_data_valid = cgra_recv_ni_data__en[0];
   assign cgra_recv_wi_data[127:64] = cgra_recv_ni_data__msg[1];
-  assign tile_recv_ni_data_valid[1:1] = cgra_recv_ni_data__en[1];
+  assign tile_recv_ni_data_valid[1] = cgra_recv_ni_data__en[1];
   assign cgra_recv_wi_data[191:128] = cgra_recv_ni_data__msg[2];
-  assign tile_recv_ni_data_valid[2:2] = cgra_recv_ni_data__en[2];
+  assign tile_recv_ni_data_valid[2] = cgra_recv_ni_data__en[2];
   assign cgra_recv_wi_data[255:192] = cgra_recv_ni_data__msg[3];
-  assign tile_recv_ni_data_valid[3:3] = cgra_recv_ni_data__en[3];
+  assign tile_recv_ni_data_valid[3] = cgra_recv_ni_data__en[3];
   assign cgra_recv_wi_data[319:256] = cgra_recv_ni_data__msg[4];
-  assign tile_recv_ni_data_valid[4:4] = cgra_recv_ni_data__en[4];
+  assign tile_recv_ni_data_valid[4] = cgra_recv_ni_data__en[4];
   assign cgra_recv_wi_data[383:320] = cgra_recv_ni_data__msg[5];
-  assign tile_recv_ni_data_valid[5:5] = cgra_recv_ni_data__en[5];
+  assign tile_recv_ni_data_valid[5] = cgra_recv_ni_data__en[5];
   assign cgra_recv_wi_data[447:384] = cgra_recv_ni_data__msg[6];
-  assign tile_recv_ni_data_valid[6:6] = cgra_recv_ni_data__en[6];
+  assign tile_recv_ni_data_valid[6] = cgra_recv_ni_data__en[6];
   assign cgra_recv_wi_data[511:448] = cgra_recv_ni_data__msg[7];
-  assign tile_recv_ni_data_valid[7:7] = cgra_recv_ni_data__en[7];
+  assign tile_recv_ni_data_valid[7] = cgra_recv_ni_data__en[7];
   assign recv_wopt_sliced_flattened = cgra_recv_wi_data;
   assign recv_wconst_flattened = cgra_recv_wi_data;
   assign tile__clk[0] = clk;
@@ -6569,11 +6569,11 @@ module CGRARTL__332d123efc0840be
   assign cgra_csr_ro[1] = cgra_cur_stage_info;
   assign cgra_csr_ro[2] = cgra_nxt_stage_info;
   assign cgra_csr_ro[3] = cgra_propagate_rdy_info;
-  assign cgra_config_ini_en = cgra_csr_rw[0][30:30];
-  assign cgra_restart_comp_en = cgra_csr_rw[0][29:29];
-  assign cgra_config_data_en = cgra_csr_rw[0][28:28];
-  assign cgra_config_cmd_en = cgra_csr_rw[0][27:27];
-  assign cgra_computation_en = cgra_csr_rw[0][26:26];
+  assign cgra_config_ini_en = cgra_csr_rw[0][30];
+  assign cgra_restart_comp_en = cgra_csr_rw[0][29];
+  assign cgra_config_data_en = cgra_csr_rw[0][28];
+  assign cgra_config_cmd_en = cgra_csr_rw[0][27];
+  assign cgra_computation_en = cgra_csr_rw[0][26];
   assign recv_wconst_flattened_rdy = cgra_config_data_begin;
   assign recv_wopt_sliced_flattened_rdy = cgra_config_cmd_begin;
   assign tile__tile_config_ini_begin[0] = cgra_config_ini_begin;
@@ -6724,7 +6724,7 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[0][1] = 1'd0;
   assign tile__recv_data[0][1] = { 64'd0, 1'd0 };
   assign tile__send_data_ack[0][2] = 1'd0;
-  assign tile_recv_ni_data_ack[0:0] = tile__recv_data_ack[0][2];
+  assign tile_recv_ni_data_ack = tile__recv_data_ack[0][2];
   assign tile__recv_data_valid[0][2] = cgra_recv_ni_data__en[0];
   assign tile__recv_data[0][2].payload = cgra_recv_ni_data__msg[0];
   assign tile__recv_data[0][2].predicate = 1'd0;
@@ -6834,7 +6834,7 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[5][2] = tile__send_data_valid[4][3];
   assign tile__send_data_ack[4][3] = tile__recv_data_ack[5][2];
   assign tile__send_data_ack[4][2] = 1'd0;
-  assign tile_recv_ni_data_ack[1:1] = tile__recv_data_ack[4][2];
+  assign tile_recv_ni_data_ack[1] = tile__recv_data_ack[4][2];
   assign tile__recv_data_valid[4][2] = cgra_recv_ni_data__en[1];
   assign tile__recv_data[4][2].payload = cgra_recv_ni_data__msg[1];
   assign tile__recv_data[4][2].predicate = 1'd0;
@@ -6938,7 +6938,7 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[9][2] = tile__send_data_valid[8][3];
   assign tile__send_data_ack[8][3] = tile__recv_data_ack[9][2];
   assign tile__send_data_ack[8][2] = 1'd0;
-  assign tile_recv_ni_data_ack[2:2] = tile__recv_data_ack[8][2];
+  assign tile_recv_ni_data_ack[2] = tile__recv_data_ack[8][2];
   assign tile__recv_data_valid[8][2] = cgra_recv_ni_data__en[2];
   assign tile__recv_data[8][2].payload = cgra_recv_ni_data__msg[2];
   assign tile__recv_data[8][2].predicate = 1'd0;
@@ -7039,12 +7039,12 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[13][2] = tile__send_data_valid[12][3];
   assign tile__send_data_ack[12][3] = tile__recv_data_ack[13][2];
   assign tile__send_data_ack[12][0] = 1'd0;
-  assign tile_recv_ni_data_ack[4:4] = tile__recv_data_ack[12][0];
+  assign tile_recv_ni_data_ack[4] = tile__recv_data_ack[12][0];
   assign tile__recv_data_valid[12][0] = cgra_recv_ni_data__en[4];
   assign tile__recv_data[12][0].payload = cgra_recv_ni_data__msg[4];
   assign tile__recv_data[12][0].predicate = 1'd0;
   assign tile__send_data_ack[12][2] = 1'd0;
-  assign tile_recv_ni_data_ack[3:3] = tile__recv_data_ack[12][2];
+  assign tile_recv_ni_data_ack[3] = tile__recv_data_ack[12][2];
   assign tile__recv_data_valid[12][2] = cgra_recv_ni_data__en[3];
   assign tile__recv_data[12][2].payload = cgra_recv_ni_data__msg[3];
   assign tile__recv_data[12][2].predicate = 1'd0;
@@ -7071,7 +7071,7 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[14][2] = tile__send_data_valid[13][3];
   assign tile__send_data_ack[13][3] = tile__recv_data_ack[14][2];
   assign tile__send_data_ack[13][0] = 1'd0;
-  assign tile_recv_ni_data_ack[5:5] = tile__recv_data_ack[13][0];
+  assign tile_recv_ni_data_ack[5] = tile__recv_data_ack[13][0];
   assign tile__recv_data_valid[13][0] = cgra_recv_ni_data__en[5];
   assign tile__recv_data[13][0].payload = cgra_recv_ni_data__msg[5];
   assign tile__recv_data[13][0].predicate = 1'd0;
@@ -7098,7 +7098,7 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[15][2] = tile__send_data_valid[14][3];
   assign tile__send_data_ack[14][3] = tile__recv_data_ack[15][2];
   assign tile__send_data_ack[14][0] = 1'd0;
-  assign tile_recv_ni_data_ack[6:6] = tile__recv_data_ack[14][0];
+  assign tile_recv_ni_data_ack[6] = tile__recv_data_ack[14][0];
   assign tile__recv_data_valid[14][0] = cgra_recv_ni_data__en[6];
   assign tile__recv_data[14][0].payload = cgra_recv_ni_data__msg[6];
   assign tile__recv_data[14][0].predicate = 1'd0;
@@ -7122,7 +7122,7 @@ module CGRARTL__332d123efc0840be
   assign tile__recv_data_valid[14][3] = tile__send_data_valid[15][2];
   assign tile__send_data_ack[15][2] = tile__recv_data_ack[14][3];
   assign tile__send_data_ack[15][0] = 1'd0;
-  assign tile_recv_ni_data_ack[7:7] = tile__recv_data_ack[15][0];
+  assign tile_recv_ni_data_ack[7] = tile__recv_data_ack[15][0];
   assign tile__recv_data_valid[15][0] = cgra_recv_ni_data__en[7];
   assign tile__recv_data[15][0].payload = cgra_recv_ni_data__msg[7];
   assign tile__recv_data[15][0].predicate = 1'd0;
@@ -7136,37 +7136,37 @@ module CGRARTL__332d123efc0840be
   assign tile__from_mem_rdata__msg[15] = { 64'd0, 1'd0 };
   assign tile__to_mem_waddr__rdy[15] = 1'd0;
   assign tile__to_mem_wdata__rdy[15] = 1'd0;
-  assign tile_xbar_propagate_rdy_vector[0:0] = tile__tile_xbar_propagate_rdy[0];
-  assign tile_fu_propagate_rdy_vector[0:0] = tile__tile_fu_propagate_rdy[0];
-  assign tile_xbar_propagate_rdy_vector[1:1] = tile__tile_xbar_propagate_rdy[1];
-  assign tile_fu_propagate_rdy_vector[1:1] = tile__tile_fu_propagate_rdy[1];
-  assign tile_xbar_propagate_rdy_vector[2:2] = tile__tile_xbar_propagate_rdy[2];
-  assign tile_fu_propagate_rdy_vector[2:2] = tile__tile_fu_propagate_rdy[2];
-  assign tile_xbar_propagate_rdy_vector[3:3] = tile__tile_xbar_propagate_rdy[3];
-  assign tile_fu_propagate_rdy_vector[3:3] = tile__tile_fu_propagate_rdy[3];
-  assign tile_xbar_propagate_rdy_vector[4:4] = tile__tile_xbar_propagate_rdy[4];
-  assign tile_fu_propagate_rdy_vector[4:4] = tile__tile_fu_propagate_rdy[4];
-  assign tile_xbar_propagate_rdy_vector[5:5] = tile__tile_xbar_propagate_rdy[5];
-  assign tile_fu_propagate_rdy_vector[5:5] = tile__tile_fu_propagate_rdy[5];
-  assign tile_xbar_propagate_rdy_vector[6:6] = tile__tile_xbar_propagate_rdy[6];
-  assign tile_fu_propagate_rdy_vector[6:6] = tile__tile_fu_propagate_rdy[6];
-  assign tile_xbar_propagate_rdy_vector[7:7] = tile__tile_xbar_propagate_rdy[7];
-  assign tile_fu_propagate_rdy_vector[7:7] = tile__tile_fu_propagate_rdy[7];
-  assign tile_xbar_propagate_rdy_vector[8:8] = tile__tile_xbar_propagate_rdy[8];
-  assign tile_fu_propagate_rdy_vector[8:8] = tile__tile_fu_propagate_rdy[8];
-  assign tile_xbar_propagate_rdy_vector[9:9] = tile__tile_xbar_propagate_rdy[9];
-  assign tile_fu_propagate_rdy_vector[9:9] = tile__tile_fu_propagate_rdy[9];
-  assign tile_xbar_propagate_rdy_vector[10:10] = tile__tile_xbar_propagate_rdy[10];
-  assign tile_fu_propagate_rdy_vector[10:10] = tile__tile_fu_propagate_rdy[10];
-  assign tile_xbar_propagate_rdy_vector[11:11] = tile__tile_xbar_propagate_rdy[11];
-  assign tile_fu_propagate_rdy_vector[11:11] = tile__tile_fu_propagate_rdy[11];
-  assign tile_xbar_propagate_rdy_vector[12:12] = tile__tile_xbar_propagate_rdy[12];
-  assign tile_fu_propagate_rdy_vector[12:12] = tile__tile_fu_propagate_rdy[12];
-  assign tile_xbar_propagate_rdy_vector[13:13] = tile__tile_xbar_propagate_rdy[13];
-  assign tile_fu_propagate_rdy_vector[13:13] = tile__tile_fu_propagate_rdy[13];
-  assign tile_xbar_propagate_rdy_vector[14:14] = tile__tile_xbar_propagate_rdy[14];
-  assign tile_fu_propagate_rdy_vector[14:14] = tile__tile_fu_propagate_rdy[14];
-  assign tile_xbar_propagate_rdy_vector[15:15] = tile__tile_xbar_propagate_rdy[15];
-  assign tile_fu_propagate_rdy_vector[15:15] = tile__tile_fu_propagate_rdy[15];
+  assign tile_xbar_propagate_rdy_vector = tile__tile_xbar_propagate_rdy[0];
+  assign tile_fu_propagate_rdy_vector = tile__tile_fu_propagate_rdy[0];
+  assign tile_xbar_propagate_rdy_vector[1] = tile__tile_xbar_propagate_rdy[1];
+  assign tile_fu_propagate_rdy_vector[1] = tile__tile_fu_propagate_rdy[1];
+  assign tile_xbar_propagate_rdy_vector[2] = tile__tile_xbar_propagate_rdy[2];
+  assign tile_fu_propagate_rdy_vector[2] = tile__tile_fu_propagate_rdy[2];
+  assign tile_xbar_propagate_rdy_vector[3] = tile__tile_xbar_propagate_rdy[3];
+  assign tile_fu_propagate_rdy_vector[3] = tile__tile_fu_propagate_rdy[3];
+  assign tile_xbar_propagate_rdy_vector[4] = tile__tile_xbar_propagate_rdy[4];
+  assign tile_fu_propagate_rdy_vector[4] = tile__tile_fu_propagate_rdy[4];
+  assign tile_xbar_propagate_rdy_vector[5] = tile__tile_xbar_propagate_rdy[5];
+  assign tile_fu_propagate_rdy_vector[5] = tile__tile_fu_propagate_rdy[5];
+  assign tile_xbar_propagate_rdy_vector[6] = tile__tile_xbar_propagate_rdy[6];
+  assign tile_fu_propagate_rdy_vector[6] = tile__tile_fu_propagate_rdy[6];
+  assign tile_xbar_propagate_rdy_vector[7] = tile__tile_xbar_propagate_rdy[7];
+  assign tile_fu_propagate_rdy_vector[7] = tile__tile_fu_propagate_rdy[7];
+  assign tile_xbar_propagate_rdy_vector[8] = tile__tile_xbar_propagate_rdy[8];
+  assign tile_fu_propagate_rdy_vector[8] = tile__tile_fu_propagate_rdy[8];
+  assign tile_xbar_propagate_rdy_vector[9] = tile__tile_xbar_propagate_rdy[9];
+  assign tile_fu_propagate_rdy_vector[9] = tile__tile_fu_propagate_rdy[9];
+  assign tile_xbar_propagate_rdy_vector[10] = tile__tile_xbar_propagate_rdy[10];
+  assign tile_fu_propagate_rdy_vector[10] = tile__tile_fu_propagate_rdy[10];
+  assign tile_xbar_propagate_rdy_vector[11] = tile__tile_xbar_propagate_rdy[11];
+  assign tile_fu_propagate_rdy_vector[11] = tile__tile_fu_propagate_rdy[11];
+  assign tile_xbar_propagate_rdy_vector[12] = tile__tile_xbar_propagate_rdy[12];
+  assign tile_fu_propagate_rdy_vector[12] = tile__tile_fu_propagate_rdy[12];
+  assign tile_xbar_propagate_rdy_vector[13] = tile__tile_xbar_propagate_rdy[13];
+  assign tile_fu_propagate_rdy_vector[13] = tile__tile_fu_propagate_rdy[13];
+  assign tile_xbar_propagate_rdy_vector[14] = tile__tile_xbar_propagate_rdy[14];
+  assign tile_fu_propagate_rdy_vector[14] = tile__tile_fu_propagate_rdy[14];
+  assign tile_xbar_propagate_rdy_vector[15] = tile__tile_xbar_propagate_rdy[15];
+  assign tile_fu_propagate_rdy_vector[15] = tile__tile_fu_propagate_rdy[15];
 
 endmodule
