@@ -7,7 +7,7 @@ sources:
 
   - target: cgra
     files:
-      - rtl/CGRARTL__332d123efc0840be__linted.v
+      - rtl/CGRARTL__top__linted.v
   #     #---------------------------
   #     # Common Modules
   #     #---------------------------
