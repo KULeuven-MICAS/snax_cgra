@@ -5,20 +5,71 @@ typedef struct packed {
 } CGRAData_64_8__payload_64__predicate_8;
 
 typedef struct packed {
-  logic [8:0] ctrl;
+  logic [7:0] ctrl;
   logic [0:0] predicate;
   logic [3:0][2:0] fu_in;
   logic [7:0][2:0] outport;
   logic [5:0][0:0] predicate_in;
-  logic [1:0] out_routine;
+  logic [2:0] out_routine;
   logic [1:0] vec_mode;
   logic [1:0] signed_mode;
-  logic [4:0] bmask;
-} CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce;
+  logic [4:0] i_imm_bmask;
+  logic [4:0] o_imm_bmask;
+} CGRAConfig_8_4_6_8_3__7aef41f23017ad58;
 
 typedef struct packed {
   logic [7:0] predicate;
 } CGRAData_8__predicate_8;
+
+
+module LookUpTableRTL__3312552a84abe6da
+(
+  input  logic [0:0] clk ,
+  input  logic [511:0] recv_lut_data ,
+  input  logic [1:0] recv_raddr [0:15],
+  input  logic [1:0] recv_waddr ,
+  input  logic [0:0] recv_waddr_en ,
+  input  logic [0:0] reset ,
+  output logic [127:0] send_lut_b [0:15],
+  output logic [127:0] send_lut_k [0:15],
+  output logic [127:0] send_lut_p [0:15]
+);
+  localparam logic [2:0] __const__lut_type_at_lut_write  = 3'd4;
+  localparam logic [1:0] __const__lut_array_depth_at_lut_write  = 2'd3;
+  localparam logic [2:0] __const__width_at_lut_read  = 3'd4;
+  localparam logic [2:0] __const__height_at_lut_read  = 3'd4;
+  logic [127:0] recv_lut_data_unit [0:3];
+  logic [127:0] reg_file [0:3][0:2];
+
+  
+  always_comb begin : lut_read
+    for ( int unsigned i = 1'd0; i < 3'( __const__width_at_lut_read ) * 3'( __const__height_at_lut_read ); i += 1'd1 ) begin
+      send_lut_k[4'(i)] = reg_file[recv_raddr[4'(i)]][2'd0];
+      send_lut_b[4'(i)] = reg_file[recv_raddr[4'(i)]][2'd1];
+      send_lut_p[4'(i)] = reg_file[recv_raddr[4'(i)]][2'd2];
+    end
+  end
+
+  
+  always_ff @(posedge clk) begin : lut_write
+    if ( reset ) begin
+      for ( int unsigned i = 1'd0; i < 3'( __const__lut_type_at_lut_write ); i += 1'd1 )
+        for ( int unsigned j = 1'd0; j < 2'( __const__lut_array_depth_at_lut_write ); j += 1'd1 )
+          reg_file[2'(i)][2'(j)] <= 128'd0;
+    end
+    else if ( recv_waddr_en ) begin
+      for ( int unsigned i = 1'd0; i < 3'( __const__lut_type_at_lut_write ); i += 1'd1 )
+        reg_file[2'(i)][recv_waddr] <= recv_lut_data_unit[2'(i)];
+    end
+  end
+
+  assign recv_lut_data_unit[0] = recv_lut_data[127:0];
+  assign recv_lut_data_unit[1] = recv_lut_data[255:128];
+  assign recv_lut_data_unit[2] = recv_lut_data[383:256];
+  assign recv_lut_data_unit[3] = recv_lut_data[511:384];
+
+endmodule
+
 
 
 module NormalQueueCtrl__num_entries_2__dry_run_enable_True
@@ -48,7 +99,7 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
 
   
   always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_deq_valid
-    deq_valid = ( ~reset ) & ( count > 2'd0 );
+    deq_valid = count > 2'd0;
   end
 
   
@@ -58,7 +109,7 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
 
   
   always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_enq_rdy
-    enq_rdy = ( ~reset ) & ( ( count + { { 1 { 1'b0 } }, enq_en } ) < 2'd2 );
+    enq_rdy = ( count + { { 1 { 1'b0 } }, enq_en } ) < 2'd2;
   end
 
   
@@ -134,12 +185,8 @@ module NormalQueueDpath__7f3406ec6084c93f
   CGRAData_64_8__payload_64__predicate_8 regs_rdata;
 
   
-  always_comb begin : reg_read
-    if ( reset ) begin
-      deq_msg = { 64'd0, 8'd0 };
-    end
-    else
-      deq_msg = regs[raddr];
+  always_comb begin : _lambda__s_tile_0__channel_0__queue_dpath_deq_msg
+    deq_msg = regs[raddr];
   end
 
   
@@ -383,27 +430,6 @@ module ConstQueueRTL__93536ce3c6007a21
   );
 
 
-
-  logic [0:0] reg_file_lut__clk;
-  logic [4:0] reg_file_lut__raddr [0:0];
-  logic [31:0] reg_file_lut__rdata [0:0];
-  logic [0:0] reg_file_lut__reset;
-  logic [4:0] reg_file_lut__waddr [0:0];
-  logic [31:0] reg_file_lut__wdata [0:0];
-  logic [0:0] reg_file_lut__wen [0:0];
-
-  RegisterFile__8c50dafb5bf22f7b reg_file_lut
-  (
-    .clk( reg_file_lut__clk ),
-    .raddr( reg_file_lut__raddr ),
-    .rdata( reg_file_lut__rdata ),
-    .reset( reg_file_lut__reset ),
-    .waddr( reg_file_lut__waddr ),
-    .wdata( reg_file_lut__wdata ),
-    .wen( reg_file_lut__wen )
-  );
-
-
   
   always_ff @(posedge clk) begin : dry_run_th
     if ( reset | config_ini ) begin
@@ -419,7 +445,7 @@ module ConstQueueRTL__93536ce3c6007a21
 
   
   always_ff @(posedge clk) begin : dry_run_th_reg
-    if ( reset | config_ini ) begin
+    if ( reset ) begin
       data_counter_th_ini <= 6'd0;
     end
     else if ( dry_run_done ) begin
@@ -446,11 +472,6 @@ module ConstQueueRTL__93536ce3c6007a21
   assign reg_file__waddr[0] = recv_const_waddr;
   assign reg_file__wdata[0] = recv_const;
   assign reg_file__wen[0] = recv_const_en;
-  assign reg_file_lut__clk = clk;
-  assign reg_file_lut__reset = reset;
-  assign reg_file_lut__waddr[0] = recv_const_waddr;
-  assign reg_file_lut__wdata[0] = recv_const;
-  assign reg_file_lut__wen[0] = recv_const_en;
   assign reg_file__raddr[0] = data_counter[4:0];
   assign send_const_msg = reg_file__rdata[0];
 
@@ -458,7 +479,7 @@ endmodule
 
 
 
-module CrossbarRTL__735efd555417ee9b
+module CrossbarRTL__3d684959a51d2cb2
 (
   input  logic [0:0] clk ,
   input  logic [2:0] recv_opt_msg_outport [0:7],
@@ -629,7 +650,6 @@ module CrossbarRTL__735efd555417ee9b
     recv_port_req = 6'd0;
     send_port_req_mesh_in = 9'd0;
     send_port_req_fu_out = 9'd0;
-    send_port_req_nxt = 9'd0;
     send_bypass_req = 4'd0;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 )
       send_port_req_nxt[4'(i)] = ( | xbar_outport_sel_nxt[4'(i)][3'd3:3'd0] );
@@ -706,19 +726,19 @@ endmodule
 
 
 
-module RegisterFile__461320654393e206
+module RegisterFile__9d34cc086b9167a3
 (
   input  logic [0:0] clk ,
   input  logic [4:0] raddr [0:0],
-  output CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce rdata [0:0],
+  output CGRAConfig_8_4_6_8_3__7aef41f23017ad58 rdata [0:0],
   input  logic [0:0] reset ,
   input  logic [4:0] waddr [0:0],
-  input  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce wdata [0:0],
+  input  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 wdata [0:0],
   input  logic [0:0] wen [0:0]
 );
   localparam logic [0:0] __const__rd_ports_at_up_rf_read  = 1'd1;
   localparam logic [0:0] __const__wr_ports_at_up_rf_write  = 1'd1;
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce regs [0:31];
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 regs [0:31];
 
   
   always_comb begin : up_rf_read
@@ -738,35 +758,35 @@ endmodule
 
 
 
-module CtrlMemRTL__7aace320cc2a8fb7
+module CtrlMemRTL__53ed93a6cef0ef95
 (
   input  logic [0:0] clk ,
   input  logic [5:0] cmd_counter_th ,
   input  logic [0:0] execution_ini ,
   input  logic [0:0] nxt_ctrl_en ,
-  output CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce recv_ctrl_msg ,
+  output CGRAConfig_8_4_6_8_3__7aef41f23017ad58 recv_ctrl_msg ,
   input  logic [31:0] recv_ctrl_slice ,
   input  logic [0:0] recv_ctrl_slice_en ,
-  input  logic [0:0] recv_ctrl_slice_idx ,
+  input  logic [1:0] recv_ctrl_slice_idx ,
   input  logic [4:0] recv_waddr ,
   input  logic [0:0] recv_waddr_en ,
   input  logic [0:0] reset ,
-  output CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce send_ctrl_msg 
+  output CGRAConfig_8_4_6_8_3__7aef41f23017ad58 send_ctrl_msg 
 );
-  localparam logic [1:0] __const__num_opt_slice_at_buffer_opt_slice  = 2'd2;
+  localparam logic [1:0] __const__num_opt_slice_at_buffer_opt_slice  = 2'd3;
   logic [5:0] cmd_counter;
-  logic [63:0] concat_ctrl_msg;
-  logic [31:0] opt_slice_regs [0:1];
+  logic [95:0] concat_ctrl_msg;
+  logic [31:0] opt_slice_regs [0:2];
 
   logic [0:0] reg_file__clk;
   logic [4:0] reg_file__raddr [0:0];
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce reg_file__rdata [0:0];
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 reg_file__rdata [0:0];
   logic [0:0] reg_file__reset;
   logic [4:0] reg_file__waddr [0:0];
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce reg_file__wdata [0:0];
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 reg_file__wdata [0:0];
   logic [0:0] reg_file__wen [0:0];
 
-  RegisterFile__461320654393e206 reg_file
+  RegisterFile__9d34cc086b9167a3 reg_file
   (
     .clk( reg_file__clk ),
     .raddr( reg_file__raddr ),
@@ -782,7 +802,7 @@ module CtrlMemRTL__7aace320cc2a8fb7
   always_ff @(posedge clk) begin : buffer_opt_slice
     if ( reset ) begin
       for ( int unsigned i = 1'd0; i < 2'( __const__num_opt_slice_at_buffer_opt_slice ); i += 1'd1 )
-        opt_slice_regs[1'(i)] <= 32'd0;
+        opt_slice_regs[2'(i)] <= 32'd0;
     end
     else if ( recv_ctrl_slice_en ) begin
       opt_slice_regs[recv_ctrl_slice_idx] <= recv_ctrl_slice;
@@ -807,7 +827,8 @@ module CtrlMemRTL__7aace320cc2a8fb7
   assign reg_file__reset = reset;
   assign concat_ctrl_msg[31:0] = opt_slice_regs[0];
   assign concat_ctrl_msg[63:32] = opt_slice_regs[1];
-  assign recv_ctrl_msg = concat_ctrl_msg[62:0];
+  assign concat_ctrl_msg[95:64] = opt_slice_regs[2];
+  assign recv_ctrl_msg = concat_ctrl_msg[67:0];
   assign reg_file__waddr[0] = recv_waddr;
   assign reg_file__wdata[0] = recv_ctrl_msg;
   assign reg_file__wen[0] = recv_waddr_en;
@@ -1459,7 +1480,7 @@ endmodule
 
 
 
-module ALURTL__74c75ceffe42760d
+module ALURTL__738ecfe6a89ddd7f
 (
   input  logic [4:0] bmask_b_i ,
   input  logic [0:0] clk ,
@@ -1602,468 +1623,376 @@ endmodule
 
 
 
-`ifndef CV32E40P_MUL
-`define CV32E40P_MUL
+`ifndef VEC_MUL
+`define VEC_MUL
 
 
 
 
 
-
-
-typedef enum logic [2:0] {
-    IDLE_MULT,
-    STEP0,
-    STEP1,
-    STEP2,
-    FINISH
-  } mult_state_e;
-
-module cv32e40p_mult 
+module vec_mult #(
+	parameter D_WIDTH         = 64,
+	parameter Q_WIDTH         = 32,
+	parameter ATOM_WIDTH      = 8,
+	parameter MAX_ITER        = 2048,
+  parameter PIPELINE_STAGES = 2
+)
 (
     input logic clk,
     input logic reset,
 
-    input logic        enable_i,
-    input logic [3:0] operator_i,
+    input logic [1:0] vector_mode_i,
+    input logic [1:0] operator_i,
 
-    input logic       short_subword_i,
-    input logic [1:0] short_signed_i,
+    input logic [2:0] op_signed_i,
+    input logic round_en_i,
+    input logic [$clog2(Q_WIDTH)-1:0] i_imm_i,
+    input logic [$clog2(Q_WIDTH)-1:0] o_imm_i,
 
-    input logic [31:0] op_a_i,
-    input logic [31:0] op_b_i,
-    input logic [31:0] op_c_i,
+    input logic [D_WIDTH-1:0] op_a_i,
+    input logic [D_WIDTH-1:0] op_b_i,
+    input logic [D_WIDTH-1:0] op_c_i,
 
-    input logic [4:0] r_imm_i,
-    input logic [4:0] imm_i,
-
-    input logic [ 1:0] dot_signed_i,
-    input logic [31:0] dot_op_a_i,
-    input logic [31:0] dot_op_b_i,
-    input logic [31:0] dot_op_c_i,
     input logic        is_clpx_i,
     input logic [ 1:0] clpx_shift_i,
     input logic        clpx_img_i,
 
-    output logic [31:0] result_o,
+    output logic [D_WIDTH-1:0] result_o,
 
-    output logic multicycle_o,
-    output logic mulh_active_o,
-    input  logic ex_ready_i,
-    output logic out_ready_o,
-    output logic ex_ready_o
+    input logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_i,
+    output logic [D_WIDTH/ATOM_WIDTH-1:0] result_predicate_o,
+
+    output logic out_en_o,
+    input logic out_rdy_i,
+    output logic ex_rdy_o,
+    input  logic ex_en_i
 );
+  localparam NUM_SLICES = D_WIDTH/ATOM_WIDTH;
+  localparam NUM_STAGES_L2 = $clog2(NUM_SLICES/2);
+  localparam NUM_STAGES_L1 = $clog2(NUM_SLICES);
 
-  localparam MUL_MAC32 = 4'b0000; // for basic mul, it is op_c_i == 0;
-  localparam MUL_MSU32 = 4'b0001;
-  localparam MUL_I     = 4'b0010;
-  localparam MUL_IR    = 4'b0011; // the only rounding;
-  localparam MUL_DOT8  = 4'b0100;
-  localparam MUL_DOT16 = 4'b0101;
-  localparam MUL_H     = 4'b0110;
   
-  localparam MUL_MAC8  = 4'b1100;
-  localparam MUL_MAC16 = 4'b1101;
-  localparam MUL_DOT32 = 4'b1110;
+
+  localparam VEC_MODE32 = 2'b00;
+  localparam VEC_MODE16 = 2'b10;
+  localparam VEC_MODE8 = 2'b11;
+
+  localparam MUL_MAC = 2'b00;
+  localparam MUL_DOT = 2'b01;
 
 
-  logic [16:0] short_op_a;
-  logic [16:0] short_op_b;
-  logic [32:0] short_op_c;
-  logic [33:0] short_mul;
-  logic [33:0] short_mac;
-  logic [31:0] round_tmp;
-  logic [31:0] int_round;
-  logic [33:0] short_result;
+  logic [3:0] op_signed_mask;
 
-  logic        short_mac_msb1;
-  logic        short_mac_msb0;
+  logic [ATOM_WIDTH:0] char_op_a [NUM_SLICES];
+  logic [ATOM_WIDTH:0] char_op_a_rev [NUM_SLICES];
+  logic [ATOM_WIDTH:0] char_op_b [NUM_SLICES];
+  
+  logic [2*ATOM_WIDTH+1:0] out_tmp [NUM_SLICES];
+  logic [2*ATOM_WIDTH+1:0] out_tmp_rev [NUM_SLICES];
+  logic [2*ATOM_WIDTH+1:0] out_tmp_buf_s1 [NUM_SLICES];
+  logic [2*ATOM_WIDTH+1:0] out_tmp_rev_buf_s1 [NUM_SLICES];
 
-  logic [ 4:0] short_imm;
-  logic [ 1:0] short_subword;
-  logic [ 1:0] short_signed;
-  logic        short_shift_arith;
-  logic [ 4:0] mulh_imm;
-  logic [ 1:0] mulh_subword;
-  logic [ 1:0] mulh_signed;
-  logic        mulh_shift_arith;
-  logic        mulh_carry_q;
-  logic        mulh_save;
-  logic        mulh_clearcarry;
-  logic        mulh_ready;
+  logic [D_WIDTH-1:0] accumulator_s1;
+  logic [1:0] operator_s1;
+  logic op_signed_c_s1;
+  logic round_en_s1;
+  logic vector_mode_s1;
+  logic [$clog2(Q_WIDTH)-1:0] i_shift_imm_s1;
+  logic [$clog2(Q_WIDTH)-1:0] o_shift_imm_s1;
+  logic [D_WIDTH-1:0] bmask_tmp_s1;
+  logic [D_WIDTH-1:0] bmask_s1;
 
-  mult_state_e mulh_CS, mulh_NS;
+  logic [2*ATOM_WIDTH+1:0] mac_l1_out_s1 [NUM_SLICES];
+  logic [2*ATOM_WIDTH:0] mac_l1_acc_s1 [NUM_SLICES];
+  logic [2*ATOM_WIDTH+2:0] mac_l1_result_s1_tmp [NUM_SLICES];
 
-  assign round_tmp = (r_imm_i == '0)? '0: (32'h00000001) << r_imm_i;
-  assign int_round = {1'b0, round_tmp[31:1]};
-
-  assign short_op_a[15:0] = short_subword[0] ? op_a_i[31:16] : op_a_i[15:0];
-  assign short_op_b[15:0] = short_subword[1] ? op_b_i[31:16] : op_b_i[15:0];
-
-  assign short_op_a[16] = short_signed[0] & short_op_a[15];
-  assign short_op_b[16] = short_signed[1] & short_op_b[15];
-
-  assign short_op_c = mulh_active_o ? $signed({mulh_carry_q, op_c_i}) : $signed(op_c_i);
-
-  assign short_mul = $signed(short_op_a) * $signed(short_op_b);
-  assign short_mac = $signed(short_op_c) + $signed(short_mul) + $signed(int_round);
-
-  assign short_result = $signed(
-      {short_shift_arith & short_mac_msb1, short_shift_arith & short_mac_msb0, short_mac[31:0]}
-  ) >>> short_imm;
-
-  assign short_imm = mulh_active_o ? mulh_imm : imm_i;
-  assign short_subword = mulh_active_o ? mulh_subword : {2{short_subword_i}};
-  assign short_signed = mulh_active_o ? mulh_signed : short_signed_i;
-  assign short_shift_arith = mulh_active_o ? mulh_shift_arith : short_signed_i[0];
-
-  assign short_mac_msb1 = mulh_active_o ? short_mac[33] : short_mac[31];
-  assign short_mac_msb0 = mulh_active_o ? short_mac[32] : short_mac[31];
+  logic [4*ATOM_WIDTH+1:0] mac_l2_p_s1 [NUM_SLICES];
+  logic [4*ATOM_WIDTH+2:0] mac_l2_out_s1 [NUM_SLICES/2];
+  logic [4*ATOM_WIDTH:0] mac_l2_acc_s1 [NUM_SLICES];
+  logic [4*ATOM_WIDTH+3:0] mac_l2_result_s1_tmp [NUM_SLICES/2];
 
 
-  always_comb begin
-    mulh_NS          = mulh_CS;
-    mulh_imm         = 5'd0;
-    mulh_subword     = 2'b00;
-    mulh_signed      = 2'b00;
-    mulh_shift_arith = 1'b0;
-    mulh_ready       = 1'b0;
-    mulh_active_o    = 1'b1;
-    mulh_save        = 1'b0;
-    mulh_clearcarry  = 1'b0;
-    multicycle_o     = 1'b0;
+  logic [2*ATOM_WIDTH+1+$clog2(NUM_SLICES):0] dot_l1_stage_s1 [NUM_STAGES_L1][NUM_SLICES/2];
+  logic [4*ATOM_WIDTH+1+$clog2(NUM_SLICES/2):0] dot_l2_stage_s1 [NUM_STAGES_L2][NUM_SLICES/4];
+  
+  logic [2*ATOM_WIDTH+1+$clog2(MAX_ITER):0] dot_l1_acc_s1;
+  logic [4*ATOM_WIDTH+1+$clog2(MAX_ITER):0] dot_l2_acc_s1;
 
-    out_ready_o      = 1'b0;
+  logic [D_WIDTH-1:0] mac_l2_result_s1;
+  logic [D_WIDTH-1:0] mac_l1_result_s1;
+  logic [D_WIDTH-1:0] dot_l2_result_s1;
+  logic [D_WIDTH-1:0] dot_l1_result_s1;
 
-    case (mulh_CS)
-      IDLE_MULT: begin
-        mulh_active_o = 1'b0;
-        mulh_ready    = 1'b1;
-        mulh_save     = 1'b0;
-        if ((operator_i == MUL_H) && enable_i) begin
-          mulh_ready = 1'b0;
-          mulh_NS    = STEP0;
-        end
-        out_ready_o  = (operator_i != MUL_H) && enable_i;
-      end
+  logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s0_masked; 
+  logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s1;  
 
-      STEP0: begin
-        multicycle_o  = 1'b1;
-        mulh_imm      = 5'd16;
-        mulh_active_o = 1'b1;
-        mulh_save     = 1'b0;
-        mulh_NS       = STEP1;
-      end
 
-      STEP1: begin
-        multicycle_o     = 1'b1;
-        mulh_signed      = {short_signed_i[1], 1'b0};
-        mulh_subword     = 2'b10;
-        mulh_save        = 1'b1;
-        mulh_shift_arith = 1'b1;
-        mulh_NS          = STEP2;
-      end
 
-      STEP2: begin
-        multicycle_o     = 1'b1;
-        mulh_signed      = {1'b0, short_signed_i[0]};
-        mulh_subword     = 2'b01;
-        mulh_imm         = 5'd16;
-        mulh_save        = 1'b1;
-        mulh_clearcarry  = 1'b1;
-        mulh_shift_arith = 1'b1;
-        mulh_NS          = FINISH;
-      end
-
-      FINISH: begin
-        mulh_signed  = short_signed_i;
-        mulh_subword = 2'b11;
-        mulh_ready   = 1'b1;
-        out_ready_o  = 1'b1;
-        if (ex_ready_i) mulh_NS = IDLE_MULT;
-      end
+  always_comb begin : signed_bits_mask
+    unique case (vector_mode_i)
+      VEC_MODE32: op_signed_mask = 4'b1000;
+      VEC_MODE16: op_signed_mask = 4'b1010;
+      VEC_MODE8: op_signed_mask = 4'b1111;
+      default: op_signed_mask = '0;
     endcase
   end
 
-  always_ff @(posedge clk, posedge reset) begin
-    if (reset) begin
-      mulh_CS      <= IDLE_MULT;
-      mulh_carry_q <= 1'b0;
-    end else begin
-      mulh_CS <= mulh_NS;
-
-      if (mulh_save) mulh_carry_q <= ~mulh_clearcarry & short_mac[32];
-      else if (ex_ready_i)  // clear carry when we are going to the next instruction
-        mulh_carry_q <= 1'b0;
+  always_comb begin : partial_mul_operand
+    for (int i = 0; i < NUM_SLICES; i++) begin
+      char_op_a[i] = {op_signed_mask[i%4] & op_signed_i[0] & op_a_i[(i+1)*ATOM_WIDTH-1], op_a_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
+      char_op_b[i] = {op_signed_mask[i%4] & op_signed_i[1] & op_b_i[(i+1)*ATOM_WIDTH-1], op_b_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
     end
   end
 
-  logic [31:0] int_op_a_msu;
-  logic [31:0] int_op_b_msu;
-  logic [31:0] int_result;
+  always_comb begin : partial_mul_operand_rev
+    for (int i = 0; i < NUM_SLICES/2; i++) begin
+      char_op_a_rev[i*2] = {ATOM_WIDTH{vector_mode_i != VEC_MODE8}} & char_op_a[i*2+1];
+      char_op_a_rev[i*2+1] = {ATOM_WIDTH{vector_mode_i != VEC_MODE8}} & char_op_a[i*2];
+    end
+  end
 
-  logic        int_is_msu;
-
-  assign int_is_msu = (operator_i == MUL_MSU32);
-
-  assign int_op_a_msu = op_a_i ^ {32{int_is_msu}};
-  assign int_op_b_msu = op_b_i & {32{int_is_msu}};
-
-  assign int_result = ($signed(
-      op_c_i
-  ) + $signed(
-      int_op_b_msu
-  ) + $signed(
-      int_op_a_msu
-  ) * $signed(
-      op_b_i
-  ) + $signed(
-      int_round
-  )) >>> imm_i;
+  genvar i, j, k, l, m, n;
+  generate
+    for (i=0; i < NUM_SLICES; i++) begin: gen_l1_mult
+      assign out_tmp[i] = $signed(char_op_a[i]) * $signed(char_op_b[i]);
+      assign out_tmp_rev[i] = $signed(char_op_a_rev[i]) * $signed(char_op_b[i]);
+    end
+  endgenerate
 
 
-  logic [31:0] dot_char_result;
-  logic [32:0] dot_short_result;
-  logic [31:0] accumulator;
-  logic [15:0] clpx_shift_result;
-  logic [3:0][8:0] dot_char_op_a;
-  logic [3:0][8:0] dot_char_op_b;
-  logic [3:0][17:0] dot_char_mul;
 
-  logic [3:0][17:0] dot_char_mac;
-  logic [1:0][33:0] dot_short_mac;
-  logic [31:0] mac_char_result;
-  logic [31:0] mac_short_result;
+  assign bmask_tmp_s1 = 'b1 <<< o_shift_imm_s1;
+  assign bmask_s1 = (round_en_s1) ? {1'b0, bmask_tmp_s1[D_WIDTH-1:1]} : 'b0;
 
-  logic [1:0][16:0] dot_short_op_a;
-  logic [1:0][16:0] dot_short_op_b;
-  logic [1:0][33:0] dot_short_mul;
-  logic      [16:0] dot_short_op_a_1_neg; //to compute -rA[31:16]*rB[31:16] -> (!rA[31:16] + 1)*rB[31:16] = !rA[31:16]*rB[31:16] + rB[31:16]
-  logic [31:0] dot_short_op_b_ext;
+  generate
+    for (i=0; i < NUM_SLICES; i++) begin: gen_l1_acc
+      assign mac_l1_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH-1], accumulator_s1[i*ATOM_WIDTH+:ATOM_WIDTH]}) <<< i_shift_imm_s1[0+:$clog2(ATOM_WIDTH)] + bmask_s1[0+:ATOM_WIDTH*2];
+    end
 
-  assign dot_char_op_a[0] = {dot_signed_i[0] & dot_op_a_i[7], dot_op_a_i[7:0]};
-  assign dot_char_op_a[1] = {dot_signed_i[0] & dot_op_a_i[15], dot_op_a_i[15:8]};
-  assign dot_char_op_a[2] = {dot_signed_i[0] & dot_op_a_i[23], dot_op_a_i[23:16]};
-  assign dot_char_op_a[3] = {dot_signed_i[0] & dot_op_a_i[31], dot_op_a_i[31:24]};
+    for (i=0; i < NUM_SLICES/2; i++) begin: gen_l2_acc
+      assign mac_l2_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*2-1], accumulator_s1[i*ATOM_WIDTH*2+:ATOM_WIDTH*2]}) <<< i_shift_imm_s1[0+:$clog2(ATOM_WIDTH*2)] + bmask_s1[0+:ATOM_WIDTH*4];
+    end
+  endgenerate
 
-  assign dot_char_op_b[0] = {dot_signed_i[1] & dot_op_b_i[7], dot_op_b_i[7:0]};
-  assign dot_char_op_b[1] = {dot_signed_i[1] & dot_op_b_i[15], dot_op_b_i[15:8]};
-  assign dot_char_op_b[2] = {dot_signed_i[1] & dot_op_b_i[23], dot_op_b_i[23:16]};
-  assign dot_char_op_b[3] = {dot_signed_i[1] & dot_op_b_i[31], dot_op_b_i[31:24]};
+  assign dot_l1_acc_s1 = $signed({op_signed_c_s1 & accumulator_s1[2*ATOM_WIDTH+$clog2(MAX_ITER)], accumulator_s1[2*ATOM_WIDTH+$clog2(MAX_ITER):0]}) <<< i_shift_imm_s1 + bmask_s1[2*ATOM_WIDTH+1+$clog2(MAX_ITER):0];
+  assign dot_l2_acc_s1 = $signed({op_signed_c_s1 & accumulator_s1[4*ATOM_WIDTH+$clog2(MAX_ITER)], accumulator_s1[4*ATOM_WIDTH+$clog2(MAX_ITER):0]}) <<< i_shift_imm_s1 + bmask_s1[4*ATOM_WIDTH+1+$clog2(MAX_ITER):0];
 
-  assign dot_char_mul[0] = $signed(dot_char_op_a[0]) * $signed(dot_char_op_b[0]);
-  assign dot_char_mul[1] = $signed(dot_char_op_a[1]) * $signed(dot_char_op_b[1]);
-  assign dot_char_mul[2] = $signed(dot_char_op_a[2]) * $signed(dot_char_op_b[2]);
-  assign dot_char_mul[3] = $signed(dot_char_op_a[3]) * $signed(dot_char_op_b[3]);
+  generate
+    for (l=0; l < NUM_SLICES; l++) begin: gen_l1_out
+      assign mac_l1_out_s1[l] = $signed(out_tmp_buf_s1[l]); 
+      assign mac_l1_result_s1_tmp[l] = ($signed(mac_l1_out_s1[l]) + $signed(mac_l1_acc_s1[l])) >>> o_shift_imm_s1;
+      assign mac_l1_result_s1[l*ATOM_WIDTH+:ATOM_WIDTH] = mac_l1_result_s1_tmp[l][0+:ATOM_WIDTH];
+    end
+  endgenerate
+  
+  generate
+    for (l=0; l < NUM_SLICES/2; l++) begin: gen_l2_out
+      assign mac_l2_p_s1[l] = $signed({{out_tmp_buf_s1[2*l+1]}, {2*ATOM_WIDTH{1'b0}}}) + $signed(out_tmp_buf_s1[2*l]);
+      assign mac_l2_p_s1[l+NUM_SLICES/2] = $signed(out_tmp_rev_buf_s1[2*l+1]) + $signed(out_tmp_buf_s1[2*l]);
+      assign mac_l2_out_s1[l] = $signed(mac_l2_p_s1[l]) + $signed({mac_l2_p_s1[l+NUM_SLICES/2], {ATOM_WIDTH{1'b0}}}); 
+      assign mac_l2_result_s1_tmp[l] = ($signed(mac_l2_out_s1[l]) + $signed(mac_l2_acc_s1[l])) >>> o_shift_imm_s1;
+      assign mac_l2_result_s1[l*ATOM_WIDTH*2+:ATOM_WIDTH*2] = mac_l2_result_s1_tmp[l][0+:ATOM_WIDTH*2];
+    end
+  endgenerate
 
-  assign dot_char_result = ($signed(
-      dot_char_mul[0]
-  ) + $signed(
-      dot_char_mul[1]
-  ) + $signed(
-      dot_char_mul[2]
-  ) + $signed(
-      dot_char_mul[3]
-  ) + $signed(
-      dot_op_c_i
-  ) + $signed(
-      int_round
-  )) >>> imm_i;
 
-  assign dot_short_op_a[0] = {dot_signed_i[0] & dot_op_a_i[15], dot_op_a_i[15:0]};
-  assign dot_short_op_a[1] = {dot_signed_i[0] & dot_op_a_i[31], dot_op_a_i[31:16]};
-  assign dot_short_op_a_1_neg = dot_short_op_a[1] ^ {17{(is_clpx_i & ~clpx_img_i)}}; //negates whether clpx_img_i is 0 or 1, only REAL PART needs to be negated
+  generate
+      for (i = 0; i < NUM_SLICES / 4; i++) begin : gen_stage0_dot_l2
+          assign dot_l2_stage_s1[0][i] = $signed(mac_l2_out_s1[2*i]) + $signed(mac_l2_out_s1[2*i+1]);
+      end
 
-  assign dot_short_op_b[0] = (is_clpx_i & clpx_img_i) ? {
-    dot_signed_i[1] & dot_op_b_i[31], dot_op_b_i[31:16]
-  } : {
-    dot_signed_i[1] & dot_op_b_i[15], dot_op_b_i[15:0]
-  };
-  assign dot_short_op_b[1] = (is_clpx_i & clpx_img_i) ? {
-    dot_signed_i[1] & dot_op_b_i[15], dot_op_b_i[15:0]
-  } : {
-    dot_signed_i[1] & dot_op_b_i[31], dot_op_b_i[31:16]
-  };
+      for (i = 1; i < NUM_SLICES / 4; i++) begin : gen_stages_dot_l2
+          for (j = 0; j < (NUM_SLICES >> (i + 2)); j++) begin 
+              assign dot_l2_stage_s1[i][j] = $signed(dot_l2_stage_s1[i-1][2*j]) + $signed(dot_l2_stage_s1[i-1][2*j + 1]);
+          end
+      end
+  endgenerate
 
-  assign dot_short_mul[0] = $signed(dot_short_op_a[0]) * $signed(dot_short_op_b[0]);
-  assign dot_short_mul[1] = $signed(dot_short_op_a_1_neg) * $signed(dot_short_op_b[1]);
+  generate
+      for (i = 0; i < NUM_SLICES / 2; i++) begin : gen_stage0_dot_l1
+          assign dot_l1_stage_s1[0][i] = $signed(mac_l1_out_s1[2*i]) + $signed(mac_l1_out_s1[2*i+1]);
+      end
 
-  assign dot_short_op_b_ext = $signed(dot_short_op_b[1]);
-  assign accumulator = is_clpx_i ? dot_short_op_b_ext & {32{~clpx_img_i}} : $signed(dot_op_c_i);
+      for (i = 1; i < NUM_SLICES / 2; i++) begin : gen_stages_dot_l1
+          for (j = 0; j < (NUM_SLICES >> (i + 1)); j++) begin
+              assign dot_l1_stage_s1[i][j] = $signed(dot_l1_stage_s1[i-1][2*j]) + $signed(dot_l1_stage_s1[i-1][2*j + 1]);
+          end
+      end
+  endgenerate
 
-  assign dot_short_result = ($signed(
-      dot_short_mul[0][31:0]
-  ) + $signed(
-      dot_short_mul[1][31:0]
-  ) + $signed(
-      accumulator
-  )) >>> imm_i;
-  assign clpx_shift_result = $signed(dot_short_result[31:15]) >>> clpx_shift_i;
+  assign dot_l1_result_s1 = $signed($signed(dot_l1_stage_s1[NUM_STAGES_L1-1][0]) + $signed(dot_l1_acc_s1)) >>> o_shift_imm_s1;
+  assign dot_l2_result_s1 = $signed($signed(dot_l2_stage_s1[NUM_STAGES_L2-1][0]) + $signed(dot_l2_acc_s1)) >>> o_shift_imm_s1;
 
-  assign dot_char_mac[0] = ($signed(dot_char_mul[0]) + $signed({dot_op_c_i[7], dot_op_c_i[7:0]}) + $signed({1'b0, int_round[15:0]})) >>> imm_i[3:0];
-  assign dot_char_mac[1] = ($signed(dot_char_mul[1]) + $signed({dot_op_c_i[15], dot_op_c_i[15:8]}) + $signed({1'b0, int_round[15:0]})) >>> imm_i[3:0];
-  assign dot_char_mac[2] = ($signed(dot_char_mul[2]) + $signed({dot_op_c_i[23], dot_op_c_i[23:16]}) + $signed({1'b0, int_round[15:0]})) >>> imm_i[3:0];
-  assign dot_char_mac[3] = ($signed(dot_char_mul[3]) + $signed({dot_op_c_i[31], dot_op_c_i[31:24]}) + $signed({1'b0, int_round[15:0]})) >>> imm_i[3:0];
-  assign mac_char_result = {
-    dot_char_mac[3][7:0],
-    dot_char_mac[2][7:0],
-    dot_char_mac[1][7:0],
-    dot_char_mac[0][7:0]
-  };
 
-  assign dot_short_mac[0] = ($signed(dot_short_mul[0]) + $signed({dot_op_c_i[15], dot_op_c_i[15:0]}) + $signed({1'b0, int_round})) >>> imm_i;
-  assign dot_short_mac[1] = ($signed(dot_short_mul[1]) + $signed({dot_op_c_i[31], dot_op_c_i[31:16]}) + $signed({1'b0, int_round})) >>> imm_i;
-  assign mac_short_result = {
-    dot_short_mac[1][15:0],
-    dot_short_mac[0][15:0]
-  };
+  always_ff @( posedge clk ) begin : s1_buf_sync
+    if ( reset ) begin
+      for (int i = 0; i < NUM_SLICES; i++) begin
+        out_tmp_buf_s1[i] <= 0;
+        out_tmp_rev_buf_s1[i] <= 0;
+      end
+      accumulator_s1 <= 0;
+      operator_s1 <= 0;
+      op_signed_c_s1 <= 0;
+      round_en_s1 <= 0;
+      vector_mode_s1 <= 0;
+      i_shift_imm_s1 <= 0;
+      o_shift_imm_s1 <= 0;
+      op_predicate_s1 <= 0;
+    end
+    else begin
+      if (recv_rdy[0] & recv_en[0]) begin
+        for (int i = 0; i < NUM_SLICES; i++) begin
+          out_tmp_buf_s1[i] <= out_tmp[i];
+          out_tmp_rev_buf_s1[i] <= out_tmp_rev[i];
+        end
+      end
+      accumulator_s1 <= op_c_i;
+      operator_s1 <= operator_i;
+      op_signed_c_s1 <= op_signed_i[2];
+      round_en_s1 <= round_en_i;
+      vector_mode_s1 <= vector_mode_i;
+      i_shift_imm_s1 <= i_imm_i;
+      o_shift_imm_s1 <= o_imm_i;
+      op_predicate_s1 <= op_predicate_i;
+    end
+  end
+
+  logic recv_en[PIPELINE_STAGES-1];
+  logic recv_rdy[PIPELINE_STAGES-1];
+  logic send_en[PIPELINE_STAGES-1];
+  logic send_rdy[PIPELINE_STAGES-1];
+  logic busy[PIPELINE_STAGES-1];
+
+  always_ff @( posedge clk ) begin : pipeline_sync
+    if ( reset ) begin
+      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+        busy[i] <= 0;
+      end
+    end
+    else begin
+      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+        busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
+      end
+    end
+  end
+
+  generate
+    for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
+      assign recv_en[i] = send_en[i-1];
+      assign send_rdy[i-1] = recv_rdy[i];
+    end
+    for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
+      assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
+      assign send_en[i] = busy[i];
+    end
+  endgenerate
+  
+  assign recv_en[0] = ex_en_i;
+  assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
+  assign ex_rdy_o = recv_rdy[0];
+  assign out_en_o = send_en[PIPELINE_STAGES-2];
 
 
   always_comb begin
     result_o = '0;
 
-    unique case (operator_i)
-      MUL_MAC32, MUL_MSU32: result_o = int_result[31:0];
+    unique case ({vector_mode_s1, operator_s1})
 
-      MUL_I, MUL_IR, MUL_H: result_o = short_result[31:0];
-
-      MUL_DOT8: result_o = dot_char_result[31:0];
-      MUL_DOT16: begin
-        if (is_clpx_i) begin
-          if (clpx_img_i) begin
-            result_o[31:16] = clpx_shift_result;
-            result_o[15:0]  = dot_op_c_i[15:0];
-          end else begin
-            result_o[15:0]  = clpx_shift_result;
-            result_o[31:16] = dot_op_c_i[31:16];
-          end
-        end else begin
-          result_o = dot_short_result[31:0];
-        end
-      end
-      MUL_MAC8: result_o = mac_char_result;
-      MUL_MAC16: result_o = mac_short_result;
+      {VEC_MODE8, MUL_MAC}: result_o = mac_l1_result_s1;
+      {VEC_MODE16, MUL_MAC}: result_o = mac_l2_result_s1;
+      {VEC_MODE8, MUL_DOT}: result_o = dot_l1_result_s1;
+      {VEC_MODE16, MUL_DOT}: result_o = dot_l2_result_s1;
       default: ;  // default case to suppress unique warning
     endcase
   end
 
+  assign result_predicate_o = op_predicate_s1;
 
-  assign ex_ready_o = ~out_ready_o | ex_ready_i;
 
 
-`ifdef CV32E40P_ASSERT_ON
-  assert property (
-    @(posedge clk) ((mulh_CS == FINISH) && (operator_i == MUL_H) && (short_signed_i == 2'b11))
-    |->
-    (result_o == (($signed(
-      {{32{op_a_i[31]}}, op_a_i}
-  ) * $signed(
-      {{32{op_b_i[31]}}, op_b_i}
-  )) >>> 32)));
 
-  assert property (
-    @(posedge clk) ((mulh_CS == FINISH) && (operator_i == MUL_H) && (short_signed_i == 2'b01))
-    |->
-    (result_o == (($signed(
-      {{32{op_a_i[31]}}, op_a_i}
-  ) * {
-    32'b0, op_b_i
-  }) >> 32)));
 
-  assert property (
-    @(posedge clk) ((mulh_CS == FINISH) && (operator_i == MUL_H) && (short_signed_i == 2'b00))
-    |->
-    (result_o == (({
-    32'b0, op_a_i
-  } * {
-    32'b0, op_b_i
-  }) >> 32)));
-`endif
+
 endmodule
 
-`endif /* CV32E40P_MUL */
+`endif /* VEC_MUL */
 
 
-`ifndef CV32E40P_MUL_NOPARAM
-`define CV32E40P_MUL_NOPARAM
+`ifndef VEC_MUL_NOPARAM
+`define VEC_MUL_NOPARAM
 
-module CV32E40P_MUL_noparam
+module VEC_MUL_noparam
 (
   input logic [1-1:0] clk ,
   input logic [1-1:0] clpx_img_i ,
   input logic [2-1:0] clpx_shift_i ,
-  input logic [32-1:0] dot_op_a_i ,
-  input logic [32-1:0] dot_op_b_i ,
-  input logic [32-1:0] dot_op_c_i ,
-  input logic [2-1:0] dot_signed_i ,
-  input logic [1-1:0] enable_i ,
-  input logic [1-1:0] ex_ready_i ,
-  output logic [1-1:0] ex_ready_o ,
-  input logic [5-1:0] imm_i ,
+  input logic [1-1:0] ex_en_i ,
+  output logic [1-1:0] ex_rdy_o ,
+  input logic [5-1:0] i_imm_i ,
   input logic [1-1:0] is_clpx_i ,
-  output logic [1-1:0] mulh_active_o ,
-  output logic [1-1:0] multicycle_o ,
-  input logic [32-1:0] op_a_i ,
-  input logic [32-1:0] op_b_i ,
-  input logic [32-1:0] op_c_i ,
-  input logic [4-1:0] operator_i ,
-  output logic [1-1:0] out_ready_o ,
-  input logic [5-1:0] r_imm_i ,
+  input logic [5-1:0] o_imm_i ,
+  input logic [64-1:0] op_a_i ,
+  input logic [64-1:0] op_b_i ,
+  input logic [64-1:0] op_c_i ,
+  input logic [8-1:0] op_predicate_i ,
+  input logic [3-1:0] op_signed_i ,
+  input logic [2-1:0] operator_i ,
+  output logic [1-1:0] out_en_o ,
+  input logic [1-1:0] out_rdy_i ,
   input logic [1-1:0] reset ,
-  output logic [32-1:0] result_o ,
-  input logic [2-1:0] short_signed_i ,
-  input logic [1-1:0] short_subword_i 
+  output logic [64-1:0] result_o ,
+  output logic [8-1:0] result_predicate_o ,
+  input logic [1-1:0] round_en_i ,
+  input logic [2-1:0] vector_mode_i 
 );
-  cv32e40p_mult
+  vec_mult
   #(
   ) v
   (
     .clk( clk ),
     .clpx_img_i( clpx_img_i ),
     .clpx_shift_i( clpx_shift_i ),
-    .dot_op_a_i( dot_op_a_i ),
-    .dot_op_b_i( dot_op_b_i ),
-    .dot_op_c_i( dot_op_c_i ),
-    .dot_signed_i( dot_signed_i ),
-    .enable_i( enable_i ),
-    .ex_ready_i( ex_ready_i ),
-    .ex_ready_o( ex_ready_o ),
-    .imm_i( imm_i ),
+    .ex_en_i( ex_en_i ),
+    .ex_rdy_o( ex_rdy_o ),
+    .i_imm_i( i_imm_i ),
     .is_clpx_i( is_clpx_i ),
-    .mulh_active_o( mulh_active_o ),
-    .multicycle_o( multicycle_o ),
+    .o_imm_i( o_imm_i ),
     .op_a_i( op_a_i ),
     .op_b_i( op_b_i ),
     .op_c_i( op_c_i ),
+    .op_predicate_i( op_predicate_i ),
+    .op_signed_i( op_signed_i ),
     .operator_i( operator_i ),
-    .out_ready_o( out_ready_o ),
-    .r_imm_i( r_imm_i ),
+    .out_en_o( out_en_o ),
+    .out_rdy_i( out_rdy_i ),
     .reset( reset ),
     .result_o( result_o ),
-    .short_signed_i( short_signed_i ),
-    .short_subword_i( short_subword_i )
+    .result_predicate_o( result_predicate_o ),
+    .round_en_i( round_en_i ),
+    .vector_mode_i( vector_mode_i )
   );
 endmodule
 
-`endif /* CV32E40P_MUL_NOPARAM */
+`endif /* VEC_MUL_NOPARAM */
 
 
 
 
-module MULRTL__74c75ceffe42760d
+module MULRTL__738ecfe6a89ddd7f
 (
   input  logic [0:0] clk ,
-  input  logic [1:0] ex_operand_signed_i ,
-  input  logic [3:0] ex_operator_i ,
-  input  logic [4:0] imm_i ,
+  input  logic [2:0] ex_operand_signed_i ,
+  input  logic [1:0] ex_operator_i ,
+  input  logic [0:0] ex_round_enable ,
+  input  logic [4:0] i_imm_i ,
   input  logic [0:0] input_valid_i ,
+  input  logic [4:0] o_imm_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_a_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_b_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_c_i ,
   input  logic [0:0] opt_launch_en_i ,
   output logic [0:0] opt_launch_rdy_o ,
   input  logic [0:0] output_rdy_i ,
-  input  logic [4:0] r_imm_i ,
   input  logic [0:0] recv_predicate_en ,
   input  CGRAData_8__predicate_8 recv_predicate_msg ,
   input  logic [0:0] reset ,
@@ -2073,90 +2002,54 @@ module MULRTL__74c75ceffe42760d
   input logic [0:0] send_out__rdy [0:1] 
 );
   logic [0:0] mul_enable;
-  logic [0:0] mul_ex_ready;
-  logic [1:0] mul_ex_ready_o_vector;
-  logic [1:0] mul_out_ready_o_vector;
   CGRAData_64_8__payload_64__predicate_8 result_o_vector;
+  logic [7:0] result_predicate;
 
-  logic [0:0] mul_element_clk [0:1];
-  logic [0:0] mul_element_clpx_img_i [0:1];
-  logic [1:0] mul_element_clpx_shift_i [0:1];
-  logic [31:0] mul_element_dot_op_a_i [0:1];
-  logic [31:0] mul_element_dot_op_b_i [0:1];
-  logic [31:0] mul_element_dot_op_c_i [0:1];
-  logic [1:0] mul_element_dot_signed_i [0:1];
-  logic [0:0] mul_element_enable_i [0:1];
-  logic [0:0] mul_element_ex_ready_i [0:1];
-  logic [0:0] mul_element_ex_ready_o [0:1];
-  logic [4:0] mul_element_imm_i [0:1];
-  logic [0:0] mul_element_is_clpx_i [0:1];
-  logic [0:0] mul_element_mulh_active_o [0:1];
-  logic [0:0] mul_element_multicycle_o [0:1];
-  logic [31:0] mul_element_op_a_i [0:1];
-  logic [31:0] mul_element_op_b_i [0:1];
-  logic [31:0] mul_element_op_c_i [0:1];
-  logic [3:0] mul_element_operator_i [0:1];
-  logic [0:0] mul_element_out_ready_o [0:1];
-  logic [4:0] mul_element_r_imm_i [0:1];
-  logic [0:0] mul_element_reset [0:1];
-  logic [31:0] mul_element_result_o [0:1];
-  logic [1:0] mul_element_short_signed_i [0:1];
-  logic [0:0] mul_element_short_subword_i [0:1];
+  logic [0:0] mul_element_clk;
+  logic [0:0] mul_element_clpx_img_i;
+  logic [1:0] mul_element_clpx_shift_i;
+  logic [0:0] mul_element_ex_en_i;
+  logic [0:0] mul_element_ex_rdy_o;
+  logic [4:0] mul_element_i_imm_i;
+  logic [0:0] mul_element_is_clpx_i;
+  logic [4:0] mul_element_o_imm_i;
+  logic [63:0] mul_element_op_a_i;
+  logic [63:0] mul_element_op_b_i;
+  logic [63:0] mul_element_op_c_i;
+  logic [7:0] mul_element_op_predicate_i;
+  logic [2:0] mul_element_op_signed_i;
+  logic [1:0] mul_element_operator_i;
+  logic [0:0] mul_element_out_en_o;
+  logic [0:0] mul_element_out_rdy_i;
+  logic [0:0] mul_element_reset;
+  logic [63:0] mul_element_result_o;
+  logic [7:0] mul_element_result_predicate_o;
+  logic [0:0] mul_element_round_en_i;
+  logic [1:0] mul_element_vector_mode_i;
 
-  CV32E40P_MUL_noparam mul_element__0
+  VEC_MUL_noparam mul_element
   (
-    .clk( mul_element_clk[0] ),
-    .clpx_img_i( mul_element_clpx_img_i[0] ),
-    .clpx_shift_i( mul_element_clpx_shift_i[0] ),
-    .dot_op_a_i( mul_element_dot_op_a_i[0] ),
-    .dot_op_b_i( mul_element_dot_op_b_i[0] ),
-    .dot_op_c_i( mul_element_dot_op_c_i[0] ),
-    .dot_signed_i( mul_element_dot_signed_i[0] ),
-    .enable_i( mul_element_enable_i[0] ),
-    .ex_ready_i( mul_element_ex_ready_i[0] ),
-    .ex_ready_o( mul_element_ex_ready_o[0] ),
-    .imm_i( mul_element_imm_i[0] ),
-    .is_clpx_i( mul_element_is_clpx_i[0] ),
-    .mulh_active_o( mul_element_mulh_active_o[0] ),
-    .multicycle_o( mul_element_multicycle_o[0] ),
-    .op_a_i( mul_element_op_a_i[0] ),
-    .op_b_i( mul_element_op_b_i[0] ),
-    .op_c_i( mul_element_op_c_i[0] ),
-    .operator_i( mul_element_operator_i[0] ),
-    .out_ready_o( mul_element_out_ready_o[0] ),
-    .r_imm_i( mul_element_r_imm_i[0] ),
-    .reset( mul_element_reset[0] ),
-    .result_o( mul_element_result_o[0] ),
-    .short_signed_i( mul_element_short_signed_i[0] ),
-    .short_subword_i( mul_element_short_subword_i[0] )
-  );
-
-  CV32E40P_MUL_noparam mul_element__1
-  (
-    .clk( mul_element_clk[1] ),
-    .clpx_img_i( mul_element_clpx_img_i[1] ),
-    .clpx_shift_i( mul_element_clpx_shift_i[1] ),
-    .dot_op_a_i( mul_element_dot_op_a_i[1] ),
-    .dot_op_b_i( mul_element_dot_op_b_i[1] ),
-    .dot_op_c_i( mul_element_dot_op_c_i[1] ),
-    .dot_signed_i( mul_element_dot_signed_i[1] ),
-    .enable_i( mul_element_enable_i[1] ),
-    .ex_ready_i( mul_element_ex_ready_i[1] ),
-    .ex_ready_o( mul_element_ex_ready_o[1] ),
-    .imm_i( mul_element_imm_i[1] ),
-    .is_clpx_i( mul_element_is_clpx_i[1] ),
-    .mulh_active_o( mul_element_mulh_active_o[1] ),
-    .multicycle_o( mul_element_multicycle_o[1] ),
-    .op_a_i( mul_element_op_a_i[1] ),
-    .op_b_i( mul_element_op_b_i[1] ),
-    .op_c_i( mul_element_op_c_i[1] ),
-    .operator_i( mul_element_operator_i[1] ),
-    .out_ready_o( mul_element_out_ready_o[1] ),
-    .r_imm_i( mul_element_r_imm_i[1] ),
-    .reset( mul_element_reset[1] ),
-    .result_o( mul_element_result_o[1] ),
-    .short_signed_i( mul_element_short_signed_i[1] ),
-    .short_subword_i( mul_element_short_subword_i[1] )
+    .clk( mul_element_clk ),
+    .clpx_img_i( mul_element_clpx_img_i ),
+    .clpx_shift_i( mul_element_clpx_shift_i ),
+    .ex_en_i( mul_element_ex_en_i ),
+    .ex_rdy_o( mul_element_ex_rdy_o ),
+    .i_imm_i( mul_element_i_imm_i ),
+    .is_clpx_i( mul_element_is_clpx_i ),
+    .o_imm_i( mul_element_o_imm_i ),
+    .op_a_i( mul_element_op_a_i ),
+    .op_b_i( mul_element_op_b_i ),
+    .op_c_i( mul_element_op_c_i ),
+    .op_predicate_i( mul_element_op_predicate_i ),
+    .op_signed_i( mul_element_op_signed_i ),
+    .operator_i( mul_element_operator_i ),
+    .out_en_o( mul_element_out_en_o ),
+    .out_rdy_i( mul_element_out_rdy_i ),
+    .reset( mul_element_reset ),
+    .result_o( mul_element_result_o ),
+    .result_predicate_o( mul_element_result_predicate_o ),
+    .round_en_i( mul_element_round_en_i ),
+    .vector_mode_i( mul_element_vector_mode_i )
   );
 
 
@@ -2166,68 +2059,571 @@ module MULRTL__74c75ceffe42760d
   end
 
   
-  always_comb begin : _lambda__s_tile_0__element_fu_1_opt_launch_rdy_o
-    opt_launch_rdy_o = ( & mul_ex_ready_o_vector );
+  always_comb begin : predicate_handling
+    result_predicate = 8'd0;
+    if ( mul_enable ) begin
+      result_predicate = ( ( operand_a_i.predicate & operand_b_i.predicate ) & operand_c_i.predicate ) & ( { { 7 { ~recv_predicate_en[0] } }, ~recv_predicate_en } | recv_predicate_msg.predicate );
+    end
   end
 
+  assign mul_element_clk = clk;
+  assign mul_element_reset = reset;
+  assign mul_element_vector_mode_i = vector_mode_i;
+  assign mul_element_operator_i = ex_operator_i;
+  assign mul_element_op_signed_i = ex_operand_signed_i;
+  assign mul_element_round_en_i = ex_round_enable;
+  assign mul_element_i_imm_i = i_imm_i;
+  assign mul_element_o_imm_i = o_imm_i;
+  assign mul_element_op_a_i = operand_a_i.payload;
+  assign mul_element_op_b_i = operand_b_i.payload;
+  assign mul_element_op_c_i = operand_c_i.payload;
+  assign mul_element_is_clpx_i = 1'd0;
+  assign mul_element_clpx_shift_i = 2'd0;
+  assign mul_element_clpx_img_i = 1'd0;
+  assign mul_element_op_predicate_i = result_predicate;
+  assign result_o_vector.payload = mul_element_result_o;
+  assign result_o_vector.predicate = mul_element_result_predicate_o;
+  assign mul_element_ex_en_i = mul_enable;
+  assign mul_element_out_rdy_i = output_rdy_i;
+  assign opt_launch_rdy_o = mul_element_ex_rdy_o;
+  assign send_out__msg[0] = result_o_vector;
+  assign send_out__en[0] = mul_element_out_en_o;
+  assign send_out__msg[1] = { 64'd0, 8'd0 };
+  assign send_out__en[1] = 1'd0;
+
+endmodule
+
+
+
+
+
+`ifndef VEC_LUT
+`define VEC_LUT
+
+
+
+
+
+module vec_lut #(
+	parameter D_WIDTH        	= 64 ,
+	parameter Q_WIDTH        	= 32 ,
+	parameter ATOM_WIDTH     	= 8,
+	parameter LUT_TYPE       	= 4 ,
+	parameter LUT_SIZE       	= 16 ,
+	parameter LUT_PRECISION  	= 8,
+	parameter PIPELINE_STAGES 	= 4
+)(
+	input  logic clk,
+	input  logic reset,
+    input  logic [1:0] vector_mode_i,
+    input logic [$clog2(Q_WIDTH)-1:0] i_imm_i,
+    input logic [$clog2(Q_WIDTH)-1:0] o_imm_i,
+    input logic [$clog2(LUT_PRECISION)-1:0] k_imm_i,
+
+	input  logic [D_WIDTH-1:0] data_i            ,
+	input  logic [1:0]         op_signed_i       ,
+	input  logic [$clog2(LUT_TYPE)-1:0] lut_mode_i,
+	input  logic [LUT_PRECISION*LUT_SIZE-1:0] lut_k_i,
+	input  logic [LUT_PRECISION*LUT_SIZE-1:0] lut_b_i,
+	input  logic [LUT_PRECISION*LUT_SIZE-1:0] lut_p_i,
+
+	output logic [$clog2(LUT_TYPE)-1:0] lut_sel_o,
+	output logic [D_WIDTH-1:0] data_o,
+
+	input logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_i,
+    output logic [D_WIDTH/ATOM_WIDTH-1:0] result_predicate_o,
+
+	output logic out_en_o,
+	input logic out_rdy_i,
+    output logic ex_rdy_o,
+    input  logic ex_en_i
+);
+
+	parameter LUT_IDX_BITS     = $clog2(LUT_SIZE);
+	parameter LUT_TYPE_BITS    = $clog2(LUT_TYPE);
+
+	localparam NUM_SLICES = D_WIDTH/ATOM_WIDTH;
+ 	localparam NUM_LUT_STAGES = $clog2(LUT_SIZE);
+
+	parameter OPT_LUTA = 5'd28;
+	parameter OPT_LUTB = 5'd29;
+	parameter OPT_LUTC = 5'd30;
+	parameter OPT_LUTD = 5'd31;
+
+	parameter VEC_MODE32 = 2'b00;
+	parameter VEC_MODE16 = 2'b10;
+	parameter VEC_MODE8 = 2'b11;
+
+	
+	logic [D_WIDTH-1:0] bmask_tmp_s0;
+  	logic [D_WIDTH-1:0] bmask_s0;
+	logic [ATOM_WIDTH:0] lut_i_l1 [NUM_SLICES];
+	logic [2*ATOM_WIDTH:0] lut_i_l2 [NUM_SLICES/2];
+	logic [4*ATOM_WIDTH:0] lut_i_l3 [NUM_SLICES/4];
+
+	logic [LUT_PRECISION-1:0] lut_key_s0 [NUM_SLICES];
+	logic [LUT_PRECISION-1:0] lut_key_s1 [NUM_SLICES];
+	logic [LUT_PRECISION-1:0] lut_key_s2 [NUM_SLICES];
+
+	logic [1:0] op_signed_s1;
+	logic [1:0] op_signed_s2;
+	logic [1:0] vector_mode_s1;
+	logic [1:0] vector_mode_s2;
+	logic [1:0] vector_mode_s3;
+
+  	logic [3:0] op_mask_s1;
+
+	logic [LUT_TYPE_BITS-1:0] lut_idx_s1;
+
+	logic [ATOM_WIDTH-1:0] lut_p_s1 [NUM_SLICES];
+
+	logic [LUT_IDX_BITS-1:0] idx_lower_s1 [NUM_SLICES];
+	logic [LUT_IDX_BITS-1:0] idx_upper_s1 [NUM_SLICES];
+	logic [LUT_IDX_BITS-1:0] idx_mid_s1 [NUM_SLICES];
+	logic [LUT_IDX_BITS+$clog2(LUT_PRECISION)-1:0] idx_fin_s1 [NUM_SLICES];
+
+	logic [LUT_PRECISION-1:0] lut_k_s1 [NUM_SLICES];
+	logic [LUT_PRECISION-1:0] lut_k_s2 [NUM_SLICES];
+	logic [LUT_PRECISION-1:0] lut_b_s1 [NUM_SLICES];
+	logic [LUT_PRECISION-1:0] lut_b_s2 [NUM_SLICES];
+	
+    logic [$clog2(LUT_PRECISION)-1:0] k_imm_s1;
+    logic [$clog2(LUT_PRECISION)-1:0] k_imm_s2;
+
+	logic [2*LUT_PRECISION+1:0] lut_approx_s2_tmp [NUM_SLICES];
+	logic [2*LUT_PRECISION+2:0] lut_approx_s2 [NUM_SLICES];
+	logic [2*LUT_PRECISION+2:0] lut_approx_s3 [NUM_SLICES];
+
+	logic [$clog2(Q_WIDTH)-1:0] o_imm_s1;
+  	logic [$clog2(Q_WIDTH)-1:0] o_imm_s2;
+	logic [$clog2(Q_WIDTH)-1:0] o_imm_s3;
+	
+	logic [D_WIDTH-1:0] bmask_tmp_s3;	
+  	logic [D_WIDTH-1:0] bmask_s3;
+
+	logic [ATOM_WIDTH-1:0] lut_result_l1_tmp_s3 [NUM_SLICES];
+	logic [2*ATOM_WIDTH-1:0] lut_result_l2_tmp_s3 [NUM_SLICES/2];
+	logic [4*ATOM_WIDTH-1:0] lut_result_l3_tmp_s3 [NUM_SLICES/4];
+
+	logic [D_WIDTH-1:0] lut_result_l1;
+	logic [D_WIDTH-1:0] lut_result_l2;
+	logic [D_WIDTH-1:0] lut_result_l3;
+
+	logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s1;
+	logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s1_masked;
+	logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s2;
+	logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s3;
+
+	genvar i, j, k;
+
+
+	assign bmask_tmp_s0 = 'b1 <<< i_imm_i;
+  	assign bmask_s0 = {1'b0, bmask_tmp_s0[D_WIDTH-1:1]};
+
+	generate
+		for (i = 0; i < NUM_SLICES; i++) begin
+			assign lut_i_l1[i] = $signed({op_signed_i[0] & data_i[(i+1)*ATOM_WIDTH-1], data_i[i*ATOM_WIDTH+:ATOM_WIDTH]}) + bmask_s0[0+:ATOM_WIDTH];
+		end
+
+		for (i = 0; i < NUM_SLICES/2; i++) begin
+			assign lut_i_l2[i] = $signed({op_signed_i[0] & data_i[(i+1)*2*ATOM_WIDTH-1], data_i[i*2*ATOM_WIDTH+:ATOM_WIDTH*2]}) + bmask_s0[0+:2*ATOM_WIDTH];
+		end
+
+		for (i = 0; i < NUM_SLICES/4; i++) begin
+			assign lut_i_l3[i] = $signed({op_signed_i[0] & data_i[(i+1)*4*ATOM_WIDTH-1], data_i[i*4*ATOM_WIDTH+:ATOM_WIDTH*4]}) + bmask_s0[0+:4*ATOM_WIDTH];
+		end
+	endgenerate
+
+	always_comb begin : data_i_q
+		for (int m=0; m < NUM_SLICES; m++) begin
+			lut_key_s0[m] = 0;
+		end
+		unique case (vector_mode_i)
+			VEC_MODE8: begin
+				for (int m=0; m < NUM_SLICES; m++) begin
+					lut_key_s0[m] = lut_i_l1[m] >>> i_imm_i;
+				end
+			end
+			VEC_MODE16: begin
+				for (int m=0; m < NUM_SLICES/2; m++) begin
+					lut_key_s0[m*2] = lut_i_l2[m] >>> i_imm_i;
+				end
+			end
+			VEC_MODE32: begin
+				for (int m=0; m < NUM_SLICES/4; m++) begin
+					lut_key_s0[m*4] = lut_i_l3[m] >>> i_imm_i;
+				end
+			end
+			default: ;
+		endcase
+	end
+	
+
+	always_comb begin : bits_mask
+		unique case (vector_mode_s1)
+			VEC_MODE32: op_mask_s1 = 4'b0001;
+			VEC_MODE16: op_mask_s1 = 4'b0101;
+			VEC_MODE8: op_mask_s1 = 4'b1111;
+			default: op_mask_s1 = '0;
+		endcase
+	end
+
+	assign lut_sel_o = lut_idx_s1;
+
+	generate
+		for (i = 0; i < NUM_SLICES; i++) begin 
+			always_comb begin: gen_lut_idx
+				idx_lower_s1[i] = 0;
+				idx_upper_s1[i] = LUT_SIZE-1;
+				idx_fin_s1[i] = 0;
+
+				for (int m=0; m < NUM_LUT_STAGES; m++) begin
+					idx_mid_s1[i] = (idx_lower_s1[i] + idx_upper_s1[i]) >> 1;
+					lut_p_s1[i] = lut_p_i[(idx_mid_s1[i] << $clog2(LUT_PRECISION)) +: LUT_PRECISION];
+					if ( $signed({op_signed_s1[0] & lut_key_s1[i][LUT_PRECISION-1], lut_key_s1[i]}) < $signed({op_signed_s1[0] & lut_p_s1[i][LUT_PRECISION-1], lut_p_s1[i]})) begin
+						idx_upper_s1[i] = idx_mid_s1[i] - 1;
+					end
+					else begin
+						idx_lower_s1[i] = idx_mid_s1[i] + 1;
+					end
+				end
+				idx_fin_s1[i] = idx_lower_s1[i] << $clog2(LUT_PRECISION);
+			end
+		end
+		
+		for (i = 0; i < NUM_SLICES; i++) begin : gen_lut_k_b
+			assign lut_k_s1[i] = lut_k_i[idx_fin_s1[i] +: LUT_PRECISION] & {LUT_PRECISION{op_mask_s1[i%4]}};
+			assign lut_b_s1[i] = lut_b_i[idx_fin_s1[i] +: LUT_PRECISION] & {LUT_PRECISION{op_mask_s1[i%4]}};
+		end
+	endgenerate
+
+	assign op_predicate_s1_masked = op_predicate_s1 & {(D_WIDTH/Q_WIDTH){op_mask_s1}};
+
+	
+	generate
+		for (i = 0; i < NUM_SLICES ; i++ ) begin : gen_lut_approx
+			assign lut_approx_s2_tmp[i] = $signed({op_signed_s2[0] & lut_key_s2[i][LUT_PRECISION-1], lut_key_s2[i]}) * $signed({op_signed_s2[1] & lut_k_s2[i][LUT_PRECISION-1], lut_k_s2[i]}); 
+			assign lut_approx_s2[i] = $signed($signed(lut_approx_s2_tmp[i]) >>> k_imm_s2) + $signed({lut_b_s2[i][LUT_PRECISION-1], lut_b_s2[i]});
+		end
+	endgenerate
+
+
+	assign bmask_tmp_s3 = 'b1 <<< o_imm_s3[$clog2(Q_WIDTH)-2 : 0];
+  	assign bmask_s3 = {1'b0, bmask_tmp_s3[D_WIDTH-1:1]};
+
+	generate
+		for (i = 0; i < NUM_SLICES ; i++ ) begin 
+			assign lut_result_l1_tmp_s3[i] = o_imm_s3[$clog2(Q_WIDTH)-1] ? (lut_approx_s3[i] <<< -o_imm_s3) : (($signed(lut_approx_s3[i]) + bmask_s3[0+:ATOM_WIDTH*2]) >>> o_imm_s3);
+			assign lut_result_l1[i*ATOM_WIDTH +: ATOM_WIDTH] = lut_result_l1_tmp_s3[i];			
+		end
+
+		for (i = 0; i < NUM_SLICES / 2 ; i++ ) begin 
+			assign lut_result_l2_tmp_s3[i] = o_imm_s3[$clog2(Q_WIDTH)-1] ? (lut_approx_s3[i*2] <<< -o_imm_s3) : (($signed(lut_approx_s3[i*2]) + bmask_s3[0+:ATOM_WIDTH*2]) >>> o_imm_s3);	
+			assign lut_result_l2[i*ATOM_WIDTH*2 +: ATOM_WIDTH*2] = lut_result_l2_tmp_s3[i];		
+		end
+
+		for (i = 0; i < NUM_SLICES / 4 ; i++ ) begin 
+			assign lut_result_l3_tmp_s3[i] = o_imm_s3[$clog2(Q_WIDTH)-1] ? (lut_approx_s3[i*4] <<< -o_imm_s3) : (($signed(lut_approx_s3[i*4]) + bmask_s3[0+:ATOM_WIDTH*2]) >>> o_imm_s3);	
+			assign lut_result_l3[i*ATOM_WIDTH*4 +: ATOM_WIDTH*4] = lut_result_l3_tmp_s3[i];
+		end
+	endgenerate
+
+
+
+	always_ff @( posedge clk ) begin : s1_buf_sync
+		if ( reset ) begin
+			for (int m=0; m < NUM_SLICES; m++) begin
+				lut_key_s1[m] <= 0;
+			end
+			lut_idx_s1 <= 0;
+			op_signed_s1 <= 0;
+			vector_mode_s1 <= 0;
+			k_imm_s1 <= 0;
+			o_imm_s1 <= 0;
+			op_predicate_s1 <= 0;
+		end
+		else if (recv_rdy[0] & recv_en[0]) begin
+			for (int m=0; m < NUM_SLICES; m++) begin
+				lut_key_s1[m] <= lut_key_s0[m];
+			end
+			lut_idx_s1 <= lut_mode_i;
+			op_signed_s1 <= op_signed_i;
+			vector_mode_s1 <= vector_mode_i;
+			k_imm_s1 <= k_imm_i;
+			o_imm_s1 <= o_imm_i;
+			op_predicate_s1 <= op_predicate_i;
+		end
+	end
+
+	always_ff @( posedge clk ) begin : s2_buf_sync
+		if ( reset ) begin
+			for (int m=0; m < NUM_SLICES; m++) begin
+				lut_key_s2[m] <= 0;
+				lut_k_s2[m] <= 0;
+				lut_b_s2[m] <= 0;
+			end
+			op_signed_s2 <= 0;
+			vector_mode_s2 <= 0;
+			k_imm_s2 <= 0;
+			o_imm_s2 <= 0;
+			op_predicate_s2 <= 0;
+		end
+		else if (recv_rdy[1] & recv_en[1]) begin
+			for (int m=0; m < NUM_SLICES; m++) begin
+				lut_key_s2[m] <= lut_key_s1[m];
+				lut_k_s2[m] <= lut_k_s1[m];
+				lut_b_s2[m] <= lut_b_s1[m];
+			end
+			op_signed_s2 <= op_signed_s1;
+			vector_mode_s2 <= vector_mode_s1;
+			k_imm_s2 <= k_imm_s1;
+			o_imm_s2 <= o_imm_s1;
+			op_predicate_s2 <= op_predicate_s1_masked;
+		end
+	end
+
+	always_ff @( posedge clk ) begin : s3_buf_sync
+		if ( reset ) begin
+			for (int m=0; m < NUM_SLICES; m++) begin
+				lut_approx_s3[m] <= 0;
+			end
+			vector_mode_s3 <= 0;
+			o_imm_s3 <= 0;
+			op_predicate_s3 <= 0;
+		end
+		else if (recv_rdy[2] & recv_en[2]) begin
+			for (int m=0; m < NUM_SLICES; m++) begin
+				lut_approx_s3[m] <= lut_approx_s2[m];
+			end
+			vector_mode_s3 <= vector_mode_s2;
+			o_imm_s3 <= o_imm_s2;
+			op_predicate_s3 <= op_predicate_s2;
+		end
+	end
+
+
+
+	logic recv_en[PIPELINE_STAGES-1];
+	logic recv_rdy[PIPELINE_STAGES-1];
+	logic send_en[PIPELINE_STAGES-1];
+	logic send_rdy[PIPELINE_STAGES-1];
+	logic busy[PIPELINE_STAGES-1];
+
+	always_ff @( posedge clk ) begin : pipeline_sync
+		if ( reset ) begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy[i] <= 0;
+			end
+		end
+		else begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
+			end
+		end
+	end
+
+	generate
+		for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
+			assign recv_en[i] = send_en[i-1];
+			assign send_rdy[i-1] = recv_rdy[i];
+		end
+		for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
+			assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
+			assign send_en[i] = busy[i];
+		end
+	endgenerate
+	
+	assign recv_en[0] = ex_en_i;
+	assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
+	assign ex_rdy_o = recv_rdy[0];
+	assign out_en_o = send_en[PIPELINE_STAGES-2];
+
+
+	always_comb begin
+		data_o = '0;
+
+		unique case (vector_mode_s3)
+			VEC_MODE8: data_o = lut_result_l1;
+			VEC_MODE16: data_o = lut_result_l2;
+			VEC_MODE32: data_o = lut_result_l3;
+			default: ;  // default case to suppress unique warning
+		endcase
+	end
+
+	assign result_predicate_o = op_predicate_s3;
+
+endmodule
+
+`endif /* VEC_LUT */
+
+
+`ifndef VEC_LUT_NOPARAM
+`define VEC_LUT_NOPARAM
+
+module VEC_LUT_noparam
+(
+  input logic [1-1:0] clk ,
+  input logic [64-1:0] data_i ,
+  output logic [64-1:0] data_o ,
+  input logic [1-1:0] ex_en_i ,
+  output logic [1-1:0] ex_rdy_o ,
+  input logic [5-1:0] i_imm_i ,
+  input logic [3-1:0] k_imm_i ,
+  input logic [128-1:0] lut_b_i ,
+  input logic [128-1:0] lut_k_i ,
+  input logic [2-1:0] lut_mode_i ,
+  input logic [128-1:0] lut_p_i ,
+  output logic [2-1:0] lut_sel_o ,
+  input logic [5-1:0] o_imm_i ,
+  input logic [8-1:0] op_predicate_i ,
+  input logic [2-1:0] op_signed_i ,
+  output logic [1-1:0] out_en_o ,
+  input logic [1-1:0] out_rdy_i ,
+  input logic [1-1:0] reset ,
+  output logic [8-1:0] result_predicate_o ,
+  input logic [2-1:0] vector_mode_i 
+);
+  vec_lut
+  #(
+  ) v
+  (
+    .clk( clk ),
+    .data_i( data_i ),
+    .data_o( data_o ),
+    .ex_en_i( ex_en_i ),
+    .ex_rdy_o( ex_rdy_o ),
+    .i_imm_i( i_imm_i ),
+    .k_imm_i( k_imm_i ),
+    .lut_b_i( lut_b_i ),
+    .lut_k_i( lut_k_i ),
+    .lut_mode_i( lut_mode_i ),
+    .lut_p_i( lut_p_i ),
+    .lut_sel_o( lut_sel_o ),
+    .o_imm_i( o_imm_i ),
+    .op_predicate_i( op_predicate_i ),
+    .op_signed_i( op_signed_i ),
+    .out_en_o( out_en_o ),
+    .out_rdy_i( out_rdy_i ),
+    .reset( reset ),
+    .result_predicate_o( result_predicate_o ),
+    .vector_mode_i( vector_mode_i )
+  );
+endmodule
+
+`endif /* VEC_LUT_NOPARAM */
+
+
+
+
+module LUTRTL__738ecfe6a89ddd7f
+(
+  input  logic [0:0] clk ,
+  input  logic [1:0] ex_operand_signed_i ,
+  input  logic [1:0] ex_operator_i ,
+  input  logic [4:0] i_imm_i ,
+  input  logic [0:0] input_valid_i ,
+  input  logic [2:0] k_imm_i ,
+  input  logic [127:0] lut_b_i ,
+  input  logic [127:0] lut_k_i ,
+  input  logic [127:0] lut_p_i ,
+  output logic [1:0] lut_sel_o ,
+  input  logic [4:0] o_imm_i ,
+  input  CGRAData_64_8__payload_64__predicate_8 operand_a_i ,
+  input  logic [0:0] opt_launch_en_i ,
+  output logic [0:0] opt_launch_rdy_o ,
+  input  logic [0:0] output_rdy_i ,
+  input  logic [0:0] recv_predicate_en ,
+  input  CGRAData_8__predicate_8 recv_predicate_msg ,
+  input  logic [0:0] reset ,
+  input  logic [1:0] vector_mode_i ,
+  output logic [0:0] send_out__en [0:1] ,
+  output CGRAData_64_8__payload_64__predicate_8 send_out__msg [0:1] ,
+  input logic [0:0] send_out__rdy [0:1] 
+);
+  logic [0:0] lut_enable;
+  CGRAData_64_8__payload_64__predicate_8 result_o_vector;
+  logic [7:0] result_predicate;
+
+  logic [0:0] lut_element_clk;
+  logic [63:0] lut_element_data_i;
+  logic [63:0] lut_element_data_o;
+  logic [0:0] lut_element_ex_en_i;
+  logic [0:0] lut_element_ex_rdy_o;
+  logic [4:0] lut_element_i_imm_i;
+  logic [2:0] lut_element_k_imm_i;
+  logic [127:0] lut_element_lut_b_i;
+  logic [127:0] lut_element_lut_k_i;
+  logic [1:0] lut_element_lut_mode_i;
+  logic [127:0] lut_element_lut_p_i;
+  logic [1:0] lut_element_lut_sel_o;
+  logic [4:0] lut_element_o_imm_i;
+  logic [7:0] lut_element_op_predicate_i;
+  logic [1:0] lut_element_op_signed_i;
+  logic [0:0] lut_element_out_en_o;
+  logic [0:0] lut_element_out_rdy_i;
+  logic [0:0] lut_element_reset;
+  logic [7:0] lut_element_result_predicate_o;
+  logic [1:0] lut_element_vector_mode_i;
+
+  VEC_LUT_noparam lut_element
+  (
+    .clk( lut_element_clk ),
+    .data_i( lut_element_data_i ),
+    .data_o( lut_element_data_o ),
+    .ex_en_i( lut_element_ex_en_i ),
+    .ex_rdy_o( lut_element_ex_rdy_o ),
+    .i_imm_i( lut_element_i_imm_i ),
+    .k_imm_i( lut_element_k_imm_i ),
+    .lut_b_i( lut_element_lut_b_i ),
+    .lut_k_i( lut_element_lut_k_i ),
+    .lut_mode_i( lut_element_lut_mode_i ),
+    .lut_p_i( lut_element_lut_p_i ),
+    .lut_sel_o( lut_element_lut_sel_o ),
+    .o_imm_i( lut_element_o_imm_i ),
+    .op_predicate_i( lut_element_op_predicate_i ),
+    .op_signed_i( lut_element_op_signed_i ),
+    .out_en_o( lut_element_out_en_o ),
+    .out_rdy_i( lut_element_out_rdy_i ),
+    .reset( lut_element_reset ),
+    .result_predicate_o( lut_element_result_predicate_o ),
+    .vector_mode_i( lut_element_vector_mode_i )
+  );
+
+
   
-  always_comb begin : _lambda__s_tile_0__element_fu_1_send_out_0__en
-    send_out__en[1'd0] = ( & mul_out_ready_o_vector );
+  always_comb begin : _lambda__s_tile_0__element_fu_2_lut_enable
+    lut_enable = opt_launch_en_i & input_valid_i;
   end
 
   
   always_comb begin : predicate_handling
-    result_o_vector.predicate = 8'd0;
-    if ( mul_enable ) begin
-      result_o_vector.predicate = ( ( operand_a_i.predicate & operand_b_i.predicate ) & operand_c_i.predicate ) & ( { { 7 { ~recv_predicate_en[0] } }, ~recv_predicate_en } | recv_predicate_msg.predicate );
+    result_predicate = 8'd0;
+    if ( lut_enable ) begin
+      result_predicate = operand_a_i.predicate & ( { { 7 { ~recv_predicate_en[0] } }, ~recv_predicate_en } | recv_predicate_msg.predicate );
     end
   end
 
-  assign mul_element_clk[0] = clk;
-  assign mul_element_reset[0] = reset;
-  assign mul_element_clk[1] = clk;
-  assign mul_element_reset[1] = reset;
-  assign mul_element_enable_i[0] = mul_enable;
-  assign mul_element_operator_i[0] = ex_operator_i;
-  assign mul_element_short_subword_i[0] = 1'd0;
-  assign mul_element_r_imm_i[0] = r_imm_i;
-  assign mul_element_imm_i[0] = imm_i;
-  assign mul_element_is_clpx_i[0] = 1'd0;
-  assign mul_element_clpx_img_i[0] = 1'd0;
-  assign mul_element_clpx_shift_i[0] = 2'd0;
-  assign mul_element_short_signed_i[0] = ex_operand_signed_i;
-  assign mul_element_dot_signed_i[0] = ex_operand_signed_i;
-  assign mul_ex_ready_o_vector[0:0] = mul_element_ex_ready_o[0];
-  assign mul_out_ready_o_vector[0:0] = mul_element_out_ready_o[0];
-  assign mul_element_op_a_i[0] = operand_a_i.payload[31:0];
-  assign mul_element_op_b_i[0] = operand_b_i.payload[31:0];
-  assign mul_element_op_c_i[0] = operand_c_i.payload[31:0];
-  assign mul_element_dot_op_a_i[0] = operand_a_i.payload[31:0];
-  assign mul_element_dot_op_b_i[0] = operand_b_i.payload[31:0];
-  assign mul_element_dot_op_c_i[0] = operand_c_i.payload[31:0];
-  assign result_o_vector.payload[31:0] = mul_element_result_o[0];
-  assign mul_element_ex_ready_i[0] = output_rdy_i;
-  assign mul_element_enable_i[1] = mul_enable;
-  assign mul_element_operator_i[1] = ex_operator_i;
-  assign mul_element_short_subword_i[1] = 1'd0;
-  assign mul_element_r_imm_i[1] = r_imm_i;
-  assign mul_element_imm_i[1] = imm_i;
-  assign mul_element_is_clpx_i[1] = 1'd0;
-  assign mul_element_clpx_img_i[1] = 1'd0;
-  assign mul_element_clpx_shift_i[1] = 2'd0;
-  assign mul_element_short_signed_i[1] = ex_operand_signed_i;
-  assign mul_element_dot_signed_i[1] = ex_operand_signed_i;
-  assign mul_ex_ready_o_vector[1:1] = mul_element_ex_ready_o[1];
-  assign mul_out_ready_o_vector[1:1] = mul_element_out_ready_o[1];
-  assign mul_element_op_a_i[1] = operand_a_i.payload[63:32];
-  assign mul_element_op_b_i[1] = operand_b_i.payload[63:32];
-  assign mul_element_op_c_i[1] = operand_c_i.payload[63:32];
-  assign mul_element_dot_op_a_i[1] = operand_a_i.payload[63:32];
-  assign mul_element_dot_op_b_i[1] = operand_b_i.payload[63:32];
-  assign mul_element_dot_op_c_i[1] = operand_c_i.payload[63:32];
-  assign result_o_vector.payload[63:32] = mul_element_result_o[1];
-  assign mul_element_ex_ready_i[1] = output_rdy_i;
+  assign lut_element_clk = clk;
+  assign lut_element_reset = reset;
+  assign lut_element_vector_mode_i = vector_mode_i;
+  assign lut_element_lut_mode_i = ex_operator_i;
+  assign lut_element_i_imm_i = i_imm_i;
+  assign lut_element_o_imm_i = o_imm_i;
+  assign lut_element_k_imm_i = k_imm_i;
+  assign lut_element_op_signed_i = ex_operand_signed_i;
+  assign lut_element_data_i = operand_a_i.payload;
+  assign lut_element_lut_k_i = lut_k_i;
+  assign lut_element_lut_b_i = lut_b_i;
+  assign lut_element_lut_p_i = lut_p_i;
+  assign lut_element_op_predicate_i = result_predicate;
+  assign lut_element_ex_en_i = lut_enable;
+  assign lut_element_out_rdy_i = output_rdy_i;
+  assign result_o_vector.payload = lut_element_data_o;
+  assign result_o_vector.predicate = lut_element_result_predicate_o;
+  assign lut_sel_o = lut_element_lut_sel_o;
+  assign opt_launch_rdy_o = lut_element_ex_rdy_o;
   assign send_out__msg[0] = result_o_vector;
+  assign send_out__en[0] = lut_element_out_en_o;
   assign send_out__msg[1] = { 64'd0, 8'd0 };
   assign send_out__en[1] = 1'd0;
 
@@ -2248,17 +2644,22 @@ module cgra_fu_decoder
 (
     input logic [1:0]          cgra_signed_mode_i,
     input logic [1:0]          cgra_vec_mode_i,
-    input logic [4:0]          cgra_bmask_i,
-    input logic [8:0]        id_operator_i, 
+    input logic [7:0]        id_operator_i, 
 
-    output logic [6:0] id_alu_operator_o,
-    output logic [4:0] id_alu_bmask_o,
+    output logic [6:0]       id_alu_operator_o,
     output logic             id_alu_enable_o,
-    output logic [3:0] id_mult_operator_o,
-    output logic [4:0] id_mult_bmask_o,
+    output logic [1:0]       id_mult_operator_o,
     output logic             id_mult_enable_o,
 
+    output logic [2:0]       id_lut_k_imm_o,
+    output logic [1:0]       id_lut_operator_o,
+    output logic             id_lut_enable_o,
+
+    output logic [2:0]       id_signed_mode_o,
+
     output logic             id_const_enable_o,
+    output logic             id_round_enable_o,
+
     output logic             id_operand_b_sel_o,
     output logic [1:0]       id_operand_c_sel_o,
     output logic             id_operand_b_repl_o,
@@ -2335,41 +2736,44 @@ module cgra_fu_decoder
   localparam ALU_PCKLO = 7'b0111000;
   localparam ALU_PCKHI = 7'b0111001;
 
-  localparam OPT_ADD = 5'd1;
-  localparam OPT_SUB = 5'd2;
-  localparam OPT_MUL = 5'd3;
-  localparam OPT_SLL = 5'd4;
-  localparam OPT_SRL = 5'd5;
-  localparam OPT_SRA = 5'd6;
-  localparam OPT_DIV = 5'd7;
-  localparam OPT_MIN = 5'd8;
-  localparam OPT_MAX = 5'd9;
-  localparam OPT_ABS = 5'd10;
-  localparam OPT_MAC = 5'd11; 
-  localparam OPT_MAC_CONST = 5'd12;
+  parameter OPT_NAH = 5'd0;
 
-  localparam OPT_FADD = 5'd13;
-  localparam OPT_FSUB = 5'd14;
-  localparam OPT_FMUL = 5'd15;
-  localparam OPT_FDIV = 5'd16;
+  parameter OPT_ADD = 5'd1;
+  parameter OPT_SUB = 5'd2;
+  parameter OPT_RADD = 5'd3;
 
-  localparam OPT_DOT = 5'd17;
-  localparam OPT_RADD = 5'd18;
+  parameter OPT_MUL = 5'd4;
+  parameter OPT_MAC = 5'd5; 
+  parameter OPT_MAC_CONST = 5'd6;
+  parameter OPT_DOT = 5'd7;
 
-  localparam OPT_XOR = 5'd21;
-  localparam OPT_OR = 5'd22;
-  localparam OPT_AND = 5'd23;
+  parameter OPT_SLL = 5'd8;
+  parameter OPT_SRL = 5'd9;
+  parameter OPT_SRA = 5'd10;
+  parameter OPT_MIN = 5'd11;
+  parameter OPT_MAX = 5'd12;
+  parameter OPT_ABS = 5'd13;
+  parameter OPT_XOR = 5'd14;
+  parameter OPT_OR = 5'd15;
+  parameter OPT_AND = 5'd16;
 
-  localparam MUL_MAC32 = 4'b0000; // for basic mul, it is op_c_i == 0;
-  localparam MUL_MSU32 = 4'b0001;
-  localparam MUL_I     = 4'b0010;
-  localparam MUL_DOT8  = 4'b0100;
-  localparam MUL_DOT16 = 4'b0101;
-  localparam MUL_H     = 4'b0110;
-  
-  localparam MUL_MAC8  = 4'b1100;
-  localparam MUL_MAC16 = 4'b1101;
-  localparam MUL_DOT32 = 4'b1110;
+  parameter OPT_ROT = 5'd17;   // todo
+  parameter OPT_PHI = 5'd18;  // todo
+  parameter OPT_COMP = 5'd19;  // todo
+
+  parameter OPT_CMUL = 5'd20;
+  parameter OPT_CMAC = 5'd21; 
+  parameter OPT_CMAC_CONST = 5'd22;
+  parameter OPT_CDOT = 5'd23;
+
+
+  parameter OPT_LUTA = 5'd28;
+  parameter OPT_LUTB = 5'd29;
+  parameter OPT_LUTC = 5'd30;
+  parameter OPT_LUTD = 5'd31;
+
+  localparam MUL_MAC = 2'b00;
+  localparam MUL_DOT = 2'b01;
 
   localparam VEC_MODE32 = 2'b00;
   localparam VEC_MODE16 = 2'b10;
@@ -2423,78 +2827,62 @@ module cgra_fu_decoder
     endcase
   end
 
+
   always_comb begin : mult_instruction_decoder
-    id_mult_operator_o = MUL_MAC32;
+    id_mult_operator_o = MUL_MAC;
     id_mult_enable_o = 1'b1;
     unique case (id_operator_i[4:0])
-      OPT_MUL: begin
-        unique case (cgra_vec_mode_i)
-          VEC_MODE8: id_mult_operator_o = MUL_MAC8;
-          VEC_MODE16: id_mult_operator_o = MUL_MAC16;
-          default: id_mult_operator_o = MUL_MAC32;
-        endcase
-      end
-      OPT_MAC: begin
-        unique case (cgra_vec_mode_i)
-          VEC_MODE8: id_mult_operator_o = MUL_MAC8;
-          VEC_MODE16: id_mult_operator_o = MUL_MAC16;
-          default: id_mult_operator_o = MUL_MAC32;
-        endcase
-      end
-      OPT_MAC_CONST: begin
-        unique case (cgra_vec_mode_i)
-          VEC_MODE8: id_mult_operator_o = MUL_MAC8;
-          VEC_MODE16: id_mult_operator_o = MUL_MAC16;
-          default: id_mult_operator_o = MUL_MAC32;
-        endcase
-      end
-      OPT_DOT: begin
-        unique case (cgra_vec_mode_i)
-          VEC_MODE8: id_mult_operator_o = MUL_DOT8;
-          VEC_MODE16: id_mult_operator_o = MUL_DOT16;
-          default: id_mult_operator_o = MUL_DOT32;
-        endcase
-      end
+      OPT_MUL: id_mult_operator_o = MUL_MAC;
+      OPT_MAC: id_mult_operator_o = MUL_MAC;
+      OPT_MAC_CONST: id_mult_operator_o = MUL_MAC;
+      OPT_DOT: id_mult_operator_o = MUL_DOT;
+
       default: id_mult_enable_o = 1'b0;
     endcase
   end
 
-  assign id_operand_b_sel_o = (id_operator_i[4:0] == OPT_MAC_CONST) ? (~id_operator_i[5]) : id_operator_i[5];
+  assign id_operand_b_sel_o = id_operator_i[5];
 
   always_comb begin : const_mux_selector_c
-    id_operand_c_sel_o = 2'b00;
+    id_operand_c_sel_o = 2'b10;
 
     unique case (id_operator_i[4:0])
-      OPT_MUL: id_operand_c_sel_o = 2'b10;
-      OPT_MAC_CONST: id_operand_c_sel_o = {1'b0, id_operator_i[5]};
+      OPT_MAC: id_operand_c_sel_o = {id_operator_i[5], id_operator_i[5]};
+      OPT_MAC_CONST: id_operand_c_sel_o = {1'b0, ~id_operator_i[5]};
     endcase    
   end
 
+  always_comb begin : signed_mode_indicator
+    id_signed_mode_o[0] = cgra_signed_mode_i[0];
+    id_signed_mode_o[1] = cgra_signed_mode_i[1] | (id_operator_i[5] & ~id_lut_enable_o);
+    id_signed_mode_o[2] = cgra_signed_mode_i[1] | id_operator_i[5];
+    
+    if (id_operator_i[4:0] == OPT_MAC_CONST) begin
+      id_signed_mode_o[2] = cgra_signed_mode_i[1] | ~id_operator_i[5];
+    end
+  end
+
   always_comb begin : scalar_repl_selector
-    id_operand_b_repl_o = 1'b0;
-    id_operand_c_repl_o = 1'b0;
+    id_operand_b_repl_o = id_operator_i[6] & ~id_operator_i[5];
+    id_operand_c_repl_o = id_operator_i[6] & ~id_operator_i[5];
 
     if (id_operator_i[4:0] == OPT_MAC_CONST) begin
-      id_operand_c_repl_o = id_operator_i[6];
-    end else begin
-      id_operand_b_repl_o = id_operator_i[6];
-    end
-    
+      id_operand_c_repl_o = id_operator_i[6] & id_operator_i[5];
+    end     
   end
 
-  always_comb begin : norm_bmask
-    id_alu_bmask_o = 5'b0;
 
-    unique case (id_operator_i[4:0])
-      OPT_ADD: id_alu_bmask_o = id_operator_i[7]? 5'd2 : 5'd0;
-      OPT_SUB: id_alu_bmask_o = id_operator_i[7]? 5'd2 : 5'd0;
 
-    endcase
     
-  end
 
-  assign id_const_enable_o = id_operator_i[5] || (id_operator_i[4:0] == OPT_MAC_CONST);
+  assign id_const_enable_o = (id_operator_i[5] || (id_operator_i[4:0] == OPT_MAC_CONST)) && ~id_lut_enable_o;
 
+  assign id_round_enable_o = id_operator_i[7] && ~id_lut_enable_o;
+
+  assign id_lut_enable_o = (id_operator_i[4:2] == 3'b111);
+  assign id_lut_operator_o = (id_lut_enable_o) ? id_operator_i[1:0] : '0;
+  assign id_lut_k_imm_o = (id_lut_enable_o) ? id_operator_i[7:5] : '0;
+  
 
 endmodule
 `endif /* COREV_DECODERRTL */
@@ -2507,41 +2895,45 @@ module CoreV_DecoderRTL_noparam
 (
   input logic reset,
   input logic clk,
-  input logic [5-1:0] cgra_bmask_i ,
   input logic [2-1:0] cgra_signed_mode_i ,
   input logic [2-1:0] cgra_vec_mode_i ,
-  output logic [5-1:0] id_alu_bmask_o ,
   output logic [1-1:0] id_alu_enable_o ,
   output logic [7-1:0] id_alu_operator_o ,
   output logic [1-1:0] id_const_enable_o ,
-  output logic [5-1:0] id_mult_bmask_o ,
+  output logic [1-1:0] id_lut_enable_o ,
+  output logic [3-1:0] id_lut_k_imm_o ,
+  output logic [2-1:0] id_lut_operator_o ,
   output logic [1-1:0] id_mult_enable_o ,
-  output logic [4-1:0] id_mult_operator_o ,
+  output logic [2-1:0] id_mult_operator_o ,
   output logic [1-1:0] id_operand_b_repl_o ,
   output logic [1-1:0] id_operand_b_sel_o ,
   output logic [1-1:0] id_operand_c_repl_o ,
   output logic [2-1:0] id_operand_c_sel_o ,
-  input logic [9-1:0] id_operator_i 
+  input logic [8-1:0] id_operator_i ,
+  output logic [1-1:0] id_round_enable_o ,
+  output logic [3-1:0] id_signed_mode_o 
 );
   cgra_fu_decoder
   #(
   ) v
   (
-    .cgra_bmask_i( cgra_bmask_i ),
     .cgra_signed_mode_i( cgra_signed_mode_i ),
     .cgra_vec_mode_i( cgra_vec_mode_i ),
-    .id_alu_bmask_o( id_alu_bmask_o ),
     .id_alu_enable_o( id_alu_enable_o ),
     .id_alu_operator_o( id_alu_operator_o ),
     .id_const_enable_o( id_const_enable_o ),
-    .id_mult_bmask_o( id_mult_bmask_o ),
+    .id_lut_enable_o( id_lut_enable_o ),
+    .id_lut_k_imm_o( id_lut_k_imm_o ),
+    .id_lut_operator_o( id_lut_operator_o ),
     .id_mult_enable_o( id_mult_enable_o ),
     .id_mult_operator_o( id_mult_operator_o ),
     .id_operand_b_repl_o( id_operand_b_repl_o ),
     .id_operand_b_sel_o( id_operand_b_sel_o ),
     .id_operand_c_repl_o( id_operand_c_repl_o ),
     .id_operand_c_sel_o( id_operand_c_sel_o ),
-    .id_operator_i( id_operator_i )
+    .id_operator_i( id_operator_i ),
+    .id_round_enable_o( id_round_enable_o ),
+    .id_signed_mode_o( id_signed_mode_o )
   );
 endmodule
 
@@ -2598,7 +2990,7 @@ module cgra_fu_oprand_mux
         operand_b_mux_pred_o = ex_operand_b_pred_i;
       end
       1'b1: begin
-        operand_b_mux_o = {ex_constant_i, ex_constant_i};
+        operand_b_mux_o = (ex_operand_c_sel == 2'b11) ? {4{ex_constant_i[15:0]}} : {2{ex_constant_i}};
         operand_b_mux_pred_o = {8{1'b1}};
       end 
     endcase
@@ -2607,13 +2999,17 @@ module cgra_fu_oprand_mux
   always_comb begin : operand_mux_c
     unique case (ex_operand_c_sel)
       2'b01: begin
-        operand_c_mux_o = {ex_constant_i, ex_constant_i};
+        operand_c_mux_o = {2{ex_constant_i}};
         operand_c_mux_pred_o = {8{1'b1}};
       end 
       2'b10: begin
         operand_c_mux_o = '0;
         operand_c_mux_pred_o = {8{1'b1}};
       end 
+      2'b11: begin
+        operand_c_mux_o = {4{ex_constant_i[31:16]}};
+        operand_c_mux_pred_o = {8{1'b1}};
+      end
       default: begin
         operand_c_mux_o = ex_operand_c_i;
         operand_c_mux_pred_o = ex_operand_c_pred_i;
@@ -2715,9 +3111,10 @@ endmodule
 
 
 
-module CGRAFURTL__cb9d7ba75ff8e27e
+module CGRAFURTL__66562d1307bd2eec
 (
-  input  logic [4:0] cgra_bmask_i ,
+  input  logic [4:0] cgra_i_imm_bmask_i ,
+  input  logic [4:0] cgra_o_imm_bmask_i ,
   input  logic [1:0] cgra_signed_mode_i ,
   input  logic [1:0] cgra_vec_mode_i ,
   input  logic [0:0] clk ,
@@ -2730,9 +3127,12 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   output logic [0:0] fu_propagate_rdy ,
   output logic [0:0] recv_const_ack ,
   input  logic [31:0] recv_const_data ,
-  input  logic [8:0] recv_opt_msg_ctrl ,
+  input  logic [127:0] recv_lut_b_data ,
+  input  logic [127:0] recv_lut_k_data ,
+  input  logic [127:0] recv_lut_p_data ,
+  input  logic [7:0] recv_opt_msg_ctrl ,
   input  logic [2:0] recv_opt_msg_fu_in [0:3],
-  input  logic [1:0] recv_opt_msg_out_routine ,
+  input  logic [2:0] recv_opt_msg_out_routine ,
   input  logic [0:0] recv_opt_msg_predicate ,
   output logic [3:0] recv_port_ack ,
   input  CGRAData_64_8__payload_64__predicate_8 recv_port_data [0:3],
@@ -2741,6 +3141,7 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   input  CGRAData_8__predicate_8 recv_predicate_data ,
   input  logic [0:0] recv_predicate_valid ,
   input  logic [0:0] reset ,
+  output logic [1:0] send_lut_sel ,
   input  logic [0:0] send_port_ack ,
   output CGRAData_64_8__payload_64__predicate_8 send_port_data [0:1],
   output logic [1:0] send_port_valid 
@@ -2759,30 +3160,34 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   localparam logic [1:0] __const__num_outports_at_data_routing  = 2'd2;
   localparam logic [2:0] __const__num_xbar_inports_at_data_routing  = 3'd4;
   logic [1:0] cur_stage;
-  logic [4:0] ex_alu_bmask;
   logic [0:0] ex_alu_enable;
   logic [6:0] ex_alu_operator;
-  logic [4:0] ex_mult_bmask;
+  logic [4:0] ex_i_imm_bmask;
+  logic [0:0] ex_lut_enable;
+  logic [2:0] ex_lut_k_imm;
+  logic [1:0] ex_lut_operator;
   logic [0:0] ex_mult_enable;
-  logic [3:0] ex_mult_operator;
+  logic [1:0] ex_mult_operator;
+  logic [4:0] ex_o_imm_bmask;
   logic [0:0] ex_operand_b_repl;
   logic [0:0] ex_operand_b_sel;
   logic [0:0] ex_operand_c_repl;
   logic [1:0] ex_operand_c_sel;
-  logic [1:0] ex_signed_mode;
+  logic [0:0] ex_round_enable;
+  logic [2:0] ex_signed_mode;
   logic [1:0] ex_vec_mode;
   logic [3:0] fu_handshake_vector_xbar_mesh_in_valid_met;
   logic [0:0] fu_launch_ack;
   logic [0:0] fu_launch_done;
-  logic [1:0] fu_launch_en_vector;
+  logic [2:0] fu_launch_en_vector;
   logic [0:0] fu_launch_finish;
-  logic [1:0] fu_launch_rdy_vector;
-  logic [1:0] fu_out_routine;
+  logic [2:0] fu_launch_rdy_vector;
+  logic [2:0] fu_out_routine;
   logic [0:0] fu_recv_const_req_nxt;
   logic [0:0] fu_send_out_ack;
   logic [0:0] fu_send_out_done;
   logic [0:0] fu_send_out_finish;
-  logic [1:0] fu_send_port_valid_vector [0:1];
+  logic [2:0] fu_send_port_valid_vector [0:1];
   logic [3:0] fu_xbar_inport_sel [0:3];
   logic [0:0] fu_xbar_mesh_in_valid;
   logic [3:0] fu_xbar_outport_sel [0:3];
@@ -2791,16 +3196,19 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   logic [0:0] fu_xbar_recv_const_req;
   logic [0:0] fu_xbar_recv_predicate_req;
   CGRAData_64_8__payload_64__predicate_8 fu_xbar_send_data [0:3];
-  logic [4:0] id_alu_bmask;
   logic [0:0] id_alu_enable;
   logic [6:0] id_alu_operator;
-  logic [4:0] id_mult_bmask;
+  logic [0:0] id_lut_enable;
+  logic [2:0] id_lut_k_imm;
+  logic [1:0] id_lut_operator;
   logic [0:0] id_mult_enable;
-  logic [3:0] id_mult_operator;
+  logic [1:0] id_mult_operator;
   logic [0:0] id_operand_b_repl;
   logic [0:0] id_operand_b_sel;
   logic [0:0] id_operand_c_repl;
   logic [1:0] id_operand_c_sel;
+  logic [0:0] id_round_enable;
+  logic [2:0] id_signed_mode;
   logic [1:0] nxt_stage;
   logic [0:0] recv_predicate_req_nxt;
   logic [3:0] xbar_recv_port_req;
@@ -2822,7 +3230,7 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   CGRAData_64_8__payload_64__predicate_8 fu_0__send_out__msg [0:1];
   logic [0:0] fu_0__send_out__rdy [0:1];
 
-  ALURTL__74c75ceffe42760d fu_0
+  ALURTL__738ecfe6a89ddd7f fu_0
   (
     .bmask_b_i( fu_0__bmask_b_i ),
     .clk( fu_0__clk ),
@@ -2845,17 +3253,18 @@ module CGRAFURTL__cb9d7ba75ff8e27e
 
 
   logic [0:0] fu_1__clk;
-  logic [1:0] fu_1__ex_operand_signed_i;
-  logic [3:0] fu_1__ex_operator_i;
-  logic [4:0] fu_1__imm_i;
+  logic [2:0] fu_1__ex_operand_signed_i;
+  logic [1:0] fu_1__ex_operator_i;
+  logic [0:0] fu_1__ex_round_enable;
+  logic [4:0] fu_1__i_imm_i;
   logic [0:0] fu_1__input_valid_i;
+  logic [4:0] fu_1__o_imm_i;
   CGRAData_64_8__payload_64__predicate_8 fu_1__operand_a_i;
   CGRAData_64_8__payload_64__predicate_8 fu_1__operand_b_i;
   CGRAData_64_8__payload_64__predicate_8 fu_1__operand_c_i;
   logic [0:0] fu_1__opt_launch_en_i;
   logic [0:0] fu_1__opt_launch_rdy_o;
   logic [0:0] fu_1__output_rdy_i;
-  logic [4:0] fu_1__r_imm_i;
   logic [0:0] fu_1__recv_predicate_en;
   CGRAData_8__predicate_8 fu_1__recv_predicate_msg;
   logic [0:0] fu_1__reset;
@@ -2864,20 +3273,21 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   CGRAData_64_8__payload_64__predicate_8 fu_1__send_out__msg [0:1];
   logic [0:0] fu_1__send_out__rdy [0:1];
 
-  MULRTL__74c75ceffe42760d fu_1
+  MULRTL__738ecfe6a89ddd7f fu_1
   (
     .clk( fu_1__clk ),
     .ex_operand_signed_i( fu_1__ex_operand_signed_i ),
     .ex_operator_i( fu_1__ex_operator_i ),
-    .imm_i( fu_1__imm_i ),
+    .ex_round_enable( fu_1__ex_round_enable ),
+    .i_imm_i( fu_1__i_imm_i ),
     .input_valid_i( fu_1__input_valid_i ),
+    .o_imm_i( fu_1__o_imm_i ),
     .operand_a_i( fu_1__operand_a_i ),
     .operand_b_i( fu_1__operand_b_i ),
     .operand_c_i( fu_1__operand_c_i ),
     .opt_launch_en_i( fu_1__opt_launch_en_i ),
     .opt_launch_rdy_o( fu_1__opt_launch_rdy_o ),
     .output_rdy_i( fu_1__output_rdy_i ),
-    .r_imm_i( fu_1__r_imm_i ),
     .recv_predicate_en( fu_1__recv_predicate_en ),
     .recv_predicate_msg( fu_1__recv_predicate_msg ),
     .reset( fu_1__reset ),
@@ -2889,35 +3299,88 @@ module CGRAFURTL__cb9d7ba75ff8e27e
 
 
 
-  logic [4:0] fu_decoder_cgra_bmask_i;
+  logic [0:0] fu_2__clk;
+  logic [1:0] fu_2__ex_operand_signed_i;
+  logic [1:0] fu_2__ex_operator_i;
+  logic [4:0] fu_2__i_imm_i;
+  logic [0:0] fu_2__input_valid_i;
+  logic [2:0] fu_2__k_imm_i;
+  logic [127:0] fu_2__lut_b_i;
+  logic [127:0] fu_2__lut_k_i;
+  logic [127:0] fu_2__lut_p_i;
+  logic [1:0] fu_2__lut_sel_o;
+  logic [4:0] fu_2__o_imm_i;
+  CGRAData_64_8__payload_64__predicate_8 fu_2__operand_a_i;
+  logic [0:0] fu_2__opt_launch_en_i;
+  logic [0:0] fu_2__opt_launch_rdy_o;
+  logic [0:0] fu_2__output_rdy_i;
+  logic [0:0] fu_2__recv_predicate_en;
+  CGRAData_8__predicate_8 fu_2__recv_predicate_msg;
+  logic [0:0] fu_2__reset;
+  logic [1:0] fu_2__vector_mode_i;
+  logic [0:0] fu_2__send_out__en [0:1];
+  CGRAData_64_8__payload_64__predicate_8 fu_2__send_out__msg [0:1];
+  logic [0:0] fu_2__send_out__rdy [0:1];
+
+  LUTRTL__738ecfe6a89ddd7f fu_2
+  (
+    .clk( fu_2__clk ),
+    .ex_operand_signed_i( fu_2__ex_operand_signed_i ),
+    .ex_operator_i( fu_2__ex_operator_i ),
+    .i_imm_i( fu_2__i_imm_i ),
+    .input_valid_i( fu_2__input_valid_i ),
+    .k_imm_i( fu_2__k_imm_i ),
+    .lut_b_i( fu_2__lut_b_i ),
+    .lut_k_i( fu_2__lut_k_i ),
+    .lut_p_i( fu_2__lut_p_i ),
+    .lut_sel_o( fu_2__lut_sel_o ),
+    .o_imm_i( fu_2__o_imm_i ),
+    .operand_a_i( fu_2__operand_a_i ),
+    .opt_launch_en_i( fu_2__opt_launch_en_i ),
+    .opt_launch_rdy_o( fu_2__opt_launch_rdy_o ),
+    .output_rdy_i( fu_2__output_rdy_i ),
+    .recv_predicate_en( fu_2__recv_predicate_en ),
+    .recv_predicate_msg( fu_2__recv_predicate_msg ),
+    .reset( fu_2__reset ),
+    .vector_mode_i( fu_2__vector_mode_i ),
+    .send_out__en( fu_2__send_out__en ),
+    .send_out__msg( fu_2__send_out__msg ),
+    .send_out__rdy( fu_2__send_out__rdy )
+  );
+
+
+
   logic [1:0] fu_decoder_cgra_signed_mode_i;
   logic [1:0] fu_decoder_cgra_vec_mode_i;
   logic [0:0] fu_decoder_clk;
-  logic [4:0] fu_decoder_id_alu_bmask_o;
   logic [0:0] fu_decoder_id_alu_enable_o;
   logic [6:0] fu_decoder_id_alu_operator_o;
   logic [0:0] fu_decoder_id_const_enable_o;
-  logic [4:0] fu_decoder_id_mult_bmask_o;
+  logic [0:0] fu_decoder_id_lut_enable_o;
+  logic [2:0] fu_decoder_id_lut_k_imm_o;
+  logic [1:0] fu_decoder_id_lut_operator_o;
   logic [0:0] fu_decoder_id_mult_enable_o;
-  logic [3:0] fu_decoder_id_mult_operator_o;
+  logic [1:0] fu_decoder_id_mult_operator_o;
   logic [0:0] fu_decoder_id_operand_b_repl_o;
   logic [0:0] fu_decoder_id_operand_b_sel_o;
   logic [0:0] fu_decoder_id_operand_c_repl_o;
   logic [1:0] fu_decoder_id_operand_c_sel_o;
-  logic [8:0] fu_decoder_id_operator_i;
+  logic [7:0] fu_decoder_id_operator_i;
+  logic [0:0] fu_decoder_id_round_enable_o;
+  logic [2:0] fu_decoder_id_signed_mode_o;
   logic [0:0] fu_decoder_reset;
 
   CoreV_DecoderRTL_noparam fu_decoder
   (
-    .cgra_bmask_i( fu_decoder_cgra_bmask_i ),
     .cgra_signed_mode_i( fu_decoder_cgra_signed_mode_i ),
     .cgra_vec_mode_i( fu_decoder_cgra_vec_mode_i ),
     .clk( fu_decoder_clk ),
-    .id_alu_bmask_o( fu_decoder_id_alu_bmask_o ),
     .id_alu_enable_o( fu_decoder_id_alu_enable_o ),
     .id_alu_operator_o( fu_decoder_id_alu_operator_o ),
     .id_const_enable_o( fu_decoder_id_const_enable_o ),
-    .id_mult_bmask_o( fu_decoder_id_mult_bmask_o ),
+    .id_lut_enable_o( fu_decoder_id_lut_enable_o ),
+    .id_lut_k_imm_o( fu_decoder_id_lut_k_imm_o ),
+    .id_lut_operator_o( fu_decoder_id_lut_operator_o ),
     .id_mult_enable_o( fu_decoder_id_mult_enable_o ),
     .id_mult_operator_o( fu_decoder_id_mult_operator_o ),
     .id_operand_b_repl_o( fu_decoder_id_operand_b_repl_o ),
@@ -2925,6 +3388,8 @@ module CGRAFURTL__cb9d7ba75ff8e27e
     .id_operand_c_repl_o( fu_decoder_id_operand_c_repl_o ),
     .id_operand_c_sel_o( fu_decoder_id_operand_c_sel_o ),
     .id_operator_i( fu_decoder_id_operator_i ),
+    .id_round_enable_o( fu_decoder_id_round_enable_o ),
+    .id_signed_mode_o( fu_decoder_id_signed_mode_o ),
     .reset( fu_decoder_reset )
   );
 
@@ -2970,27 +3435,37 @@ module CGRAFURTL__cb9d7ba75ff8e27e
 
   
   always_comb begin : _lambda__s_tile_0__element_fu_0_opt_launch_en_i
-    fu_0__opt_launch_en_i = fu_launch_en_vector[1'd0] & ( ~fu_launch_done );
+    fu_0__opt_launch_en_i = fu_launch_en_vector[2'd0] & ( ~fu_launch_done );
   end
 
   
   always_comb begin : _lambda__s_tile_0__element_fu_0_output_rdy_i
-    fu_0__output_rdy_i = send_port_ack & fu_out_routine[1'd0];
+    fu_0__output_rdy_i = send_port_ack & fu_out_routine[2'd0];
   end
 
   
   always_comb begin : _lambda__s_tile_0__element_fu_1_opt_launch_en_i
-    fu_1__opt_launch_en_i = fu_launch_en_vector[1'd1] & ( ~fu_launch_done );
+    fu_1__opt_launch_en_i = fu_launch_en_vector[2'd1] & ( ~fu_launch_done );
   end
 
   
   always_comb begin : _lambda__s_tile_0__element_fu_1_output_rdy_i
-    fu_1__output_rdy_i = send_port_ack & fu_out_routine[1'd1];
+    fu_1__output_rdy_i = send_port_ack & fu_out_routine[2'd1];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_2_opt_launch_en_i
+    fu_2__opt_launch_en_i = fu_launch_en_vector[2'd2] & ( ~fu_launch_done );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_2_output_rdy_i
+    fu_2__output_rdy_i = send_port_ack & fu_out_routine[2'd2];
   end
 
   
   always_comb begin : _lambda__s_tile_0__element_fu_decoder_id_operator_i
-    fu_decoder_id_operator_i = recv_opt_msg_ctrl & { { 8 { fu_opt_enable[0] } }, fu_opt_enable };
+    fu_decoder_id_operator_i = recv_opt_msg_ctrl & { { 7 { fu_opt_enable[0] } }, fu_opt_enable };
   end
 
   
@@ -3007,10 +3482,12 @@ module CGRAFURTL__cb9d7ba75ff8e27e
         end
     end
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_data_routing ); i += 1'd1 ) begin
-      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_0__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][1'd0] } }, fu_send_port_valid_vector[1'(i)][1'd0] } );
-      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_0__send_out__msg[1'(i)].predicate & { { 7 { fu_send_port_valid_vector[1'(i)][1'd0] } }, fu_send_port_valid_vector[1'(i)][1'd0] } );
-      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_1__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][1'd1] } }, fu_send_port_valid_vector[1'(i)][1'd1] } );
-      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_1__send_out__msg[1'(i)].predicate & { { 7 { fu_send_port_valid_vector[1'(i)][1'd1] } }, fu_send_port_valid_vector[1'(i)][1'd1] } );
+      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_0__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd0] } }, fu_send_port_valid_vector[1'(i)][2'd0] } );
+      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_0__send_out__msg[1'(i)].predicate & { { 7 { fu_send_port_valid_vector[1'(i)][2'd0] } }, fu_send_port_valid_vector[1'(i)][2'd0] } );
+      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_1__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd1] } }, fu_send_port_valid_vector[1'(i)][2'd1] } );
+      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_1__send_out__msg[1'(i)].predicate & { { 7 { fu_send_port_valid_vector[1'(i)][2'd1] } }, fu_send_port_valid_vector[1'(i)][2'd1] } );
+      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_2__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd2] } }, fu_send_port_valid_vector[1'(i)][2'd2] } );
+      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_2__send_out__msg[1'(i)].predicate & { { 7 { fu_send_port_valid_vector[1'(i)][2'd2] } }, fu_send_port_valid_vector[1'(i)][2'd2] } );
     end
   end
 
@@ -3077,12 +3554,13 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   
   always_comb begin : handshake_process
     for ( int unsigned port = 1'd0; port < 2'( __const__num_outports_at_handshake_process ); port += 1'd1 )
-      fu_send_port_valid_vector[1'(port)] = 2'd0;
+      fu_send_port_valid_vector[1'(port)] = 3'd0;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
       xbar_recv_port_req[2'(i)] = ( | fu_xbar_inport_sel[2'(i)] );
     for ( int unsigned port = 1'd0; port < 2'( __const__num_outports_at_handshake_process ); port += 1'd1 ) begin
-      fu_send_port_valid_vector[1'(port)][1'd0] = fu_0__send_out__en[1'(port)] & fu_out_routine[1'd0];
-      fu_send_port_valid_vector[1'(port)][1'd1] = fu_1__send_out__en[1'(port)] & fu_out_routine[1'd1];
+      fu_send_port_valid_vector[1'(port)][2'd0] = fu_0__send_out__en[1'(port)] & fu_out_routine[2'd0];
+      fu_send_port_valid_vector[1'(port)][2'd1] = fu_1__send_out__en[1'(port)] & fu_out_routine[2'd1];
+      fu_send_port_valid_vector[1'(port)][2'd2] = fu_2__send_out__en[1'(port)] & fu_out_routine[2'd2];
     end
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_handshake_process ); i += 1'd1 )
       send_port_valid[1'(i)] = ( | fu_send_port_valid_vector[1'(i)] );
@@ -3121,18 +3599,22 @@ module CGRAFURTL__cb9d7ba75ff8e27e
       fu_xbar_recv_predicate_req <= 1'd0;
       for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_outports_at_fu_propagate_sync ); i += 1'd1 )
         fu_xbar_outport_sel[2'(i)] <= 4'd0;
-      fu_out_routine <= 2'd0;
+      fu_out_routine <= 3'd0;
       ex_alu_operator <= 7'd0;
-      ex_alu_bmask <= 5'd0;
       ex_alu_enable <= 1'd0;
       ex_operand_b_sel <= 1'd0;
       ex_operand_c_sel <= 2'd0;
       ex_operand_b_repl <= 1'd0;
       ex_operand_c_repl <= 1'd0;
-      ex_mult_operator <= 4'd0;
-      ex_mult_bmask <= 5'd0;
+      ex_mult_operator <= 2'd0;
       ex_mult_enable <= 1'd0;
-      ex_signed_mode <= 2'd0;
+      ex_round_enable <= 1'd0;
+      ex_lut_operator <= 2'd0;
+      ex_lut_enable <= 1'd0;
+      ex_lut_k_imm <= 3'd0;
+      ex_i_imm_bmask <= 5'd0;
+      ex_o_imm_bmask <= 5'd0;
+      ex_signed_mode <= 3'd0;
       ex_vec_mode <= 2'd0;
     end
     else if ( fu_propagate_en ) begin
@@ -3142,17 +3624,21 @@ module CGRAFURTL__cb9d7ba75ff8e27e
       fu_xbar_recv_predicate_req <= recv_predicate_req_nxt;
       fu_out_routine <= recv_opt_msg_out_routine;
       ex_alu_operator <= id_alu_operator;
-      ex_alu_bmask <= id_alu_bmask;
       ex_alu_enable <= id_alu_enable;
       ex_operand_b_sel <= id_operand_b_sel;
       ex_operand_c_sel <= id_operand_c_sel;
       ex_operand_b_repl <= id_operand_b_repl;
       ex_operand_c_repl <= id_operand_c_repl;
       ex_mult_operator <= id_mult_operator;
-      ex_mult_bmask <= id_mult_bmask;
       ex_mult_enable <= id_mult_enable;
-      ex_signed_mode <= cgra_signed_mode_i;
+      ex_lut_operator <= id_lut_operator;
+      ex_lut_enable <= id_lut_enable;
+      ex_lut_k_imm <= id_lut_k_imm;
+      ex_i_imm_bmask <= cgra_i_imm_bmask_i;
+      ex_o_imm_bmask <= cgra_o_imm_bmask_i;
+      ex_signed_mode <= fu_decoder_id_signed_mode_o;
       ex_vec_mode <= cgra_vec_mode_i;
+      ex_round_enable <= id_round_enable;
     end
   end
 
@@ -3160,25 +3646,29 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   assign fu_0__reset = reset;
   assign fu_1__clk = clk;
   assign fu_1__reset = reset;
+  assign fu_2__clk = clk;
+  assign fu_2__reset = reset;
   assign fu_decoder_clk = clk;
   assign fu_decoder_reset = reset;
   assign fu_operand_mux_clk = clk;
   assign fu_operand_mux_reset = reset;
   assign fu_decoder_cgra_signed_mode_i = cgra_signed_mode_i;
   assign fu_decoder_cgra_vec_mode_i = cgra_vec_mode_i;
-  assign fu_decoder_cgra_bmask_i = cgra_bmask_i;
   assign fu_recv_const_req_nxt = fu_decoder_id_const_enable_o;
+  assign id_round_enable = fu_decoder_id_round_enable_o;
   assign id_alu_operator = fu_decoder_id_alu_operator_o;
-  assign id_alu_bmask = fu_decoder_id_alu_bmask_o;
   assign id_operand_b_sel = fu_decoder_id_operand_b_sel_o;
   assign id_operand_c_sel = fu_decoder_id_operand_c_sel_o;
   assign id_operand_b_repl = fu_decoder_id_operand_b_repl_o;
   assign id_operand_c_repl = fu_decoder_id_operand_c_repl_o;
   assign id_mult_operator = fu_decoder_id_mult_operator_o;
-  assign id_mult_bmask = fu_decoder_id_mult_bmask_o;
   assign id_mult_enable = fu_decoder_id_mult_enable_o;
+  assign id_lut_operator = fu_decoder_id_lut_operator_o;
+  assign id_lut_enable = fu_decoder_id_lut_enable_o;
+  assign id_lut_k_imm = fu_decoder_id_lut_k_imm_o;
   assign fu_launch_en_vector[0:0] = ex_alu_enable;
   assign fu_launch_en_vector[1:1] = ex_mult_enable;
+  assign fu_launch_en_vector[2:2] = ex_lut_enable;
   assign fu_operand_mux_cgra_vec_mode_i = cgra_vec_mode_i;
   assign fu_operand_mux_ex_operand_b_sel = ex_operand_b_sel;
   assign fu_operand_mux_ex_operand_c_sel = ex_operand_c_sel;
@@ -3199,20 +3689,36 @@ module CGRAFURTL__cb9d7ba75ff8e27e
   assign fu_1__input_valid_i = fu_xbar_mesh_in_valid;
   assign fu_1__vector_mode_i = ex_vec_mode;
   assign fu_launch_rdy_vector[1:1] = fu_1__opt_launch_rdy_o;
+  assign fu_2__recv_predicate_msg = recv_predicate_data;
+  assign fu_2__recv_predicate_en = fu_xbar_recv_predicate_req;
+  assign fu_2__input_valid_i = fu_xbar_mesh_in_valid;
+  assign fu_2__vector_mode_i = ex_vec_mode;
+  assign fu_launch_rdy_vector[2:2] = fu_2__opt_launch_rdy_o;
   assign fu_0__ex_operator_i = ex_alu_operator;
   assign fu_0__operand_a_i = fu_xbar_send_data[0];
   assign fu_0__operand_b_i.payload = fu_operand_mux_ex_operand_b_o;
   assign fu_0__operand_b_i.predicate = fu_operand_mux_ex_operand_b_pred_o;
-  assign fu_0__bmask_b_i = ex_alu_bmask;
+  assign fu_0__bmask_b_i = ex_o_imm_bmask;
   assign fu_1__ex_operator_i = ex_mult_operator;
+  assign fu_1__ex_operand_signed_i = ex_signed_mode;
+  assign fu_1__ex_round_enable = ex_round_enable;
+  assign fu_1__i_imm_i = ex_i_imm_bmask;
+  assign fu_1__o_imm_i = ex_o_imm_bmask;
   assign fu_1__operand_a_i = fu_xbar_send_data[0];
   assign fu_1__operand_b_i.payload = fu_operand_mux_ex_operand_b_o;
   assign fu_1__operand_b_i.predicate = fu_operand_mux_ex_operand_b_pred_o;
   assign fu_1__operand_c_i.payload = fu_operand_mux_ex_operand_c_o;
   assign fu_1__operand_c_i.predicate = fu_operand_mux_ex_operand_c_pred_o;
-  assign fu_1__r_imm_i = ex_alu_bmask;
-  assign fu_1__imm_i = ex_alu_bmask;
-  assign fu_1__ex_operand_signed_i = ex_signed_mode;
+  assign fu_2__ex_operator_i = ex_lut_operator;
+  assign fu_2__ex_operand_signed_i = ex_signed_mode[1:0];
+  assign fu_2__operand_a_i = fu_xbar_send_data[0];
+  assign fu_2__i_imm_i = ex_i_imm_bmask;
+  assign fu_2__o_imm_i = ex_o_imm_bmask;
+  assign fu_2__k_imm_i = ex_lut_k_imm;
+  assign fu_2__lut_k_i = recv_lut_k_data;
+  assign fu_2__lut_b_i = recv_lut_b_data;
+  assign fu_2__lut_p_i = recv_lut_p_data;
+  assign send_lut_sel = fu_2__lut_sel_o;
 
 endmodule
 
@@ -3271,12 +3777,8 @@ module NormalQueueDpath__78653061d6c86e67
   CGRAData_8__predicate_8 regs_rdata;
 
   
-  always_comb begin : reg_read
-    if ( reset ) begin
-      deq_msg = 8'd0;
-    end
-    else
-      deq_msg = regs[raddr];
+  always_comb begin : _lambda__s_tile_0__reg_predicate_queue_dpath_deq_msg
+    deq_msg = regs[raddr];
   end
 
   
@@ -3450,11 +3952,11 @@ endmodule
 
 
 
-module Mux__Type_CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce__ninputs_2
+module Mux__Type_CGRAConfig_8_4_6_8_3__7aef41f23017ad58__ninputs_2
 (
   input  logic [0:0] clk ,
-  input  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce in_ [0:1],
-  output CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce out ,
+  input  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 in_ [0:1],
+  output CGRAConfig_8_4_6_8_3__7aef41f23017ad58 out ,
   input  logic [0:0] reset ,
   input  logic [0:0] sel 
 );
@@ -3468,18 +3970,21 @@ endmodule
 
 
 
-module TileRTL__abec5b90cb577887
+module TileRTL__81a1f6d8ea7ff0a1
 (
   input  logic [0:0] clk ,
   input  logic [5:0] config_cmd_counter_th ,
   input  logic [5:0] config_data_counter_th ,
-  input  logic [0:0] ctrl_slice_idx ,
+  input  logic [1:0] ctrl_slice_idx ,
   input  logic [31:0] recv_const ,
   input  logic [0:0] recv_const_en ,
   input  logic [4:0] recv_const_waddr ,
   input  CGRAData_64_8__payload_64__predicate_8 recv_data [0:3],
   output logic [0:0] recv_data_ack [0:3],
   input  logic [0:0] recv_data_valid [0:3],
+  input  logic [127:0] recv_lut_b ,
+  input  logic [127:0] recv_lut_k ,
+  input  logic [127:0] recv_lut_p ,
   input  logic [4:0] recv_opt_waddr ,
   input  logic [0:0] recv_opt_waddr_en ,
   input  logic [31:0] recv_wopt ,
@@ -3488,6 +3993,7 @@ module TileRTL__abec5b90cb577887
   output CGRAData_64_8__payload_64__predicate_8 send_data [0:3],
   input  logic [0:0] send_data_ack [0:3],
   output logic [0:0] send_data_valid [0:3],
+  output logic [1:0] send_lut_sel ,
   input  logic [0:0] tile_config_ini_begin ,
   input  logic [0:0] tile_dry_run_ack ,
   input  logic [0:0] tile_dry_run_done ,
@@ -3509,7 +4015,7 @@ module TileRTL__abec5b90cb577887
   output CGRAData_64_8__payload_64__predicate_8 to_mem_wdata__msg  ,
   input logic [0:0] to_mem_wdata__rdy  
 );
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce tile_ctrl_msg;
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 tile_ctrl_msg;
   logic [0:0] tile_dry_run_begin;
   logic [0:0] tile_opt_enable;
   logic [0:0] tile_propagate_en;
@@ -3698,7 +4204,7 @@ module TileRTL__abec5b90cb577887
   logic [0:0] crossbar__xbar_propagate_en;
   logic [0:0] crossbar__xbar_propagate_rdy;
 
-  CrossbarRTL__735efd555417ee9b crossbar
+  CrossbarRTL__3d684959a51d2cb2 crossbar
   (
     .clk( crossbar__clk ),
     .recv_opt_msg_outport( crossbar__recv_opt_msg_outport ),
@@ -3730,16 +4236,16 @@ module TileRTL__abec5b90cb577887
   logic [5:0] ctrl_mem__cmd_counter_th;
   logic [0:0] ctrl_mem__execution_ini;
   logic [0:0] ctrl_mem__nxt_ctrl_en;
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce ctrl_mem__recv_ctrl_msg;
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 ctrl_mem__recv_ctrl_msg;
   logic [31:0] ctrl_mem__recv_ctrl_slice;
   logic [0:0] ctrl_mem__recv_ctrl_slice_en;
-  logic [0:0] ctrl_mem__recv_ctrl_slice_idx;
+  logic [1:0] ctrl_mem__recv_ctrl_slice_idx;
   logic [4:0] ctrl_mem__recv_waddr;
   logic [0:0] ctrl_mem__recv_waddr_en;
   logic [0:0] ctrl_mem__reset;
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce ctrl_mem__send_ctrl_msg;
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 ctrl_mem__send_ctrl_msg;
 
-  CtrlMemRTL__7aace320cc2a8fb7 ctrl_mem
+  CtrlMemRTL__53ed93a6cef0ef95 ctrl_mem
   (
     .clk( ctrl_mem__clk ),
     .cmd_counter_th( ctrl_mem__cmd_counter_th ),
@@ -3801,7 +4307,8 @@ module TileRTL__abec5b90cb577887
 
 
 
-  logic [4:0] element__cgra_bmask_i;
+  logic [4:0] element__cgra_i_imm_bmask_i;
+  logic [4:0] element__cgra_o_imm_bmask_i;
   logic [1:0] element__cgra_signed_mode_i;
   logic [1:0] element__cgra_vec_mode_i;
   logic [0:0] element__clk;
@@ -3814,9 +4321,12 @@ module TileRTL__abec5b90cb577887
   logic [0:0] element__fu_propagate_rdy;
   logic [0:0] element__recv_const_ack;
   logic [31:0] element__recv_const_data;
-  logic [8:0] element__recv_opt_msg_ctrl;
+  logic [127:0] element__recv_lut_b_data;
+  logic [127:0] element__recv_lut_k_data;
+  logic [127:0] element__recv_lut_p_data;
+  logic [7:0] element__recv_opt_msg_ctrl;
   logic [2:0] element__recv_opt_msg_fu_in [0:3];
-  logic [1:0] element__recv_opt_msg_out_routine;
+  logic [2:0] element__recv_opt_msg_out_routine;
   logic [0:0] element__recv_opt_msg_predicate;
   logic [3:0] element__recv_port_ack;
   CGRAData_64_8__payload_64__predicate_8 element__recv_port_data [0:3];
@@ -3825,13 +4335,15 @@ module TileRTL__abec5b90cb577887
   CGRAData_8__predicate_8 element__recv_predicate_data;
   logic [0:0] element__recv_predicate_valid;
   logic [0:0] element__reset;
+  logic [1:0] element__send_lut_sel;
   logic [0:0] element__send_port_ack;
   CGRAData_64_8__payload_64__predicate_8 element__send_port_data [0:1];
   logic [1:0] element__send_port_valid;
 
-  CGRAFURTL__cb9d7ba75ff8e27e element
+  CGRAFURTL__66562d1307bd2eec element
   (
-    .cgra_bmask_i( element__cgra_bmask_i ),
+    .cgra_i_imm_bmask_i( element__cgra_i_imm_bmask_i ),
+    .cgra_o_imm_bmask_i( element__cgra_o_imm_bmask_i ),
     .cgra_signed_mode_i( element__cgra_signed_mode_i ),
     .cgra_vec_mode_i( element__cgra_vec_mode_i ),
     .clk( element__clk ),
@@ -3844,6 +4356,9 @@ module TileRTL__abec5b90cb577887
     .fu_propagate_rdy( element__fu_propagate_rdy ),
     .recv_const_ack( element__recv_const_ack ),
     .recv_const_data( element__recv_const_data ),
+    .recv_lut_b_data( element__recv_lut_b_data ),
+    .recv_lut_k_data( element__recv_lut_k_data ),
+    .recv_lut_p_data( element__recv_lut_p_data ),
     .recv_opt_msg_ctrl( element__recv_opt_msg_ctrl ),
     .recv_opt_msg_fu_in( element__recv_opt_msg_fu_in ),
     .recv_opt_msg_out_routine( element__recv_opt_msg_out_routine ),
@@ -3855,6 +4370,7 @@ module TileRTL__abec5b90cb577887
     .recv_predicate_data( element__recv_predicate_data ),
     .recv_predicate_valid( element__recv_predicate_valid ),
     .reset( element__reset ),
+    .send_lut_sel( element__send_lut_sel ),
     .send_port_ack( element__send_port_ack ),
     .send_port_data( element__send_port_data ),
     .send_port_valid( element__send_port_valid )
@@ -3980,12 +4496,12 @@ module TileRTL__abec5b90cb577887
 
 
   logic [0:0] tile_ctrl_mux__clk;
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce tile_ctrl_mux__in_ [0:1];
-  CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce tile_ctrl_mux__out;
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 tile_ctrl_mux__in_ [0:1];
+  CGRAConfig_8_4_6_8_3__7aef41f23017ad58 tile_ctrl_mux__out;
   logic [0:0] tile_ctrl_mux__reset;
   logic [0:0] tile_ctrl_mux__sel;
 
-  Mux__Type_CGRAConfig_9_4_6_8_2__cebbeedc2b62cdce__ninputs_2 tile_ctrl_mux
+  Mux__Type_CGRAConfig_8_4_6_8_3__7aef41f23017ad58__ninputs_2 tile_ctrl_mux
   (
     .clk( tile_ctrl_mux__clk ),
     .in_( tile_ctrl_mux__in_ ),
@@ -4216,7 +4732,8 @@ module TileRTL__abec5b90cb577887
   assign element__recv_opt_msg_fu_in[2] = tile_ctrl_msg.fu_in[2];
   assign element__recv_opt_msg_fu_in[3] = tile_ctrl_msg.fu_in[3];
   assign element__cgra_vec_mode_i = tile_ctrl_msg.vec_mode;
-  assign element__cgra_bmask_i = tile_ctrl_msg.bmask;
+  assign element__cgra_i_imm_bmask_i = tile_ctrl_msg.i_imm_bmask;
+  assign element__cgra_o_imm_bmask_i = tile_ctrl_msg.o_imm_bmask;
   assign element__cgra_signed_mode_i = tile_ctrl_msg.signed_mode;
   assign element__fu_execution_ini = tile_execution_ini_begin;
   assign element__fu_execution_valid = tile_execution_valid;
@@ -4246,6 +4763,10 @@ module TileRTL__abec5b90cb577887
   assign crossbar__recv_port_data[5] = element__send_port_data[1];
   assign crossbar__recv_port_valid[5:5] = element__send_port_valid[1:1];
   assign element__send_port_ack = crossbar__recv_port_fu_out_ack;
+  assign element__recv_lut_k_data = recv_lut_k;
+  assign element__recv_lut_b_data = recv_lut_b;
+  assign element__recv_lut_p_data = recv_lut_p;
+  assign send_lut_sel = element__send_lut_sel;
   assign tile_xbar_propagate_rdy = crossbar__xbar_propagate_rdy;
   assign tile_fu_propagate_rdy = element__fu_propagate_rdy;
 
@@ -4276,13 +4797,14 @@ module CGRARTL__top
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_5__rdy  = 3'd5;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_6__rdy  = 3'd6;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_7__rdy  = 3'd7;
-  localparam logic [2:0] __const__STAGE_IDLE  = 3'd0;
-  localparam logic [2:0] __const__STAGE_CONFIG_CTRLREG  = 3'd1;
-  localparam logic [2:0] __const__STAGE_CONFIG_DATA  = 3'd2;
-  localparam logic [2:0] __const__STAGE_CONFIG_CMD  = 3'd3;
-  localparam logic [2:0] __const__STAGE_CONFIG_DONE  = 3'd4;
-  localparam logic [2:0] __const__STAGE_COMP  = 3'd5;
-  localparam logic [2:0] __const__STAGE_COMP_HALT  = 3'd6;
+  localparam logic [3:0] __const__STAGE_IDLE  = 4'd0;
+  localparam logic [3:0] __const__STAGE_CONFIG_CTRLREG  = 4'd1;
+  localparam logic [3:0] __const__STAGE_CONFIG_LUT  = 4'd2;
+  localparam logic [3:0] __const__STAGE_CONFIG_DATA  = 4'd3;
+  localparam logic [3:0] __const__STAGE_CONFIG_CMD  = 4'd4;
+  localparam logic [3:0] __const__STAGE_CONFIG_DONE  = 4'd5;
+  localparam logic [3:0] __const__STAGE_COMP  = 4'd6;
+  localparam logic [3:0] __const__STAGE_COMP_HALT  = 4'd7;
   logic [0:0] cgra_cmd_dry_run_begin;
   logic [0:0] cgra_computation_en;
   logic [0:0] cgra_config_cmd_begin;
@@ -4296,6 +4818,10 @@ module CGRARTL__top
   logic [0:0] cgra_config_data_en;
   logic [0:0] cgra_config_ini_begin;
   logic [0:0] cgra_config_ini_en;
+  logic [0:0] cgra_config_lut_begin;
+  logic [0:0] cgra_config_lut_done;
+  logic [0:0] cgra_config_lut_en;
+  logic [0:0] cgra_csr_rdy;
   logic [31:0] cgra_cur_stage_info;
   logic [15:0] cgra_cycle_counter;
   logic [15:0] cgra_cycle_counter_th;
@@ -4312,13 +4838,17 @@ module CGRARTL__top
   logic [0:0] cgra_recv_wi_data_valid;
   logic [0:0] cgra_restart_comp_en;
   logic [4:0] counter_config_cmd_addr;
-  logic [0:0] counter_config_cmd_slice;
+  logic [1:0] counter_config_cmd_slice;
   logic [4:0] counter_config_data_addr;
-  logic [2:0] cur_stage;
-  logic [2:0] nxt_stage;
+  logic [1:0] counter_config_lut_addr;
+  logic [3:0] cur_stage;
+  logic [3:0] nxt_stage;
   logic [511:0] recv_wconst_flattened;
   logic [0:0] recv_wconst_flattened_en;
   logic [0:0] recv_wconst_flattened_rdy;
+  logic [511:0] recv_wlut_flattened;
+  logic [0:0] recv_wlut_flattened_en;
+  logic [0:0] recv_wlut_flattened_rdy;
   logic [511:0] recv_wopt_sliced_flattened;
   logic [0:0] recv_wopt_sliced_flattened_en;
   logic [0:0] recv_wopt_sliced_flattened_rdy;
@@ -4330,16 +4860,44 @@ module CGRARTL__top
   logic [0:0] tile_recv_opt_waddr_en;
   logic [15:0] tile_xbar_propagate_rdy_vector;
 
+  logic [0:0] lut_array__clk;
+  logic [511:0] lut_array__recv_lut_data;
+  logic [1:0] lut_array__recv_raddr [0:15];
+  logic [1:0] lut_array__recv_waddr;
+  logic [0:0] lut_array__recv_waddr_en;
+  logic [0:0] lut_array__reset;
+  logic [127:0] lut_array__send_lut_b [0:15];
+  logic [127:0] lut_array__send_lut_k [0:15];
+  logic [127:0] lut_array__send_lut_p [0:15];
+
+  LookUpTableRTL__3312552a84abe6da lut_array
+  (
+    .clk( lut_array__clk ),
+    .recv_lut_data( lut_array__recv_lut_data ),
+    .recv_raddr( lut_array__recv_raddr ),
+    .recv_waddr( lut_array__recv_waddr ),
+    .recv_waddr_en( lut_array__recv_waddr_en ),
+    .reset( lut_array__reset ),
+    .send_lut_b( lut_array__send_lut_b ),
+    .send_lut_k( lut_array__send_lut_k ),
+    .send_lut_p( lut_array__send_lut_p )
+  );
+
+
+
   logic [0:0] tile__clk [0:15];
   logic [5:0] tile__config_cmd_counter_th [0:15];
   logic [5:0] tile__config_data_counter_th [0:15];
-  logic [0:0] tile__ctrl_slice_idx [0:15];
+  logic [1:0] tile__ctrl_slice_idx [0:15];
   logic [31:0] tile__recv_const [0:15];
   logic [0:0] tile__recv_const_en [0:15];
   logic [4:0] tile__recv_const_waddr [0:15];
   CGRAData_64_8__payload_64__predicate_8 tile__recv_data [0:15][0:3];
   logic [0:0] tile__recv_data_ack [0:15][0:3];
   logic [0:0] tile__recv_data_valid [0:15][0:3];
+  logic [127:0] tile__recv_lut_b [0:15];
+  logic [127:0] tile__recv_lut_k [0:15];
+  logic [127:0] tile__recv_lut_p [0:15];
   logic [4:0] tile__recv_opt_waddr [0:15];
   logic [0:0] tile__recv_opt_waddr_en [0:15];
   logic [31:0] tile__recv_wopt [0:15];
@@ -4348,6 +4906,7 @@ module CGRARTL__top
   CGRAData_64_8__payload_64__predicate_8 tile__send_data [0:15][0:3];
   logic [0:0] tile__send_data_ack [0:15][0:3];
   logic [0:0] tile__send_data_valid [0:15][0:3];
+  logic [1:0] tile__send_lut_sel [0:15];
   logic [0:0] tile__tile_config_ini_begin [0:15];
   logic [0:0] tile__tile_dry_run_ack [0:15];
   logic [0:0] tile__tile_dry_run_done [0:15];
@@ -4369,7 +4928,7 @@ module CGRARTL__top
   CGRAData_64_8__payload_64__predicate_8 tile__to_mem_wdata__msg [0:15];
   logic [0:0] tile__to_mem_wdata__rdy [0:15];
 
-  TileRTL__abec5b90cb577887 tile__0
+  TileRTL__81a1f6d8ea7ff0a1 tile__0
   (
     .clk( tile__clk[0] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[0] ),
@@ -4381,6 +4940,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[0] ),
     .recv_data_ack( tile__recv_data_ack[0] ),
     .recv_data_valid( tile__recv_data_valid[0] ),
+    .recv_lut_b( tile__recv_lut_b[0] ),
+    .recv_lut_k( tile__recv_lut_k[0] ),
+    .recv_lut_p( tile__recv_lut_p[0] ),
     .recv_opt_waddr( tile__recv_opt_waddr[0] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[0] ),
     .recv_wopt( tile__recv_wopt[0] ),
@@ -4389,6 +4951,7 @@ module CGRARTL__top
     .send_data( tile__send_data[0] ),
     .send_data_ack( tile__send_data_ack[0] ),
     .send_data_valid( tile__send_data_valid[0] ),
+    .send_lut_sel( tile__send_lut_sel[0] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[0] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[0] ),
     .tile_dry_run_done( tile__tile_dry_run_done[0] ),
@@ -4411,7 +4974,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[0] )
   );
 
-  TileRTL__abec5b90cb577887 tile__1
+  TileRTL__81a1f6d8ea7ff0a1 tile__1
   (
     .clk( tile__clk[1] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[1] ),
@@ -4423,6 +4986,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[1] ),
     .recv_data_ack( tile__recv_data_ack[1] ),
     .recv_data_valid( tile__recv_data_valid[1] ),
+    .recv_lut_b( tile__recv_lut_b[1] ),
+    .recv_lut_k( tile__recv_lut_k[1] ),
+    .recv_lut_p( tile__recv_lut_p[1] ),
     .recv_opt_waddr( tile__recv_opt_waddr[1] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[1] ),
     .recv_wopt( tile__recv_wopt[1] ),
@@ -4431,6 +4997,7 @@ module CGRARTL__top
     .send_data( tile__send_data[1] ),
     .send_data_ack( tile__send_data_ack[1] ),
     .send_data_valid( tile__send_data_valid[1] ),
+    .send_lut_sel( tile__send_lut_sel[1] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[1] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[1] ),
     .tile_dry_run_done( tile__tile_dry_run_done[1] ),
@@ -4453,7 +5020,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[1] )
   );
 
-  TileRTL__abec5b90cb577887 tile__2
+  TileRTL__81a1f6d8ea7ff0a1 tile__2
   (
     .clk( tile__clk[2] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[2] ),
@@ -4465,6 +5032,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[2] ),
     .recv_data_ack( tile__recv_data_ack[2] ),
     .recv_data_valid( tile__recv_data_valid[2] ),
+    .recv_lut_b( tile__recv_lut_b[2] ),
+    .recv_lut_k( tile__recv_lut_k[2] ),
+    .recv_lut_p( tile__recv_lut_p[2] ),
     .recv_opt_waddr( tile__recv_opt_waddr[2] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[2] ),
     .recv_wopt( tile__recv_wopt[2] ),
@@ -4473,6 +5043,7 @@ module CGRARTL__top
     .send_data( tile__send_data[2] ),
     .send_data_ack( tile__send_data_ack[2] ),
     .send_data_valid( tile__send_data_valid[2] ),
+    .send_lut_sel( tile__send_lut_sel[2] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[2] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[2] ),
     .tile_dry_run_done( tile__tile_dry_run_done[2] ),
@@ -4495,7 +5066,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[2] )
   );
 
-  TileRTL__abec5b90cb577887 tile__3
+  TileRTL__81a1f6d8ea7ff0a1 tile__3
   (
     .clk( tile__clk[3] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[3] ),
@@ -4507,6 +5078,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[3] ),
     .recv_data_ack( tile__recv_data_ack[3] ),
     .recv_data_valid( tile__recv_data_valid[3] ),
+    .recv_lut_b( tile__recv_lut_b[3] ),
+    .recv_lut_k( tile__recv_lut_k[3] ),
+    .recv_lut_p( tile__recv_lut_p[3] ),
     .recv_opt_waddr( tile__recv_opt_waddr[3] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[3] ),
     .recv_wopt( tile__recv_wopt[3] ),
@@ -4515,6 +5089,7 @@ module CGRARTL__top
     .send_data( tile__send_data[3] ),
     .send_data_ack( tile__send_data_ack[3] ),
     .send_data_valid( tile__send_data_valid[3] ),
+    .send_lut_sel( tile__send_lut_sel[3] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[3] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[3] ),
     .tile_dry_run_done( tile__tile_dry_run_done[3] ),
@@ -4537,7 +5112,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[3] )
   );
 
-  TileRTL__abec5b90cb577887 tile__4
+  TileRTL__81a1f6d8ea7ff0a1 tile__4
   (
     .clk( tile__clk[4] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[4] ),
@@ -4549,6 +5124,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[4] ),
     .recv_data_ack( tile__recv_data_ack[4] ),
     .recv_data_valid( tile__recv_data_valid[4] ),
+    .recv_lut_b( tile__recv_lut_b[4] ),
+    .recv_lut_k( tile__recv_lut_k[4] ),
+    .recv_lut_p( tile__recv_lut_p[4] ),
     .recv_opt_waddr( tile__recv_opt_waddr[4] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[4] ),
     .recv_wopt( tile__recv_wopt[4] ),
@@ -4557,6 +5135,7 @@ module CGRARTL__top
     .send_data( tile__send_data[4] ),
     .send_data_ack( tile__send_data_ack[4] ),
     .send_data_valid( tile__send_data_valid[4] ),
+    .send_lut_sel( tile__send_lut_sel[4] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[4] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[4] ),
     .tile_dry_run_done( tile__tile_dry_run_done[4] ),
@@ -4579,7 +5158,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[4] )
   );
 
-  TileRTL__abec5b90cb577887 tile__5
+  TileRTL__81a1f6d8ea7ff0a1 tile__5
   (
     .clk( tile__clk[5] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[5] ),
@@ -4591,6 +5170,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[5] ),
     .recv_data_ack( tile__recv_data_ack[5] ),
     .recv_data_valid( tile__recv_data_valid[5] ),
+    .recv_lut_b( tile__recv_lut_b[5] ),
+    .recv_lut_k( tile__recv_lut_k[5] ),
+    .recv_lut_p( tile__recv_lut_p[5] ),
     .recv_opt_waddr( tile__recv_opt_waddr[5] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[5] ),
     .recv_wopt( tile__recv_wopt[5] ),
@@ -4599,6 +5181,7 @@ module CGRARTL__top
     .send_data( tile__send_data[5] ),
     .send_data_ack( tile__send_data_ack[5] ),
     .send_data_valid( tile__send_data_valid[5] ),
+    .send_lut_sel( tile__send_lut_sel[5] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[5] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[5] ),
     .tile_dry_run_done( tile__tile_dry_run_done[5] ),
@@ -4621,7 +5204,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[5] )
   );
 
-  TileRTL__abec5b90cb577887 tile__6
+  TileRTL__81a1f6d8ea7ff0a1 tile__6
   (
     .clk( tile__clk[6] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[6] ),
@@ -4633,6 +5216,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[6] ),
     .recv_data_ack( tile__recv_data_ack[6] ),
     .recv_data_valid( tile__recv_data_valid[6] ),
+    .recv_lut_b( tile__recv_lut_b[6] ),
+    .recv_lut_k( tile__recv_lut_k[6] ),
+    .recv_lut_p( tile__recv_lut_p[6] ),
     .recv_opt_waddr( tile__recv_opt_waddr[6] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[6] ),
     .recv_wopt( tile__recv_wopt[6] ),
@@ -4641,6 +5227,7 @@ module CGRARTL__top
     .send_data( tile__send_data[6] ),
     .send_data_ack( tile__send_data_ack[6] ),
     .send_data_valid( tile__send_data_valid[6] ),
+    .send_lut_sel( tile__send_lut_sel[6] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[6] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[6] ),
     .tile_dry_run_done( tile__tile_dry_run_done[6] ),
@@ -4663,7 +5250,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[6] )
   );
 
-  TileRTL__abec5b90cb577887 tile__7
+  TileRTL__81a1f6d8ea7ff0a1 tile__7
   (
     .clk( tile__clk[7] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[7] ),
@@ -4675,6 +5262,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[7] ),
     .recv_data_ack( tile__recv_data_ack[7] ),
     .recv_data_valid( tile__recv_data_valid[7] ),
+    .recv_lut_b( tile__recv_lut_b[7] ),
+    .recv_lut_k( tile__recv_lut_k[7] ),
+    .recv_lut_p( tile__recv_lut_p[7] ),
     .recv_opt_waddr( tile__recv_opt_waddr[7] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[7] ),
     .recv_wopt( tile__recv_wopt[7] ),
@@ -4683,6 +5273,7 @@ module CGRARTL__top
     .send_data( tile__send_data[7] ),
     .send_data_ack( tile__send_data_ack[7] ),
     .send_data_valid( tile__send_data_valid[7] ),
+    .send_lut_sel( tile__send_lut_sel[7] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[7] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[7] ),
     .tile_dry_run_done( tile__tile_dry_run_done[7] ),
@@ -4705,7 +5296,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[7] )
   );
 
-  TileRTL__abec5b90cb577887 tile__8
+  TileRTL__81a1f6d8ea7ff0a1 tile__8
   (
     .clk( tile__clk[8] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[8] ),
@@ -4717,6 +5308,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[8] ),
     .recv_data_ack( tile__recv_data_ack[8] ),
     .recv_data_valid( tile__recv_data_valid[8] ),
+    .recv_lut_b( tile__recv_lut_b[8] ),
+    .recv_lut_k( tile__recv_lut_k[8] ),
+    .recv_lut_p( tile__recv_lut_p[8] ),
     .recv_opt_waddr( tile__recv_opt_waddr[8] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[8] ),
     .recv_wopt( tile__recv_wopt[8] ),
@@ -4725,6 +5319,7 @@ module CGRARTL__top
     .send_data( tile__send_data[8] ),
     .send_data_ack( tile__send_data_ack[8] ),
     .send_data_valid( tile__send_data_valid[8] ),
+    .send_lut_sel( tile__send_lut_sel[8] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[8] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[8] ),
     .tile_dry_run_done( tile__tile_dry_run_done[8] ),
@@ -4747,7 +5342,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[8] )
   );
 
-  TileRTL__abec5b90cb577887 tile__9
+  TileRTL__81a1f6d8ea7ff0a1 tile__9
   (
     .clk( tile__clk[9] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[9] ),
@@ -4759,6 +5354,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[9] ),
     .recv_data_ack( tile__recv_data_ack[9] ),
     .recv_data_valid( tile__recv_data_valid[9] ),
+    .recv_lut_b( tile__recv_lut_b[9] ),
+    .recv_lut_k( tile__recv_lut_k[9] ),
+    .recv_lut_p( tile__recv_lut_p[9] ),
     .recv_opt_waddr( tile__recv_opt_waddr[9] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[9] ),
     .recv_wopt( tile__recv_wopt[9] ),
@@ -4767,6 +5365,7 @@ module CGRARTL__top
     .send_data( tile__send_data[9] ),
     .send_data_ack( tile__send_data_ack[9] ),
     .send_data_valid( tile__send_data_valid[9] ),
+    .send_lut_sel( tile__send_lut_sel[9] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[9] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[9] ),
     .tile_dry_run_done( tile__tile_dry_run_done[9] ),
@@ -4789,7 +5388,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[9] )
   );
 
-  TileRTL__abec5b90cb577887 tile__10
+  TileRTL__81a1f6d8ea7ff0a1 tile__10
   (
     .clk( tile__clk[10] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[10] ),
@@ -4801,6 +5400,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[10] ),
     .recv_data_ack( tile__recv_data_ack[10] ),
     .recv_data_valid( tile__recv_data_valid[10] ),
+    .recv_lut_b( tile__recv_lut_b[10] ),
+    .recv_lut_k( tile__recv_lut_k[10] ),
+    .recv_lut_p( tile__recv_lut_p[10] ),
     .recv_opt_waddr( tile__recv_opt_waddr[10] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[10] ),
     .recv_wopt( tile__recv_wopt[10] ),
@@ -4809,6 +5411,7 @@ module CGRARTL__top
     .send_data( tile__send_data[10] ),
     .send_data_ack( tile__send_data_ack[10] ),
     .send_data_valid( tile__send_data_valid[10] ),
+    .send_lut_sel( tile__send_lut_sel[10] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[10] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[10] ),
     .tile_dry_run_done( tile__tile_dry_run_done[10] ),
@@ -4831,7 +5434,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[10] )
   );
 
-  TileRTL__abec5b90cb577887 tile__11
+  TileRTL__81a1f6d8ea7ff0a1 tile__11
   (
     .clk( tile__clk[11] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[11] ),
@@ -4843,6 +5446,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[11] ),
     .recv_data_ack( tile__recv_data_ack[11] ),
     .recv_data_valid( tile__recv_data_valid[11] ),
+    .recv_lut_b( tile__recv_lut_b[11] ),
+    .recv_lut_k( tile__recv_lut_k[11] ),
+    .recv_lut_p( tile__recv_lut_p[11] ),
     .recv_opt_waddr( tile__recv_opt_waddr[11] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[11] ),
     .recv_wopt( tile__recv_wopt[11] ),
@@ -4851,6 +5457,7 @@ module CGRARTL__top
     .send_data( tile__send_data[11] ),
     .send_data_ack( tile__send_data_ack[11] ),
     .send_data_valid( tile__send_data_valid[11] ),
+    .send_lut_sel( tile__send_lut_sel[11] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[11] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[11] ),
     .tile_dry_run_done( tile__tile_dry_run_done[11] ),
@@ -4873,7 +5480,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[11] )
   );
 
-  TileRTL__abec5b90cb577887 tile__12
+  TileRTL__81a1f6d8ea7ff0a1 tile__12
   (
     .clk( tile__clk[12] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[12] ),
@@ -4885,6 +5492,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[12] ),
     .recv_data_ack( tile__recv_data_ack[12] ),
     .recv_data_valid( tile__recv_data_valid[12] ),
+    .recv_lut_b( tile__recv_lut_b[12] ),
+    .recv_lut_k( tile__recv_lut_k[12] ),
+    .recv_lut_p( tile__recv_lut_p[12] ),
     .recv_opt_waddr( tile__recv_opt_waddr[12] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[12] ),
     .recv_wopt( tile__recv_wopt[12] ),
@@ -4893,6 +5503,7 @@ module CGRARTL__top
     .send_data( tile__send_data[12] ),
     .send_data_ack( tile__send_data_ack[12] ),
     .send_data_valid( tile__send_data_valid[12] ),
+    .send_lut_sel( tile__send_lut_sel[12] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[12] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[12] ),
     .tile_dry_run_done( tile__tile_dry_run_done[12] ),
@@ -4915,7 +5526,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[12] )
   );
 
-  TileRTL__abec5b90cb577887 tile__13
+  TileRTL__81a1f6d8ea7ff0a1 tile__13
   (
     .clk( tile__clk[13] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[13] ),
@@ -4927,6 +5538,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[13] ),
     .recv_data_ack( tile__recv_data_ack[13] ),
     .recv_data_valid( tile__recv_data_valid[13] ),
+    .recv_lut_b( tile__recv_lut_b[13] ),
+    .recv_lut_k( tile__recv_lut_k[13] ),
+    .recv_lut_p( tile__recv_lut_p[13] ),
     .recv_opt_waddr( tile__recv_opt_waddr[13] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[13] ),
     .recv_wopt( tile__recv_wopt[13] ),
@@ -4935,6 +5549,7 @@ module CGRARTL__top
     .send_data( tile__send_data[13] ),
     .send_data_ack( tile__send_data_ack[13] ),
     .send_data_valid( tile__send_data_valid[13] ),
+    .send_lut_sel( tile__send_lut_sel[13] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[13] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[13] ),
     .tile_dry_run_done( tile__tile_dry_run_done[13] ),
@@ -4957,7 +5572,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[13] )
   );
 
-  TileRTL__abec5b90cb577887 tile__14
+  TileRTL__81a1f6d8ea7ff0a1 tile__14
   (
     .clk( tile__clk[14] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[14] ),
@@ -4969,6 +5584,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[14] ),
     .recv_data_ack( tile__recv_data_ack[14] ),
     .recv_data_valid( tile__recv_data_valid[14] ),
+    .recv_lut_b( tile__recv_lut_b[14] ),
+    .recv_lut_k( tile__recv_lut_k[14] ),
+    .recv_lut_p( tile__recv_lut_p[14] ),
     .recv_opt_waddr( tile__recv_opt_waddr[14] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[14] ),
     .recv_wopt( tile__recv_wopt[14] ),
@@ -4977,6 +5595,7 @@ module CGRARTL__top
     .send_data( tile__send_data[14] ),
     .send_data_ack( tile__send_data_ack[14] ),
     .send_data_valid( tile__send_data_valid[14] ),
+    .send_lut_sel( tile__send_lut_sel[14] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[14] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[14] ),
     .tile_dry_run_done( tile__tile_dry_run_done[14] ),
@@ -4999,7 +5618,7 @@ module CGRARTL__top
     .to_mem_wdata__rdy( tile__to_mem_wdata__rdy[14] )
   );
 
-  TileRTL__abec5b90cb577887 tile__15
+  TileRTL__81a1f6d8ea7ff0a1 tile__15
   (
     .clk( tile__clk[15] ),
     .config_cmd_counter_th( tile__config_cmd_counter_th[15] ),
@@ -5011,6 +5630,9 @@ module CGRARTL__top
     .recv_data( tile__recv_data[15] ),
     .recv_data_ack( tile__recv_data_ack[15] ),
     .recv_data_valid( tile__recv_data_valid[15] ),
+    .recv_lut_b( tile__recv_lut_b[15] ),
+    .recv_lut_k( tile__recv_lut_k[15] ),
+    .recv_lut_p( tile__recv_lut_p[15] ),
     .recv_opt_waddr( tile__recv_opt_waddr[15] ),
     .recv_opt_waddr_en( tile__recv_opt_waddr_en[15] ),
     .recv_wopt( tile__recv_wopt[15] ),
@@ -5019,6 +5641,7 @@ module CGRARTL__top
     .send_data( tile__send_data[15] ),
     .send_data_ack( tile__send_data_ack[15] ),
     .send_data_valid( tile__send_data_valid[15] ),
+    .send_lut_sel( tile__send_lut_sel[15] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[15] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[15] ),
     .tile_dry_run_done( tile__tile_dry_run_done[15] ),
@@ -5058,18 +5681,23 @@ module CGRARTL__top
   end
 
   
+  always_comb begin : _lambda__s_cgra_config_lut_done
+    cgra_config_lut_done = 2'( counter_config_lut_addr ) == 2'd3;
+  end
+
+  
   always_comb begin : _lambda__s_cgra_csr_ro_0_
     cgra_csr_ro[2'd0] = { { 31 { 1'b0 } }, cgra_cycle_th_hit };
   end
 
   
   always_comb begin : _lambda__s_cgra_cur_stage_info
-    cgra_cur_stage_info = { { 29 { 1'b0 } }, cur_stage };
+    cgra_cur_stage_info = { { 28 { 1'b0 } }, cur_stage };
   end
 
   
   always_comb begin : _lambda__s_cgra_nxt_stage_info
-    cgra_nxt_stage_info = { { 29 { 1'b0 } }, nxt_stage };
+    cgra_nxt_stage_info = { { 28 { 1'b0 } }, nxt_stage };
   end
 
   
@@ -5124,7 +5752,7 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_cgra_recv_wi_data_rdy
-    cgra_recv_wi_data_rdy = recv_wopt_sliced_flattened_rdy | recv_wconst_flattened_rdy;
+    cgra_recv_wi_data_rdy = ( recv_wopt_sliced_flattened_rdy | recv_wconst_flattened_rdy ) | recv_wlut_flattened_rdy;
   end
 
   
@@ -5135,6 +5763,11 @@ module CGRARTL__top
   
   always_comb begin : _lambda__s_recv_wconst_flattened_en
     recv_wconst_flattened_en = cgra_recv_wi_data_ack & cgra_config_data_begin;
+  end
+
+  
+  always_comb begin : _lambda__s_recv_wlut_flattened_en
+    recv_wlut_flattened_en = cgra_recv_wi_data_ack & cgra_config_lut_begin;
   end
 
   
@@ -5150,80 +5783,102 @@ module CGRARTL__top
   
   always_comb begin : fsm_ctrl_signals
     cgra_config_ini_begin = 1'd0;
-    cgra_csr_rw_ack = 1'd0;
+    cgra_config_lut_begin = 1'd0;
     cgra_config_data_begin = 1'd0;
     cgra_config_cmd_begin = 1'd0;
     cgra_execution_begin = 1'd0;
     cgra_execution_ini_begin = 1'd0;
     cgra_execution_valid = 1'd0;
-    if ( nxt_stage == 3'( __const__STAGE_CONFIG_CTRLREG ) ) begin
+    cgra_csr_rdy = 1'd0;
+    if ( nxt_stage == 4'( __const__STAGE_CONFIG_CTRLREG ) ) begin
       cgra_config_ini_begin = 1'd1;
     end
-    if ( nxt_stage == 3'( __const__STAGE_CONFIG_DATA ) ) begin
+    if ( nxt_stage == 4'( __const__STAGE_CONFIG_LUT ) ) begin
+      cgra_config_lut_begin = 1'd1;
+    end
+    if ( nxt_stage == 4'( __const__STAGE_CONFIG_DATA ) ) begin
       cgra_config_data_begin = 1'd1;
     end
-    if ( nxt_stage == 3'( __const__STAGE_CONFIG_CMD ) ) begin
+    if ( nxt_stage == 4'( __const__STAGE_CONFIG_CMD ) ) begin
       cgra_config_cmd_begin = 1'd1;
     end
-    if ( nxt_stage == 3'( __const__STAGE_CONFIG_DONE ) ) begin
+    if ( nxt_stage == 4'( __const__STAGE_CONFIG_DONE ) ) begin
       cgra_execution_ini_begin = 1'd1;
     end
-    if ( ( nxt_stage == 3'( __const__STAGE_COMP ) ) | ( cur_stage == 3'( __const__STAGE_COMP ) ) ) begin
+    if ( nxt_stage == 4'( __const__STAGE_COMP ) ) begin
       cgra_execution_begin = 1'd1;
     end
-    if ( ( cur_stage == 3'( __const__STAGE_CONFIG_CTRLREG ) ) | ( cur_stage == 3'( __const__STAGE_CONFIG_DONE ) ) ) begin
-      cgra_csr_rw_ack = cgra_csr_rw_valid;
+    if ( cur_stage == 4'( __const__STAGE_COMP ) ) begin
+      cgra_execution_valid = 1'd1;
+    end
+    if ( ( ( ( cur_stage == 4'( __const__STAGE_IDLE ) ) | ( cur_stage == 4'( __const__STAGE_CONFIG_CTRLREG ) ) ) | ( cur_stage == 4'( __const__STAGE_CONFIG_DONE ) ) ) | ( cur_stage == 4'( __const__STAGE_COMP_HALT ) ) ) begin
+      cgra_csr_rdy = 1'd1;
     end
   end
 
   
   always_comb begin : fsm_nxt_stage
     nxt_stage = cur_stage;
-    if ( cur_stage == 3'( __const__STAGE_IDLE ) ) begin
+    if ( cur_stage == 4'( __const__STAGE_IDLE ) ) begin
       if ( cgra_config_ini_en ) begin
-        nxt_stage = 3'( __const__STAGE_CONFIG_CTRLREG );
+        nxt_stage = 4'( __const__STAGE_CONFIG_CTRLREG );
       end
     end
-    if ( cur_stage == 3'( __const__STAGE_CONFIG_CTRLREG ) ) begin
-      if ( cgra_csr_rw_valid ) begin
+    if ( cur_stage == 4'( __const__STAGE_CONFIG_CTRLREG ) ) begin
+      if ( cgra_config_lut_en ) begin
+        nxt_stage = 4'( __const__STAGE_CONFIG_LUT );
+      end
+      else if ( cgra_config_data_en ) begin
+        nxt_stage = 4'( __const__STAGE_CONFIG_DATA );
+      end
+      else if ( cgra_config_cmd_en ) begin
+        nxt_stage = 4'( __const__STAGE_CONFIG_CMD );
+      end
+      else
+        nxt_stage = 4'( __const__STAGE_CONFIG_DONE );
+    end
+    if ( cur_stage == 4'( __const__STAGE_CONFIG_LUT ) ) begin
+      if ( cgra_config_lut_done ) begin
         if ( cgra_config_data_en ) begin
-          nxt_stage = 3'( __const__STAGE_CONFIG_DATA );
+          nxt_stage = 4'( __const__STAGE_CONFIG_DATA );
         end
         else if ( cgra_config_cmd_en ) begin
-          nxt_stage = 3'( __const__STAGE_CONFIG_CMD );
-        end
-      end
-    end
-    if ( cur_stage == 3'( __const__STAGE_CONFIG_DATA ) ) begin
-      if ( cgra_config_data_done ) begin
-        if ( cgra_config_cmd_en ) begin
-          nxt_stage = 3'( __const__STAGE_CONFIG_CMD );
+          nxt_stage = 4'( __const__STAGE_CONFIG_CMD );
         end
         else
-          nxt_stage = 3'( __const__STAGE_CONFIG_DONE );
+          nxt_stage = 4'( __const__STAGE_CONFIG_DONE );
       end
     end
-    if ( cur_stage == 3'( __const__STAGE_CONFIG_CMD ) ) begin
+    if ( cur_stage == 4'( __const__STAGE_CONFIG_DATA ) ) begin
+      if ( cgra_config_data_done ) begin
+        if ( cgra_config_cmd_en ) begin
+          nxt_stage = 4'( __const__STAGE_CONFIG_CMD );
+        end
+        else
+          nxt_stage = 4'( __const__STAGE_CONFIG_DONE );
+      end
+    end
+    if ( cur_stage == 4'( __const__STAGE_CONFIG_CMD ) ) begin
       if ( cgra_config_cmd_done ) begin
-        nxt_stage = 3'( __const__STAGE_CONFIG_DONE );
+        nxt_stage = 4'( __const__STAGE_CONFIG_DONE );
       end
     end
-    if ( cur_stage == 3'( __const__STAGE_CONFIG_DONE ) ) begin
+    if ( cur_stage == 4'( __const__STAGE_CONFIG_DONE ) ) begin
       if ( cgra_computation_en ) begin
-        nxt_stage = 3'( __const__STAGE_COMP );
+        nxt_stage = 4'( __const__STAGE_COMP );
       end
     end
-    if ( cur_stage == 3'( __const__STAGE_COMP ) ) begin
+    if ( cur_stage == 4'( __const__STAGE_COMP ) ) begin
       if ( cgra_cycle_th_hit | ( ~cgra_computation_en ) ) begin
-        nxt_stage = 3'( __const__STAGE_COMP_HALT );
+        nxt_stage = 4'( __const__STAGE_COMP_HALT );
       end
     end
-    if ( cur_stage == 3'( __const__STAGE_COMP_HALT ) ) begin
+    if ( cur_stage == 4'( __const__STAGE_COMP_HALT ) ) begin
       if ( ( ~cgra_cycle_th_hit ) & cgra_computation_en ) begin
-        nxt_stage = 3'( __const__STAGE_COMP );
+        nxt_stage = 4'( __const__STAGE_COMP );
       end
       else if ( cgra_restart_comp_en ) begin
-        nxt_stage = 3'( __const__STAGE_IDLE );
+        nxt_stage = 4'( __const__STAGE_CONFIG_CTRLREG );
       end
     end
   end
@@ -5246,14 +5901,14 @@ module CGRARTL__top
   
   always_ff @(posedge clk) begin : counter_ctrl_config_cmd
     if ( reset | ( ~cgra_config_cmd_begin ) ) begin
-      counter_config_cmd_slice <= 1'd0;
+      counter_config_cmd_slice <= 2'd0;
     end
     else if ( recv_wopt_sliced_flattened_en & ( ~cgra_config_cmd_wopt_done ) ) begin
-      if ( counter_config_cmd_slice == 1'd1 ) begin
-        counter_config_cmd_slice <= 1'd0;
+      if ( counter_config_cmd_slice == 2'd2 ) begin
+        counter_config_cmd_slice <= 2'd0;
       end
       else
-        counter_config_cmd_slice <= counter_config_cmd_slice + 1'd1;
+        counter_config_cmd_slice <= counter_config_cmd_slice + 2'd1;
     end
   end
 
@@ -5263,7 +5918,42 @@ module CGRARTL__top
       cgra_cmd_dry_run_begin <= 1'd0;
     end
     else
-      cgra_cmd_dry_run_begin <= counter_config_cmd_slice == 1'd1;
+      cgra_cmd_dry_run_begin <= counter_config_cmd_slice == 2'd2;
+  end
+
+  
+  always_ff @(posedge clk) begin : csr_rw_buffer_sync
+    if ( reset ) begin
+      cgra_config_ini_en <= 1'd0;
+      cgra_restart_comp_en <= 1'd0;
+      cgra_config_lut_en <= 1'd0;
+      cgra_config_data_en <= 1'd0;
+      cgra_config_cmd_en <= 1'd0;
+      cgra_computation_en <= 1'd0;
+      cgra_cycle_counter_th <= 16'd0;
+      cgra_config_data_counter_th <= 6'd0;
+      cgra_config_cmd_counter_th <= 6'd0;
+    end
+    else if ( cgra_csr_rw_valid & cgra_csr_rdy ) begin
+      cgra_config_ini_en <= cgra_csr_rw[1'd0][5'd30];
+      cgra_restart_comp_en <= cgra_csr_rw[1'd0][5'd29];
+      cgra_config_lut_en <= cgra_csr_rw[1'd0][5'd28];
+      cgra_config_data_en <= cgra_csr_rw[1'd0][5'd27];
+      cgra_config_cmd_en <= cgra_csr_rw[1'd0][5'd26];
+      cgra_computation_en <= cgra_csr_rw[1'd0][5'd25];
+      cgra_cycle_counter_th <= cgra_csr_rw[1'd0][5'd15:5'd0];
+      cgra_config_data_counter_th <= 6'( cgra_csr_rw[1'd0][5'd20:5'd16] );
+      cgra_config_cmd_counter_th <= 6'( cgra_csr_rw[1'd0][5'd25:5'd21] );
+    end
+  end
+
+  
+  always_ff @(posedge clk) begin : csr_rw_handshake
+    if ( reset ) begin
+      cgra_csr_rw_ack <= 1'd0;
+    end
+    else
+      cgra_csr_rw_ack <= cgra_csr_rw_valid & cgra_csr_rdy;
   end
 
   
@@ -5281,7 +5971,7 @@ module CGRARTL__top
   
   always_ff @(posedge clk) begin : fsm_update
     if ( reset ) begin
-      cur_stage <= 3'( __const__STAGE_IDLE );
+      cur_stage <= 4'( __const__STAGE_IDLE );
     end
     else
       cur_stage <= nxt_stage;
@@ -5308,16 +5998,12 @@ module CGRARTL__top
   end
 
   
-  always_ff @(posedge clk) begin : stage_ctrl_config_ini
-    if ( reset ) begin
-      cgra_cycle_counter_th <= 16'd0;
-      cgra_config_data_counter_th <= 6'd0;
-      cgra_config_cmd_counter_th <= 6'd0;
+  always_ff @(posedge clk) begin : stage_ctrl_config_lut
+    if ( reset | ( ~cgra_config_lut_begin ) ) begin
+      counter_config_lut_addr <= 2'd0;
     end
-    else if ( cgra_config_ini_begin ) begin
-      cgra_cycle_counter_th <= cgra_csr_rw[1'd0][5'd15:5'd0];
-      cgra_config_data_counter_th <= 6'( cgra_csr_rw[1'd0][5'd20:5'd16] );
-      cgra_config_cmd_counter_th <= 6'( cgra_csr_rw[1'd0][5'd25:5'd21] );
+    else if ( recv_wlut_flattened_en & ( ~cgra_config_lut_done ) ) begin
+      counter_config_lut_addr <= counter_config_lut_addr + 2'd1;
     end
   end
 
@@ -5339,6 +6025,7 @@ module CGRARTL__top
   assign tile_recv_ni_data_valid[7:7] = cgra_recv_ni_data__en[7];
   assign recv_wopt_sliced_flattened = cgra_recv_wi_data;
   assign recv_wconst_flattened = cgra_recv_wi_data;
+  assign recv_wlut_flattened = cgra_recv_wi_data;
   assign tile__clk[0] = clk;
   assign tile__reset[0] = reset;
   assign tile__clk[1] = clk;
@@ -5371,14 +6058,12 @@ module CGRARTL__top
   assign tile__reset[14] = reset;
   assign tile__clk[15] = clk;
   assign tile__reset[15] = reset;
+  assign lut_array__clk = clk;
+  assign lut_array__reset = reset;
   assign cgra_csr_ro[1] = cgra_cur_stage_info;
   assign cgra_csr_ro[2] = cgra_nxt_stage_info;
   assign cgra_csr_ro[3] = cgra_propagate_rdy_info;
-  assign cgra_config_ini_en = cgra_csr_rw[0][30:30];
-  assign cgra_restart_comp_en = cgra_csr_rw[0][29:29];
-  assign cgra_config_data_en = cgra_csr_rw[0][28:28];
-  assign cgra_config_cmd_en = cgra_csr_rw[0][27:27];
-  assign cgra_computation_en = cgra_csr_rw[0][26:26];
+  assign recv_wlut_flattened_rdy = cgra_config_lut_begin;
   assign recv_wconst_flattened_rdy = cgra_config_data_begin;
   assign recv_wopt_sliced_flattened_rdy = cgra_config_cmd_begin;
   assign tile__tile_config_ini_begin[0] = cgra_config_ini_begin;
@@ -5509,6 +6194,73 @@ module CGRARTL__top
   assign tile__tile_dry_run_done[15] = cgra_config_cmd_done;
   assign tile__config_cmd_counter_th[15] = cgra_config_cmd_counter_th;
   assign tile__config_data_counter_th[15] = cgra_config_data_counter_th;
+  assign lut_array__recv_waddr = counter_config_lut_addr;
+  assign lut_array__recv_waddr_en = recv_wlut_flattened_en;
+  assign lut_array__recv_lut_data = recv_wlut_flattened;
+  assign lut_array__recv_raddr[0] = tile__send_lut_sel[0];
+  assign tile__recv_lut_k[0] = lut_array__send_lut_k[0];
+  assign tile__recv_lut_b[0] = lut_array__send_lut_b[0];
+  assign tile__recv_lut_p[0] = lut_array__send_lut_p[0];
+  assign lut_array__recv_raddr[1] = tile__send_lut_sel[1];
+  assign tile__recv_lut_k[1] = lut_array__send_lut_k[1];
+  assign tile__recv_lut_b[1] = lut_array__send_lut_b[1];
+  assign tile__recv_lut_p[1] = lut_array__send_lut_p[1];
+  assign lut_array__recv_raddr[2] = tile__send_lut_sel[2];
+  assign tile__recv_lut_k[2] = lut_array__send_lut_k[2];
+  assign tile__recv_lut_b[2] = lut_array__send_lut_b[2];
+  assign tile__recv_lut_p[2] = lut_array__send_lut_p[2];
+  assign lut_array__recv_raddr[3] = tile__send_lut_sel[3];
+  assign tile__recv_lut_k[3] = lut_array__send_lut_k[3];
+  assign tile__recv_lut_b[3] = lut_array__send_lut_b[3];
+  assign tile__recv_lut_p[3] = lut_array__send_lut_p[3];
+  assign lut_array__recv_raddr[4] = tile__send_lut_sel[4];
+  assign tile__recv_lut_k[4] = lut_array__send_lut_k[4];
+  assign tile__recv_lut_b[4] = lut_array__send_lut_b[4];
+  assign tile__recv_lut_p[4] = lut_array__send_lut_p[4];
+  assign lut_array__recv_raddr[5] = tile__send_lut_sel[5];
+  assign tile__recv_lut_k[5] = lut_array__send_lut_k[5];
+  assign tile__recv_lut_b[5] = lut_array__send_lut_b[5];
+  assign tile__recv_lut_p[5] = lut_array__send_lut_p[5];
+  assign lut_array__recv_raddr[6] = tile__send_lut_sel[6];
+  assign tile__recv_lut_k[6] = lut_array__send_lut_k[6];
+  assign tile__recv_lut_b[6] = lut_array__send_lut_b[6];
+  assign tile__recv_lut_p[6] = lut_array__send_lut_p[6];
+  assign lut_array__recv_raddr[7] = tile__send_lut_sel[7];
+  assign tile__recv_lut_k[7] = lut_array__send_lut_k[7];
+  assign tile__recv_lut_b[7] = lut_array__send_lut_b[7];
+  assign tile__recv_lut_p[7] = lut_array__send_lut_p[7];
+  assign lut_array__recv_raddr[8] = tile__send_lut_sel[8];
+  assign tile__recv_lut_k[8] = lut_array__send_lut_k[8];
+  assign tile__recv_lut_b[8] = lut_array__send_lut_b[8];
+  assign tile__recv_lut_p[8] = lut_array__send_lut_p[8];
+  assign lut_array__recv_raddr[9] = tile__send_lut_sel[9];
+  assign tile__recv_lut_k[9] = lut_array__send_lut_k[9];
+  assign tile__recv_lut_b[9] = lut_array__send_lut_b[9];
+  assign tile__recv_lut_p[9] = lut_array__send_lut_p[9];
+  assign lut_array__recv_raddr[10] = tile__send_lut_sel[10];
+  assign tile__recv_lut_k[10] = lut_array__send_lut_k[10];
+  assign tile__recv_lut_b[10] = lut_array__send_lut_b[10];
+  assign tile__recv_lut_p[10] = lut_array__send_lut_p[10];
+  assign lut_array__recv_raddr[11] = tile__send_lut_sel[11];
+  assign tile__recv_lut_k[11] = lut_array__send_lut_k[11];
+  assign tile__recv_lut_b[11] = lut_array__send_lut_b[11];
+  assign tile__recv_lut_p[11] = lut_array__send_lut_p[11];
+  assign lut_array__recv_raddr[12] = tile__send_lut_sel[12];
+  assign tile__recv_lut_k[12] = lut_array__send_lut_k[12];
+  assign tile__recv_lut_b[12] = lut_array__send_lut_b[12];
+  assign tile__recv_lut_p[12] = lut_array__send_lut_p[12];
+  assign lut_array__recv_raddr[13] = tile__send_lut_sel[13];
+  assign tile__recv_lut_k[13] = lut_array__send_lut_k[13];
+  assign tile__recv_lut_b[13] = lut_array__send_lut_b[13];
+  assign tile__recv_lut_p[13] = lut_array__send_lut_p[13];
+  assign lut_array__recv_raddr[14] = tile__send_lut_sel[14];
+  assign tile__recv_lut_k[14] = lut_array__send_lut_k[14];
+  assign tile__recv_lut_b[14] = lut_array__send_lut_b[14];
+  assign tile__recv_lut_p[14] = lut_array__send_lut_p[14];
+  assign lut_array__recv_raddr[15] = tile__send_lut_sel[15];
+  assign tile__recv_lut_k[15] = lut_array__send_lut_k[15];
+  assign tile__recv_lut_b[15] = lut_array__send_lut_b[15];
+  assign tile__recv_lut_p[15] = lut_array__send_lut_p[15];
   assign tile__ctrl_slice_idx[0] = counter_config_cmd_slice;
   assign tile__recv_opt_waddr[0] = counter_config_cmd_addr;
   assign tile__recv_opt_waddr_en[0] = tile_recv_opt_waddr_en;
