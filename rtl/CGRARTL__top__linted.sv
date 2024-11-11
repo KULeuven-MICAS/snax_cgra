@@ -1726,7 +1726,42 @@ module vec_mult #(
   logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s0_masked; 
   logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s1;  
 
+  genvar i, j, k, l, m, n;
 
+  logic recv_en[PIPELINE_STAGES-1];
+  logic recv_rdy[PIPELINE_STAGES-1];
+  logic send_en[PIPELINE_STAGES-1];
+  logic send_rdy[PIPELINE_STAGES-1];
+  logic busy[PIPELINE_STAGES-1];
+
+  always_ff @( posedge clk ) begin : pipeline_sync
+    if ( reset ) begin
+      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+        busy[i] <= 0;
+      end
+    end
+    else begin
+      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+        busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
+      end
+    end
+  end
+
+  generate
+    for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
+      assign recv_en[i] = send_en[i-1];
+      assign send_rdy[i-1] = recv_rdy[i];
+    end
+    for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
+      assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
+      assign send_en[i] = busy[i];
+    end
+  endgenerate
+  
+  assign recv_en[0] = ex_en_i;
+  assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
+  assign ex_rdy_o = recv_rdy[0];
+  assign out_en_o = send_en[PIPELINE_STAGES-2];
 
   always_comb begin : signed_bits_mask
     unique case (vector_mode_i)
@@ -1751,7 +1786,6 @@ module vec_mult #(
     end
   end
 
-  genvar i, j, k, l, m, n;
   generate
     for (i=0; i < NUM_SLICES; i++) begin: gen_l1_mult
       assign out_tmp[i] = $signed(char_op_a[i]) * $signed(char_op_b[i]);
@@ -1856,42 +1890,6 @@ module vec_mult #(
       op_predicate_s1 <= op_predicate_i;
     end
   end
-
-  logic recv_en[PIPELINE_STAGES-1];
-  logic recv_rdy[PIPELINE_STAGES-1];
-  logic send_en[PIPELINE_STAGES-1];
-  logic send_rdy[PIPELINE_STAGES-1];
-  logic busy[PIPELINE_STAGES-1];
-
-  always_ff @( posedge clk ) begin : pipeline_sync
-    if ( reset ) begin
-      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
-        busy[i] <= 0;
-      end
-    end
-    else begin
-      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
-        busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
-      end
-    end
-  end
-
-  generate
-    for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
-      assign recv_en[i] = send_en[i-1];
-      assign send_rdy[i-1] = recv_rdy[i];
-    end
-    for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
-      assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
-      assign send_en[i] = busy[i];
-    end
-  endgenerate
-  
-  assign recv_en[0] = ex_en_i;
-  assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
-  assign ex_rdy_o = recv_rdy[0];
-  assign out_en_o = send_en[PIPELINE_STAGES-2];
-
 
   always_comb begin
     result_o = '0;
@@ -2215,7 +2213,40 @@ module vec_lut #(
 	logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s3;
 
 	genvar i, j, k;
+	logic recv_en[PIPELINE_STAGES-1];
+	logic recv_rdy[PIPELINE_STAGES-1];
+	logic send_en[PIPELINE_STAGES-1];
+	logic send_rdy[PIPELINE_STAGES-1];
+	logic busy[PIPELINE_STAGES-1];
 
+	always_ff @( posedge clk ) begin : pipeline_sync
+		if ( reset ) begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy[i] <= 0;
+			end
+		end
+		else begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
+			end
+		end
+	end
+
+	generate
+		for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
+			assign recv_en[i] = send_en[i-1];
+			assign send_rdy[i-1] = recv_rdy[i];
+		end
+		for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
+			assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
+			assign send_en[i] = busy[i];
+		end
+	endgenerate
+	
+	assign recv_en[0] = ex_en_i;
+	assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
+	assign ex_rdy_o = recv_rdy[0];
+	assign out_en_o = send_en[PIPELINE_STAGES-2];
 
 	assign bmask_tmp_s0 = 'b1 <<< i_imm_i;
   	assign bmask_s0 = {1'b0, bmask_tmp_s0[D_WIDTH-1:1]};
@@ -2400,44 +2431,6 @@ module vec_lut #(
 			op_predicate_s3 <= op_predicate_s2;
 		end
 	end
-
-
-
-	logic recv_en[PIPELINE_STAGES-1];
-	logic recv_rdy[PIPELINE_STAGES-1];
-	logic send_en[PIPELINE_STAGES-1];
-	logic send_rdy[PIPELINE_STAGES-1];
-	logic busy[PIPELINE_STAGES-1];
-
-	always_ff @( posedge clk ) begin : pipeline_sync
-		if ( reset ) begin
-			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
-				busy[i] <= 0;
-			end
-		end
-		else begin
-			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
-				busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
-			end
-		end
-	end
-
-	generate
-		for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
-			assign recv_en[i] = send_en[i-1];
-			assign send_rdy[i-1] = recv_rdy[i];
-		end
-		for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
-			assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
-			assign send_en[i] = busy[i];
-		end
-	endgenerate
-	
-	assign recv_en[0] = ex_en_i;
-	assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
-	assign ex_rdy_o = recv_rdy[0];
-	assign out_en_o = send_en[PIPELINE_STAGES-2];
-
 
 	always_comb begin
 		data_o = '0;
