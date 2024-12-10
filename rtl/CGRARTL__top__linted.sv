@@ -76,21 +76,30 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
 (
   input  logic [0:0] clk ,
   input  logic [0:0] config_ini ,
-  output logic [1:0] count ,
-  input  logic [0:0] deq_en ,
-  output logic [0:0] deq_valid ,
+  input  logic [0:0] dry_run_ack ,
   input  logic [0:0] dry_run_done ,
-  input  logic [0:0] enq_en ,
-  output logic [0:0] enq_rdy ,
   output logic [0:0] raddr ,
+  input  logic [0:0] recv_en_i ,
+  output logic [0:0] recv_rdy_o ,
   output logic [0:0] ren ,
   input  logic [0:0] reset ,
+  input  logic [0:0] send_en_i ,
+  output logic [0:0] send_valid_o ,
   input  logic [0:0] sync_dry_run ,
   output logic [0:0] waddr ,
   output logic [0:0] wen 
 );
+  logic [1:0] count;
+  logic [0:0] count_en;
   logic [1:0] count_ini;
+  logic [1:0] count_nxt;
+  logic [0:0] deq_valid;
+  logic [0:0] deq_valid_en;
+  logic [0:0] deq_valid_nxt;
   logic [0:0] deq_xfer;
+  logic [0:0] enq_rdy;
+  logic [0:0] enq_rdy_en;
+  logic [0:0] enq_rdy_nxt;
   logic [0:0] enq_xfer;
   logic [0:0] head;
   logic [0:0] head_ini;
@@ -98,23 +107,26 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
   logic [0:0] tail_ini;
 
   
-  always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_deq_valid
-    deq_valid = count > 2'd0;
+  always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_send_valid_o
+    send_valid_o = deq_valid | dry_run_ack;
   end
 
   
-  always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_deq_xfer
-    deq_xfer = deq_en & deq_valid;
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_enq_rdy
-    enq_rdy = ( count + { { 1 { 1'b0 } }, enq_en } ) < 2'd2;
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__channel_0__queue_ctrl_enq_xfer
-    enq_xfer = enq_en & enq_rdy;
+  always_comb begin : async_update
+    enq_xfer = recv_en_i & enq_rdy;
+    deq_xfer = send_en_i & deq_valid;
+    count_en = enq_xfer ^ deq_xfer;
+    enq_rdy_en = deq_xfer | enq_rdy;
+    deq_valid_en = enq_xfer | deq_valid;
+    count_nxt = count;
+    if ( enq_xfer & ( ~deq_xfer ) ) begin
+      count_nxt = count + 2'd1;
+    end
+    if ( ( ~enq_xfer ) & deq_xfer ) begin
+      count_nxt = count - 2'd1;
+    end
+    enq_rdy_nxt = count_nxt < 2'd2;
+    deq_valid_nxt = count_nxt > 2'd0;
   end
 
   
@@ -132,7 +144,23 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
   end
 
   
-  always_ff @(posedge clk) begin : sync
+  always_ff @(posedge clk) begin : sync_ctrl
+    if ( reset | config_ini ) begin
+      enq_rdy <= 1'd1;
+      deq_valid <= 1'd0;
+    end
+    else begin
+      if ( enq_rdy_en ) begin
+        enq_rdy <= enq_rdy_nxt;
+      end
+      if ( deq_valid_en ) begin
+        deq_valid <= deq_valid_nxt;
+      end
+    end
+  end
+
+  
+  always_ff @(posedge clk) begin : sync_reg
     if ( reset | config_ini ) begin
       head <= 1'd0;
       tail <= 1'd0;
@@ -150,11 +178,8 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
       if ( enq_xfer ) begin
         tail <= ( tail < 1'd1 ) ? tail + 1'd1 : 1'd0;
       end
-      if ( enq_xfer & ( ~deq_xfer ) ) begin
-        count <= count + 2'd1;
-      end
-      if ( ( ~enq_xfer ) & deq_xfer ) begin
-        count <= count - 2'd1;
+      if ( count_en ) begin
+        count <= count_nxt;
       end
     end
   end
@@ -163,6 +188,7 @@ module NormalQueueCtrl__num_entries_2__dry_run_enable_True
   assign ren = deq_xfer;
   assign waddr = tail;
   assign raddr = head;
+  assign recv_rdy_o = enq_rdy;
 
 endmodule
 
@@ -171,7 +197,6 @@ endmodule
 module NormalQueueDpath__7f3406ec6084c93f
 (
   input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
   output CGRAData_64_8__payload_64__predicate_8 deq_msg ,
   input  CGRAData_64_8__payload_64__predicate_8 enq_msg ,
   input  logic [0:0] raddr ,
@@ -180,7 +205,6 @@ module NormalQueueDpath__7f3406ec6084c93f
   input  logic [0:0] waddr ,
   input  logic [0:0] wen 
 );
-  localparam logic [1:0] __const__num_entries_at_up_rf_write  = 2'd2;
   CGRAData_64_8__payload_64__predicate_8 regs [0:1];
   CGRAData_64_8__payload_64__predicate_8 regs_rdata;
 
@@ -191,11 +215,7 @@ module NormalQueueDpath__7f3406ec6084c93f
 
   
   always_ff @(posedge clk) begin : up_rf_write
-    if ( reset | config_ini ) begin
-      for ( int unsigned i = 1'd0; i < 2'( __const__num_entries_at_up_rf_write ); i += 1'd1 )
-        regs[1'(i)] <= { 64'd0, 8'd0 };
-    end
-    else if ( wen ) begin
+    if ( wen ) begin
       regs[waddr] <= enq_msg;
     end
   end
@@ -208,28 +228,29 @@ module NormalQueue__8b984c0a30829017
 (
   input  logic [0:0] clk ,
   input  logic [0:0] config_ini ,
-  input  logic [0:0] deq_en ,
-  output CGRAData_64_8__payload_64__predicate_8 deq_msg ,
-  output logic [0:0] deq_valid ,
+  input  logic [0:0] dry_run_ack ,
   input  logic [0:0] dry_run_done ,
-  input  logic [0:0] enq_en ,
-  input  CGRAData_64_8__payload_64__predicate_8 enq_msg ,
-  output logic [0:0] enq_rdy ,
+  input  logic [0:0] recv_en_i ,
+  input  CGRAData_64_8__payload_64__predicate_8 recv_msg ,
+  output logic [0:0] recv_rdy_o ,
   input  logic [0:0] reset ,
+  input  logic [0:0] send_en_i ,
+  output CGRAData_64_8__payload_64__predicate_8 send_msg ,
+  output logic [0:0] send_valid_o ,
   input  logic [0:0] sync_dry_run 
 );
 
   logic [0:0] ctrl__clk;
   logic [0:0] ctrl__config_ini;
-  logic [1:0] ctrl__count;
-  logic [0:0] ctrl__deq_en;
-  logic [0:0] ctrl__deq_valid;
+  logic [0:0] ctrl__dry_run_ack;
   logic [0:0] ctrl__dry_run_done;
-  logic [0:0] ctrl__enq_en;
-  logic [0:0] ctrl__enq_rdy;
   logic [0:0] ctrl__raddr;
+  logic [0:0] ctrl__recv_en_i;
+  logic [0:0] ctrl__recv_rdy_o;
   logic [0:0] ctrl__ren;
   logic [0:0] ctrl__reset;
+  logic [0:0] ctrl__send_en_i;
+  logic [0:0] ctrl__send_valid_o;
   logic [0:0] ctrl__sync_dry_run;
   logic [0:0] ctrl__waddr;
   logic [0:0] ctrl__wen;
@@ -238,15 +259,15 @@ module NormalQueue__8b984c0a30829017
   (
     .clk( ctrl__clk ),
     .config_ini( ctrl__config_ini ),
-    .count( ctrl__count ),
-    .deq_en( ctrl__deq_en ),
-    .deq_valid( ctrl__deq_valid ),
+    .dry_run_ack( ctrl__dry_run_ack ),
     .dry_run_done( ctrl__dry_run_done ),
-    .enq_en( ctrl__enq_en ),
-    .enq_rdy( ctrl__enq_rdy ),
     .raddr( ctrl__raddr ),
+    .recv_en_i( ctrl__recv_en_i ),
+    .recv_rdy_o( ctrl__recv_rdy_o ),
     .ren( ctrl__ren ),
     .reset( ctrl__reset ),
+    .send_en_i( ctrl__send_en_i ),
+    .send_valid_o( ctrl__send_valid_o ),
     .sync_dry_run( ctrl__sync_dry_run ),
     .waddr( ctrl__waddr ),
     .wen( ctrl__wen )
@@ -255,7 +276,6 @@ module NormalQueue__8b984c0a30829017
 
 
   logic [0:0] dpath__clk;
-  logic [0:0] dpath__config_ini;
   CGRAData_64_8__payload_64__predicate_8 dpath__deq_msg;
   CGRAData_64_8__payload_64__predicate_8 dpath__enq_msg;
   logic [0:0] dpath__raddr;
@@ -267,7 +287,6 @@ module NormalQueue__8b984c0a30829017
   NormalQueueDpath__7f3406ec6084c93f dpath
   (
     .clk( dpath__clk ),
-    .config_ini( dpath__config_ini ),
     .deq_msg( dpath__deq_msg ),
     .enq_msg( dpath__enq_msg ),
     .raddr( dpath__raddr ),
@@ -282,7 +301,6 @@ module NormalQueue__8b984c0a30829017
   assign ctrl__reset = reset;
   assign dpath__clk = clk;
   assign dpath__reset = reset;
-  assign dpath__config_ini = config_ini;
   assign ctrl__config_ini = config_ini;
   assign ctrl__dry_run_done = dry_run_done;
   assign ctrl__sync_dry_run = sync_dry_run;
@@ -290,12 +308,12 @@ module NormalQueue__8b984c0a30829017
   assign dpath__ren = ctrl__ren;
   assign dpath__waddr = ctrl__waddr;
   assign dpath__raddr = ctrl__raddr;
-  assign ctrl__enq_en = enq_en;
-  assign enq_rdy = ctrl__enq_rdy;
-  assign ctrl__deq_en = deq_en;
-  assign deq_valid = ctrl__deq_valid;
-  assign dpath__enq_msg = enq_msg;
-  assign deq_msg = dpath__deq_msg;
+  assign ctrl__recv_en_i = recv_en_i;
+  assign recv_rdy_o = ctrl__recv_rdy_o;
+  assign ctrl__send_en_i = send_en_i;
+  assign send_valid_o = ctrl__send_valid_o;
+  assign dpath__enq_msg = recv_msg;
+  assign send_msg = dpath__deq_msg;
 
 endmodule
 
@@ -305,54 +323,58 @@ module ChannelRTL__719f99a07587cea0
 (
   input  logic [0:0] clk ,
   input  logic [0:0] config_ini ,
+  input  logic [0:0] dry_run_ack ,
   input  logic [0:0] dry_run_done ,
-  input  logic [0:0] recv_en ,
+  input  logic [0:0] recv_en_i ,
   input  CGRAData_64_8__payload_64__predicate_8 recv_msg ,
-  output logic [0:0] recv_rdy ,
+  output logic [0:0] recv_rdy_o ,
   input  logic [0:0] reset ,
-  input  logic [0:0] send_en ,
+  input  logic [0:0] send_en_i ,
   output CGRAData_64_8__payload_64__predicate_8 send_msg ,
-  output logic [0:0] send_valid ,
+  output logic [0:0] send_valid_o ,
   input  logic [0:0] sync_dry_run 
 );
 
   logic [0:0] queue__clk;
   logic [0:0] queue__config_ini;
-  logic [0:0] queue__deq_en;
-  CGRAData_64_8__payload_64__predicate_8 queue__deq_msg;
-  logic [0:0] queue__deq_valid;
+  logic [0:0] queue__dry_run_ack;
   logic [0:0] queue__dry_run_done;
-  logic [0:0] queue__enq_en;
-  CGRAData_64_8__payload_64__predicate_8 queue__enq_msg;
-  logic [0:0] queue__enq_rdy;
+  logic [0:0] queue__recv_en_i;
+  CGRAData_64_8__payload_64__predicate_8 queue__recv_msg;
+  logic [0:0] queue__recv_rdy_o;
   logic [0:0] queue__reset;
+  logic [0:0] queue__send_en_i;
+  CGRAData_64_8__payload_64__predicate_8 queue__send_msg;
+  logic [0:0] queue__send_valid_o;
   logic [0:0] queue__sync_dry_run;
 
   NormalQueue__8b984c0a30829017 queue
   (
     .clk( queue__clk ),
     .config_ini( queue__config_ini ),
-    .deq_en( queue__deq_en ),
-    .deq_msg( queue__deq_msg ),
-    .deq_valid( queue__deq_valid ),
+    .dry_run_ack( queue__dry_run_ack ),
     .dry_run_done( queue__dry_run_done ),
-    .enq_en( queue__enq_en ),
-    .enq_msg( queue__enq_msg ),
-    .enq_rdy( queue__enq_rdy ),
+    .recv_en_i( queue__recv_en_i ),
+    .recv_msg( queue__recv_msg ),
+    .recv_rdy_o( queue__recv_rdy_o ),
     .reset( queue__reset ),
+    .send_en_i( queue__send_en_i ),
+    .send_msg( queue__send_msg ),
+    .send_valid_o( queue__send_valid_o ),
     .sync_dry_run( queue__sync_dry_run )
   );
 
 
   assign queue__clk = clk;
   assign queue__reset = reset;
-  assign queue__enq_en = recv_en;
-  assign queue__enq_msg = recv_msg;
-  assign recv_rdy = queue__enq_rdy;
-  assign queue__deq_en = send_en;
-  assign send_msg = queue__deq_msg;
-  assign send_valid = queue__deq_valid;
+  assign queue__recv_en_i = recv_en_i;
+  assign queue__recv_msg = recv_msg;
+  assign recv_rdy_o = queue__recv_rdy_o;
+  assign queue__send_en_i = send_en_i;
+  assign send_msg = queue__send_msg;
+  assign send_valid_o = queue__send_valid_o;
   assign queue__config_ini = config_ini;
+  assign queue__dry_run_ack = dry_run_ack;
   assign queue__dry_run_done = dry_run_done;
   assign queue__sync_dry_run = sync_dry_run;
 
@@ -481,87 +503,68 @@ endmodule
 
 module CrossbarRTL__3d684959a51d2cb2
 (
+  output logic [3:0] bp_port_en ,
+  input  logic [3:0] bp_port_rdy ,
+  output logic [3:0] bp_port_sel ,
   input  logic [0:0] clk ,
   input  logic [2:0] recv_opt_msg_outport [0:7],
   input  logic [5:0] recv_opt_msg_predicate_in ,
   input  CGRAData_64_8__payload_64__predicate_8 recv_port_data [0:5],
-  output logic [0:0] recv_port_fu_out_ack ,
-  output logic [3:0] recv_port_mesh_in_ack ,
-  input  logic [5:0] recv_port_valid ,
+  input  logic [5:0] recv_port_en ,
+  output logic [5:0] recv_port_rdy ,
   input  logic [0:0] reset ,
-  output logic [3:0] send_bypass_data_valid ,
-  input  logic [3:0] send_bypass_port_ack ,
-  output logic [3:0] send_bypass_req ,
-  output CGRAData_64_8__payload_64__predicate_8 send_data_bypass [0:3],
+  output CGRAData_64_8__payload_64__predicate_8 send_bp_data [0:3],
   output CGRAData_64_8__payload_64__predicate_8 send_port_data [0:7],
-  output logic [8:0] send_port_en ,
+  output logic [7:0] send_port_en ,
   input  logic [7:0] send_port_rdy ,
   output CGRAData_8__predicate_8 send_predicate ,
+  output logic [0:0] send_predicate_en ,
   input  logic [0:0] send_predicate_rdy ,
-  input  logic [0:0] xbar_dry_run_ack ,
-  input  logic [0:0] xbar_dry_run_begin ,
   input  logic [0:0] xbar_opt_enable ,
   input  logic [0:0] xbar_propagate_en ,
   output logic [0:0] xbar_propagate_rdy 
 );
-  localparam logic [1:0] __const__STAGE_NORMAL  = 2'd0;
-  localparam logic [1:0] __const__STAGE_WAIT_FOR_NOC  = 2'd2;
-  localparam logic [1:0] __const__STAGE_WAIT_FOR_FU  = 2'd3;
-  localparam logic [1:0] __const__STAGE_WAIT_FOR_DST  = 2'd1;
   localparam logic [3:0] __const__num_xbar_outports_at_decode_process  = 4'd8;
   localparam logic [2:0] __const__num_xbar_inports_at_decode_process  = 3'd6;
   localparam logic [3:0] __const__num_xbar_outports_at_opt_propagate  = 4'd8;
   localparam logic [2:0] __const__num_xbar_inports_at_opt_propagate  = 3'd6;
-  localparam logic [2:0] __const__num_connect_inports_at_opt_propagate  = 3'd4;
-  localparam logic [2:0] __const__num_connect_outports_at_handshake_process  = 3'd4;
+  localparam logic [2:0] __const__num_xbar_inports_at_handshake_process  = 3'd6;
   localparam logic [2:0] __const__num_connect_inports_at_handshake_process  = 3'd4;
   localparam logic [3:0] __const__num_xbar_outports_at_handshake_process  = 4'd8;
-  localparam logic [2:0] __const__num_xbar_inports_at_handshake_process  = 3'd6;
-  localparam logic [3:0] __const__num_xbar_outports_at_data_routing  = 4'd8;
-  localparam logic [2:0] __const__num_connect_inports_at_data_routing  = 3'd4;
+  localparam logic [2:0] __const__num_connect_outports_at_handshake_process  = 3'd4;
   localparam logic [2:0] __const__num_connect_outports_at_data_routing  = 3'd4;
+  localparam logic [2:0] __const__num_connect_inports_at_data_routing  = 3'd4;
   localparam logic [2:0] __const__num_xbar_inports_at_data_routing  = 3'd6;
+  localparam logic [3:0] __const__num_xbar_outports_at_data_routing  = 4'd8;
   localparam logic [3:0] __const__num_xbar_outports_at_xbar_propagate_sync  = 4'd8;
-  logic [1:0] cur_stage;
-  logic [0:0] fu_handshake_vector_fu_out_req_bypass_met;
-  logic [1:0] fu_handshake_vector_fu_out_req_local_met;
-  logic [3:0] fu_handshake_vector_mesh_in_recv_port_req_met;
-  logic [1:0] fu_handshake_vector_send_bypass_data_valid_met [0:3];
-  logic [8:0] fu_handshake_vector_send_port_req_nxt_met;
-  logic [0:0] fu_handshake_vector_xbar_fu_out_req_met;
-  logic [0:0] fu_handshake_vector_xbar_mesh_in_req_met;
-  logic [1:0] nxt_stage;
+  logic [8:0] bp_downstream_rdy;
+  logic [3:0] bp_outport_flag;
+  logic [1:0] bp_outport_s [0:3];
+  logic [3:0] bp_port_req;
+  logic [3:0] bp_port_req_nxt;
+  logic [8:0] lc_downstream_rdy;
   logic [5:0] recv_port_req;
-  logic [8:0] send_port_rdy_vector;
-  logic [8:0] send_port_req_fu_out;
-  logic [8:0] send_port_req_mesh_in;
-  logic [8:0] send_port_req_nxt;
-  logic [0:0] xbar_fu_out_done;
-  logic [0:0] xbar_fu_out_okay;
+  logic [5:0] xbar_done_flag;
+  logic [5:0] xbar_done_flag_nxt;
+  logic [8:0] xbar_inport_rdy [0:5];
   logic [8:0] xbar_inport_sel [0:5];
-  logic [8:0] xbar_inport_sel_nxt [0:5];
-  logic [0:0] xbar_mesh_in_done;
-  logic [0:0] xbar_mesh_in_okay;
-  logic [0:0] xbar_nxt_out_ready;
+  logic [5:0] xbar_inport_xfer;
+  logic [5:0] xbar_outport_en [0:8];
   logic [5:0] xbar_outport_sel [0:8];
   logic [5:0] xbar_outport_sel_nxt [0:8];
   logic [6:0] xbar_outport_sel_nxt_decode [0:7];
+  logic [5:0] xbar_xfer_flag;
 
   
   always_comb begin : data_routing
-    for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-      send_port_data[3'(i)] = { 64'd0, 8'd0 };
-    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_inports_at_data_routing ); i += 1'd1 )
-      send_data_bypass[2'(i)] = { 64'd0, 8'd0 };
-    send_predicate = 8'd0;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_data_routing ); i += 1'd1 ) begin
       for ( int unsigned j = 1'd0; j < 3'( __const__num_connect_inports_at_data_routing ); j += 1'd1 ) begin
         send_port_data[3'(i)].payload = send_port_data[3'(i)].payload | ( recv_port_data[3'(j)].payload & { { 63 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
         send_port_data[3'(i)].predicate = send_port_data[3'(i)].predicate | ( recv_port_data[3'(j)].predicate & { { 7 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
       end
       for ( int unsigned j = 3'( __const__num_connect_inports_at_data_routing ); j < 3'( __const__num_xbar_inports_at_data_routing ); j += 1'd1 ) begin
-        send_data_bypass[2'(i)].payload = send_data_bypass[2'(i)].payload | ( recv_port_data[3'(j)].payload & { { 63 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
-        send_data_bypass[2'(i)].predicate = send_data_bypass[2'(i)].predicate | ( recv_port_data[3'(j)].predicate & { { 7 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
+        send_bp_data[2'(i)].payload = send_bp_data[2'(i)].payload | ( recv_port_data[3'(j)].payload & { { 63 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
+        send_bp_data[2'(i)].predicate = send_bp_data[2'(i)].predicate | ( recv_port_data[3'(j)].predicate & { { 7 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
       end
     end
     for ( int unsigned i = 3'( __const__num_connect_outports_at_data_routing ); i < 4'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
@@ -591,113 +594,57 @@ module CrossbarRTL__3d684959a51d2cb2
   end
 
   
-  always_comb begin : fsm_ctrl_signals
-    xbar_mesh_in_done = 1'd0;
-    xbar_fu_out_done = 1'd0;
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_FU ) ) begin
-      xbar_mesh_in_done = 1'd1;
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_NOC ) ) begin
-      xbar_fu_out_done = 1'd1;
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_DST ) ) begin
-      xbar_mesh_in_done = 1'd1;
-      xbar_fu_out_done = 1'd1;
-    end
-  end
-
-  
-  always_comb begin : fsm_nxt_stage
-    nxt_stage = cur_stage;
-    if ( cur_stage == 2'( __const__STAGE_NORMAL ) ) begin
-      if ( ( ~xbar_mesh_in_okay ) & xbar_fu_out_okay ) begin
-        nxt_stage = 2'( __const__STAGE_WAIT_FOR_NOC );
-      end
-      if ( ( ~xbar_fu_out_okay ) & xbar_mesh_in_okay ) begin
-        nxt_stage = 2'( __const__STAGE_WAIT_FOR_FU );
-      end
-      if ( ( xbar_mesh_in_okay & xbar_fu_out_okay ) & ( ~xbar_nxt_out_ready ) ) begin
-        nxt_stage = 2'( __const__STAGE_WAIT_FOR_DST );
-      end
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_NOC ) ) begin
-      if ( xbar_mesh_in_okay ) begin
-        if ( ~xbar_nxt_out_ready ) begin
-          nxt_stage = 2'( __const__STAGE_WAIT_FOR_DST );
-        end
-        else
-          nxt_stage = 2'( __const__STAGE_NORMAL );
-      end
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_FU ) ) begin
-      if ( xbar_fu_out_okay ) begin
-        if ( ~xbar_nxt_out_ready ) begin
-          nxt_stage = 2'( __const__STAGE_WAIT_FOR_DST );
-        end
-        else
-          nxt_stage = 2'( __const__STAGE_NORMAL );
-      end
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_DST ) ) begin
-      if ( xbar_nxt_out_ready ) begin
-        nxt_stage = 2'( __const__STAGE_NORMAL );
-      end
-    end
-  end
-
-  
   always_comb begin : handshake_process
-    recv_port_req = 6'd0;
-    send_port_req_mesh_in = 9'd0;
-    send_port_req_fu_out = 9'd0;
-    send_bypass_req = 4'd0;
-    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 )
-      send_port_req_nxt[4'(i)] = ( | xbar_outport_sel_nxt[4'(i)][3'd3:3'd0] );
-    for ( int unsigned i = 3'( __const__num_connect_outports_at_handshake_process ); i < 4'( __const__num_xbar_outports_at_handshake_process ) + 4'd1; i += 1'd1 )
-      send_port_req_nxt[4'(i)] = ( | xbar_outport_sel_nxt[4'(i)] );
     for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
       recv_port_req[3'(i)] = ( | xbar_inport_sel[3'(i)] );
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_inports_at_handshake_process ); i += 1'd1 )
+      xbar_inport_rdy[3'(i)] = xbar_inport_sel[3'(i)] & ( ~lc_downstream_rdy );
+    for ( int unsigned i = 3'( __const__num_connect_inports_at_handshake_process ); i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
+      xbar_inport_rdy[3'(i)] = xbar_inport_sel[3'(i)] & ( ~bp_downstream_rdy );
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
+      recv_port_rdy[3'(i)] = ( ( ~( | xbar_inport_rdy[3'(i)] ) ) & recv_port_req[3'(i)] ) & ( ~xbar_done_flag[3'(i)] );
+    xbar_inport_xfer = ( recv_port_en & recv_port_rdy ) & ( ~xbar_done_flag );
     for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_handshake_process ) + 4'd1; i += 1'd1 )
-      send_port_req_mesh_in[4'(i)] = ( | xbar_outport_sel[4'(i)][3'd3:3'd0] );
-    for ( int unsigned i = 3'( __const__num_connect_outports_at_handshake_process ); i < 4'( __const__num_xbar_outports_at_handshake_process ) + 4'd1; i += 1'd1 )
-      send_port_req_fu_out[4'(i)] = ( | xbar_outport_sel[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
+      xbar_outport_en[4'(i)] = xbar_inport_xfer & xbar_outport_sel[4'(i)];
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 )
+      send_port_en[3'(i)] = ( | xbar_outport_en[4'(i)][3'd3:3'd0] );
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 )
+      bp_port_en[2'(i)] = ( | xbar_outport_en[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
+    for ( int unsigned i = 3'( __const__num_connect_outports_at_handshake_process ); i < 4'( __const__num_xbar_outports_at_handshake_process ); i += 1'd1 )
+      send_port_en[3'(i)] = ( | xbar_outport_en[4'(i)] );
+    send_predicate_en = ( | xbar_outport_en[4'( __const__num_xbar_outports_at_handshake_process )] );
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 ) begin
-      send_bypass_req[2'(i)] = ( | xbar_outport_sel[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
-      fu_handshake_vector_send_bypass_data_valid_met[2'(i)] = recv_port_valid[3'd5:3'( __const__num_connect_inports_at_handshake_process )] & xbar_outport_sel[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )];
-      send_bypass_data_valid[2'(i)] = ( | fu_handshake_vector_send_bypass_data_valid_met[2'(i)] );
+      bp_port_req[2'(i)] = ( | xbar_outport_sel[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
+      bp_port_req_nxt[2'(i)] = ( | xbar_outport_sel_nxt[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
     end
-    fu_handshake_vector_send_port_req_nxt_met = send_port_req_nxt & ( ~send_port_rdy_vector );
-    fu_handshake_vector_mesh_in_recv_port_req_met = recv_port_req[3'd3:3'd0] & ( ~recv_port_valid[3'd3:3'd0] );
-    fu_handshake_vector_fu_out_req_local_met = recv_port_req[3'd5:3'( __const__num_connect_inports_at_handshake_process )] & ( ~recv_port_valid[3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
-    fu_handshake_vector_fu_out_req_bypass_met = send_bypass_req == send_bypass_port_ack;
-    xbar_nxt_out_ready = ( ~( | fu_handshake_vector_send_port_req_nxt_met ) ) | xbar_dry_run_begin;
-    xbar_mesh_in_okay = ( ~( | fu_handshake_vector_mesh_in_recv_port_req_met ) ) | xbar_dry_run_ack;
-    xbar_fu_out_okay = ( ( ~( | fu_handshake_vector_fu_out_req_local_met ) ) & fu_handshake_vector_fu_out_req_bypass_met ) | xbar_dry_run_ack;
-    fu_handshake_vector_xbar_fu_out_req_met = ( ~xbar_fu_out_done ) & xbar_fu_out_okay;
-    fu_handshake_vector_xbar_mesh_in_req_met = ( ~xbar_mesh_in_done ) & xbar_mesh_in_okay;
-    recv_port_mesh_in_ack = recv_port_req[3'd3:3'd0] & { { 3 { fu_handshake_vector_xbar_mesh_in_req_met[0] } }, fu_handshake_vector_xbar_mesh_in_req_met };
-    recv_port_fu_out_ack = fu_handshake_vector_xbar_fu_out_req_met;
-    send_port_en = ( send_port_req_mesh_in & { { 8 { fu_handshake_vector_xbar_mesh_in_req_met[0] } }, fu_handshake_vector_xbar_mesh_in_req_met } ) | ( send_port_req_fu_out & { { 8 { fu_handshake_vector_xbar_fu_out_req_met[0] } }, fu_handshake_vector_xbar_fu_out_req_met } );
-    xbar_propagate_rdy = ( xbar_nxt_out_ready & ( xbar_mesh_in_done | xbar_mesh_in_okay ) ) & ( xbar_fu_out_done | xbar_fu_out_okay );
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 ) begin
+      bp_outport_s[2'(i)] = xbar_outport_sel[4'(i)][3'd5:3'( __const__num_connect_inports_at_handshake_process )] & ( ~xbar_done_flag[3'd5:3'( __const__num_connect_inports_at_handshake_process )] );
+      bp_outport_flag[2'(i)] = ~( | bp_outport_s[2'(i)] );
+    end
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_handshake_process ); i += 1'd1 )
+      bp_port_sel[2'(i)] = ( bp_outport_flag[2'(i)] & bp_port_req_nxt[2'(i)] ) | ( ( ~bp_outport_flag[2'(i)] ) & bp_port_req[2'(i)] );
+    xbar_xfer_flag = ( ~recv_port_req ) | xbar_inport_xfer;
+    xbar_done_flag_nxt = xbar_done_flag | xbar_xfer_flag;
+    xbar_propagate_rdy = ( & xbar_done_flag_nxt );
   end
 
   
   always_comb begin : opt_propagate
-    for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_opt_propagate ) + 4'd1; i += 1'd1 ) begin
+    for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_opt_propagate ) + 4'd1; i += 1'd1 )
       for ( int unsigned j = 1'd0; j < 3'( __const__num_xbar_inports_at_opt_propagate ); j += 1'd1 )
         xbar_inport_sel[3'(j)][4'(i)] = xbar_outport_sel[4'(i)][3'(j)];
-      for ( int unsigned j = 1'd0; j < 3'( __const__num_connect_inports_at_opt_propagate ); j += 1'd1 )
-        xbar_inport_sel_nxt[3'(j)][4'(i)] = xbar_outport_sel_nxt[4'(i)][3'(j)];
-    end
   end
 
   
   always_ff @(posedge clk) begin : fsm_update
     if ( reset ) begin
-      cur_stage <= 2'( __const__STAGE_NORMAL );
+      xbar_done_flag <= 6'd0;
+    end
+    else if ( xbar_propagate_en ) begin
+      xbar_done_flag <= 6'd0;
     end
     else
-      cur_stage <= nxt_stage;
+      xbar_done_flag <= xbar_done_flag_nxt;
   end
 
   
@@ -712,15 +659,24 @@ module CrossbarRTL__3d684959a51d2cb2
     end
   end
 
-  assign send_port_rdy_vector[0:0] = send_port_rdy[0:0];
-  assign send_port_rdy_vector[1:1] = send_port_rdy[1:1];
-  assign send_port_rdy_vector[2:2] = send_port_rdy[2:2];
-  assign send_port_rdy_vector[3:3] = send_port_rdy[3:3];
-  assign send_port_rdy_vector[4:4] = send_port_rdy[4:4];
-  assign send_port_rdy_vector[5:5] = send_port_rdy[5:5];
-  assign send_port_rdy_vector[6:6] = send_port_rdy[6:6];
-  assign send_port_rdy_vector[7:7] = send_port_rdy[7:7];
-  assign send_port_rdy_vector[8:8] = send_predicate_rdy;
+  assign lc_downstream_rdy[0:0] = send_port_rdy[0:0];
+  assign lc_downstream_rdy[1:1] = send_port_rdy[1:1];
+  assign lc_downstream_rdy[2:2] = send_port_rdy[2:2];
+  assign lc_downstream_rdy[3:3] = send_port_rdy[3:3];
+  assign lc_downstream_rdy[4:4] = send_port_rdy[4:4];
+  assign lc_downstream_rdy[5:5] = send_port_rdy[5:5];
+  assign lc_downstream_rdy[6:6] = send_port_rdy[6:6];
+  assign lc_downstream_rdy[7:7] = send_port_rdy[7:7];
+  assign lc_downstream_rdy[8:8] = send_predicate_rdy;
+  assign bp_downstream_rdy[0:0] = bp_port_rdy[0:0];
+  assign bp_downstream_rdy[1:1] = bp_port_rdy[1:1];
+  assign bp_downstream_rdy[2:2] = bp_port_rdy[2:2];
+  assign bp_downstream_rdy[3:3] = bp_port_rdy[3:3];
+  assign bp_downstream_rdy[4:4] = send_port_rdy[4:4];
+  assign bp_downstream_rdy[5:5] = send_port_rdy[5:5];
+  assign bp_downstream_rdy[6:6] = send_port_rdy[6:6];
+  assign bp_downstream_rdy[7:7] = send_port_rdy[7:7];
+  assign bp_downstream_rdy[8:8] = send_predicate_rdy;
 
 endmodule
 
@@ -1485,7 +1441,6 @@ module ALURTL__738ecfe6a89ddd7f
   input  logic [4:0] bmask_b_i ,
   input  logic [0:0] clk ,
   input  logic [6:0] ex_operator_i ,
-  input  logic [0:0] input_valid_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_a_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_b_i ,
   input  logic [0:0] opt_launch_en_i ,
@@ -1499,9 +1454,15 @@ module ALURTL__738ecfe6a89ddd7f
   output CGRAData_64_8__payload_64__predicate_8 send_out__msg [0:1] ,
   input logic [0:0] send_out__rdy [0:1] 
 );
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_0__operand_a_i  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_0__operand_b_i  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_1__operand_a_i  = 1'd1;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_1__operand_b_i  = 1'd1;
   logic [0:0] alu_enable;
   logic [0:0] alu_ex_ready;
   logic [1:0] alu_ex_ready_o_vector;
+  logic [63:0] alu_operand_a;
+  logic [63:0] alu_operand_b;
   logic [1:0] alu_out_ready_o_vector;
   CGRAData_64_8__payload_64__predicate_8 result_o_vector;
 
@@ -1561,8 +1522,33 @@ module ALURTL__738ecfe6a89ddd7f
 
 
   
-  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_enable
-    alu_enable = opt_launch_en_i & input_valid_i;
+  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_element_0__operand_a_i
+    alu_element_operand_a_i[1'd0] = alu_operand_a[6'd31:6'( __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_0__operand_a_i ) * 6'd32];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_element_0__operand_b_i
+    alu_element_operand_b_i[1'd0] = alu_operand_b[6'd31:6'( __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_0__operand_b_i ) * 6'd32];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_element_1__operand_a_i
+    alu_element_operand_a_i[1'd1] = alu_operand_a[7'd63:6'( __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_1__operand_a_i ) * 6'd32];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_element_1__operand_b_i
+    alu_element_operand_b_i[1'd1] = alu_operand_b[7'd63:6'( __const__i_at__lambda__s_tile_0__element_fu_0_alu_element_1__operand_b_i ) * 6'd32];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_operand_a
+    alu_operand_a = operand_a_i.payload & { { 63 { alu_enable[0] } }, alu_enable };
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_0_alu_operand_b
+    alu_operand_b = operand_b_i.payload & { { 63 { alu_enable[0] } }, alu_enable };
   end
 
   
@@ -1587,6 +1573,7 @@ module ALURTL__738ecfe6a89ddd7f
   assign alu_element_reset[0] = reset;
   assign alu_element_clk[1] = clk;
   assign alu_element_reset[1] = reset;
+  assign alu_enable = opt_launch_en_i;
   assign alu_element_enable_i[0] = alu_enable;
   assign alu_element_operator_i[0] = ex_operator_i;
   assign alu_element_vector_mode_i[0] = vector_mode_i;
@@ -1596,8 +1583,6 @@ module ALURTL__738ecfe6a89ddd7f
   assign alu_element_clpx_shift_i[0] = 2'd0;
   assign alu_ex_ready_o_vector[0:0] = alu_element_ex_ready_o[0];
   assign alu_out_ready_o_vector[0:0] = alu_element_out_ready_o[0];
-  assign alu_element_operand_a_i[0] = operand_a_i.payload[31:0];
-  assign alu_element_operand_b_i[0] = operand_b_i.payload[31:0];
   assign result_o_vector.payload[31:0] = alu_element_result_o[0];
   assign alu_element_ex_ready_i[0] = output_rdy_i;
   assign alu_element_enable_i[1] = alu_enable;
@@ -1609,8 +1594,6 @@ module ALURTL__738ecfe6a89ddd7f
   assign alu_element_clpx_shift_i[1] = 2'd0;
   assign alu_ex_ready_o_vector[1:1] = alu_element_ex_ready_o[1];
   assign alu_out_ready_o_vector[1:1] = alu_element_out_ready_o[1];
-  assign alu_element_operand_a_i[1] = operand_a_i.payload[63:32];
-  assign alu_element_operand_b_i[1] = operand_b_i.payload[63:32];
   assign result_o_vector.payload[63:32] = alu_element_result_o[1];
   assign alu_element_ex_ready_i[1] = output_rdy_i;
   assign send_out__msg[0] = result_o_vector;
@@ -1646,18 +1629,17 @@ module vec_mult #(
 
     input logic [2:0] op_signed_i,
     input logic round_en_i,
-    input logic [$clog2(Q_WIDTH)-1:0] i_imm_i,
     input logic [$clog2(Q_WIDTH)-1:0] o_imm_i,
 
     input logic [D_WIDTH-1:0] op_a_i,
     input logic [D_WIDTH-1:0] op_b_i,
     input logic [D_WIDTH-1:0] op_c_i,
 
-    input logic        is_clpx_i,
-    input logic [ 1:0] clpx_shift_i,
-    input logic        clpx_img_i,
+    input logic        is_clpx_i, // todo
+    input logic [ 1:0] clpx_shift_i, // todo
+    input logic        clpx_img_i, // todo
 
-    output logic [D_WIDTH-1:0] result_o,
+    output logic [D_WIDTH-1:0] result_o [2], // todo
 
     input logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_i,
     output logic [D_WIDTH/ATOM_WIDTH-1:0] result_predicate_o,
@@ -1667,244 +1649,359 @@ module vec_mult #(
     output logic ex_rdy_o,
     input  logic ex_en_i
 );
-  localparam NUM_SLICES = D_WIDTH/ATOM_WIDTH;
-  localparam NUM_STAGES_L2 = $clog2(NUM_SLICES/2);
-  localparam NUM_STAGES_L1 = $clog2(NUM_SLICES);
-
-  
-
-  localparam VEC_MODE32 = 2'b00;
-  localparam VEC_MODE16 = 2'b10;
-  localparam VEC_MODE8 = 2'b11;
-
-  localparam MUL_MAC = 2'b00;
-  localparam MUL_DOT = 2'b01;
-
-
-  logic [3:0] op_signed_mask;
-
-  logic [ATOM_WIDTH:0] char_op_a [NUM_SLICES];
-  logic [ATOM_WIDTH:0] char_op_a_rev [NUM_SLICES];
-  logic [ATOM_WIDTH:0] char_op_b [NUM_SLICES];
-  
-  logic [2*ATOM_WIDTH+1:0] out_tmp [NUM_SLICES];
-  logic [2*ATOM_WIDTH+1:0] out_tmp_rev [NUM_SLICES];
-  logic [2*ATOM_WIDTH+1:0] out_tmp_buf_s1 [NUM_SLICES];
-  logic [2*ATOM_WIDTH+1:0] out_tmp_rev_buf_s1 [NUM_SLICES];
-
-  logic [D_WIDTH-1:0] accumulator_s1;
-  logic [1:0] operator_s1;
-  logic op_signed_c_s1;
-  logic round_en_s1;
-  logic vector_mode_s1;
-  logic [$clog2(Q_WIDTH)-1:0] i_shift_imm_s1;
-  logic [$clog2(Q_WIDTH)-1:0] o_shift_imm_s1;
-  logic [D_WIDTH-1:0] bmask_tmp_s1;
-  logic [D_WIDTH-1:0] bmask_s1;
-
-  logic [2*ATOM_WIDTH+1:0] mac_l1_out_s1 [NUM_SLICES];
-  logic [2*ATOM_WIDTH:0] mac_l1_acc_s1 [NUM_SLICES];
-  logic [2*ATOM_WIDTH+2:0] mac_l1_result_s1_tmp [NUM_SLICES];
-
-  logic [4*ATOM_WIDTH+1:0] mac_l2_p_s1 [NUM_SLICES];
-  logic [4*ATOM_WIDTH+2:0] mac_l2_out_s1 [NUM_SLICES/2];
-  logic [4*ATOM_WIDTH:0] mac_l2_acc_s1 [NUM_SLICES];
-  logic [4*ATOM_WIDTH+3:0] mac_l2_result_s1_tmp [NUM_SLICES/2];
-
-
-  logic [2*ATOM_WIDTH+1+$clog2(NUM_SLICES):0] dot_l1_stage_s1 [NUM_STAGES_L1][NUM_SLICES/2];
-  logic [4*ATOM_WIDTH+1+$clog2(NUM_SLICES/2):0] dot_l2_stage_s1 [NUM_STAGES_L2][NUM_SLICES/4];
-  
-  logic [2*ATOM_WIDTH+1+$clog2(MAX_ITER):0] dot_l1_acc_s1;
-  logic [4*ATOM_WIDTH+1+$clog2(MAX_ITER):0] dot_l2_acc_s1;
-
-  logic [D_WIDTH-1:0] mac_l2_result_s1;
-  logic [D_WIDTH-1:0] mac_l1_result_s1;
-  logic [D_WIDTH-1:0] dot_l2_result_s1;
-  logic [D_WIDTH-1:0] dot_l1_result_s1;
-
-  logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s0_masked; 
-  logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s1;  
-
-  genvar i, j, k, l, m, n;
-
-  logic recv_en[PIPELINE_STAGES-1];
-  logic recv_rdy[PIPELINE_STAGES-1];
-  logic send_en[PIPELINE_STAGES-1];
-  logic send_rdy[PIPELINE_STAGES-1];
-  logic busy[PIPELINE_STAGES-1];
-
-  always_ff @( posedge clk ) begin : pipeline_sync
-    if ( reset ) begin
-      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
-        busy[i] <= 0;
-      end
-    end
-    else begin
-      for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
-        busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
-      end
-    end
-  end
-
-  generate
-    for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
-      assign recv_en[i] = send_en[i-1];
-      assign send_rdy[i-1] = recv_rdy[i];
-    end
-    for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
-      assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
-      assign send_en[i] = busy[i];
-    end
-  endgenerate
-  
-  assign recv_en[0] = ex_en_i;
-  assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
-  assign ex_rdy_o = recv_rdy[0];
-  assign out_en_o = send_en[PIPELINE_STAGES-2];
-
-  always_comb begin : signed_bits_mask
-    unique case (vector_mode_i)
-      VEC_MODE32: op_signed_mask = 4'b1000;
-      VEC_MODE16: op_signed_mask = 4'b1010;
-      VEC_MODE8: op_signed_mask = 4'b1111;
-      default: op_signed_mask = '0;
-    endcase
-  end
-
-  always_comb begin : partial_mul_operand
-    for (int i = 0; i < NUM_SLICES; i++) begin
-      char_op_a[i] = {op_signed_mask[i%4] & op_signed_i[0] & op_a_i[(i+1)*ATOM_WIDTH-1], op_a_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
-      char_op_b[i] = {op_signed_mask[i%4] & op_signed_i[1] & op_b_i[(i+1)*ATOM_WIDTH-1], op_b_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
-    end
-  end
-
-  always_comb begin : partial_mul_operand_rev
-    for (int i = 0; i < NUM_SLICES/2; i++) begin
-      char_op_a_rev[i*2] = {ATOM_WIDTH{vector_mode_i != VEC_MODE8}} & char_op_a[i*2+1];
-      char_op_a_rev[i*2+1] = {ATOM_WIDTH{vector_mode_i != VEC_MODE8}} & char_op_a[i*2];
-    end
-  end
-
-  generate
-    for (i=0; i < NUM_SLICES; i++) begin: gen_l1_mult
-      assign out_tmp[i] = $signed(char_op_a[i]) * $signed(char_op_b[i]);
-      assign out_tmp_rev[i] = $signed(char_op_a_rev[i]) * $signed(char_op_b[i]);
-    end
-  endgenerate
+    localparam NUM_SLICES = D_WIDTH/ATOM_WIDTH;
+    localparam NUM_STAGES_L2 = $clog2(NUM_SLICES/2);
+    localparam NUM_STAGES_L1 = $clog2(NUM_SLICES);
 
 
 
-  assign bmask_tmp_s1 = 'b1 <<< o_shift_imm_s1;
-  assign bmask_s1 = (round_en_s1) ? {1'b0, bmask_tmp_s1[D_WIDTH-1:1]} : 'b0;
+    localparam VEC_MODE32 = 2'b00;
+    localparam VEC_MODE16 = 2'b10;
+    localparam VEC_MODE8 = 2'b11;
 
-  generate
-    for (i=0; i < NUM_SLICES; i++) begin: gen_l1_acc
-      assign mac_l1_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH-1], accumulator_s1[i*ATOM_WIDTH+:ATOM_WIDTH]}) <<< i_shift_imm_s1[0+:$clog2(ATOM_WIDTH)] + bmask_s1[0+:ATOM_WIDTH*2];
-    end
-
-    for (i=0; i < NUM_SLICES/2; i++) begin: gen_l2_acc
-      assign mac_l2_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*2-1], accumulator_s1[i*ATOM_WIDTH*2+:ATOM_WIDTH*2]}) <<< i_shift_imm_s1[0+:$clog2(ATOM_WIDTH*2)] + bmask_s1[0+:ATOM_WIDTH*4];
-    end
-  endgenerate
-
-  assign dot_l1_acc_s1 = $signed({op_signed_c_s1 & accumulator_s1[2*ATOM_WIDTH+$clog2(MAX_ITER)], accumulator_s1[2*ATOM_WIDTH+$clog2(MAX_ITER):0]}) <<< i_shift_imm_s1 + bmask_s1[2*ATOM_WIDTH+1+$clog2(MAX_ITER):0];
-  assign dot_l2_acc_s1 = $signed({op_signed_c_s1 & accumulator_s1[4*ATOM_WIDTH+$clog2(MAX_ITER)], accumulator_s1[4*ATOM_WIDTH+$clog2(MAX_ITER):0]}) <<< i_shift_imm_s1 + bmask_s1[4*ATOM_WIDTH+1+$clog2(MAX_ITER):0];
-
-  generate
-    for (l=0; l < NUM_SLICES; l++) begin: gen_l1_out
-      assign mac_l1_out_s1[l] = $signed(out_tmp_buf_s1[l]); 
-      assign mac_l1_result_s1_tmp[l] = ($signed(mac_l1_out_s1[l]) + $signed(mac_l1_acc_s1[l])) >>> o_shift_imm_s1;
-      assign mac_l1_result_s1[l*ATOM_WIDTH+:ATOM_WIDTH] = mac_l1_result_s1_tmp[l][0+:ATOM_WIDTH];
-    end
-  endgenerate
-  
-  generate
-    for (l=0; l < NUM_SLICES/2; l++) begin: gen_l2_out
-      assign mac_l2_p_s1[l] = $signed({{out_tmp_buf_s1[2*l+1]}, {2*ATOM_WIDTH{1'b0}}}) + $signed(out_tmp_buf_s1[2*l]);
-      assign mac_l2_p_s1[l+NUM_SLICES/2] = $signed(out_tmp_rev_buf_s1[2*l+1]) + $signed(out_tmp_buf_s1[2*l]);
-      assign mac_l2_out_s1[l] = $signed(mac_l2_p_s1[l]) + $signed({mac_l2_p_s1[l+NUM_SLICES/2], {ATOM_WIDTH{1'b0}}}); 
-      assign mac_l2_result_s1_tmp[l] = ($signed(mac_l2_out_s1[l]) + $signed(mac_l2_acc_s1[l])) >>> o_shift_imm_s1;
-      assign mac_l2_result_s1[l*ATOM_WIDTH*2+:ATOM_WIDTH*2] = mac_l2_result_s1_tmp[l][0+:ATOM_WIDTH*2];
-    end
-  endgenerate
+    localparam MUL_MAC = 2'b00;
+    localparam MUL_DOT = 2'b01;
+    localparam MUL_CMAC = 2'b10;
 
 
-  generate
-      for (i = 0; i < NUM_SLICES / 4; i++) begin : gen_stage0_dot_l2
-          assign dot_l2_stage_s1[0][i] = $signed(mac_l2_out_s1[2*i]) + $signed(mac_l2_out_s1[2*i+1]);
-      end
+    logic [3:0] op_signed_mask;
 
-      for (i = 1; i < NUM_SLICES / 4; i++) begin : gen_stages_dot_l2
-          for (j = 0; j < (NUM_SLICES >> (i + 2)); j++) begin 
-              assign dot_l2_stage_s1[i][j] = $signed(dot_l2_stage_s1[i-1][2*j]) + $signed(dot_l2_stage_s1[i-1][2*j + 1]);
-          end
-      end
-  endgenerate
+    logic [ATOM_WIDTH:0] char_op_a [NUM_SLICES];
+    logic [ATOM_WIDTH:0] char_op_a_rev [NUM_SLICES];
+    logic [ATOM_WIDTH:0] char_op_b [NUM_SLICES];
 
-  generate
-      for (i = 0; i < NUM_SLICES / 2; i++) begin : gen_stage0_dot_l1
-          assign dot_l1_stage_s1[0][i] = $signed(mac_l1_out_s1[2*i]) + $signed(mac_l1_out_s1[2*i+1]);
-      end
+    logic [ATOM_WIDTH:0] char_op_a_h [NUM_SLICES];
+    logic [ATOM_WIDTH:0] char_op_a_rev_h [NUM_SLICES];
+    logic [ATOM_WIDTH:0] char_op_b_h [NUM_SLICES];
 
-      for (i = 1; i < NUM_SLICES / 2; i++) begin : gen_stages_dot_l1
-          for (j = 0; j < (NUM_SLICES >> (i + 1)); j++) begin
-              assign dot_l1_stage_s1[i][j] = $signed(dot_l1_stage_s1[i-1][2*j]) + $signed(dot_l1_stage_s1[i-1][2*j + 1]);
-          end
-      end
-  endgenerate
+    logic [2*ATOM_WIDTH+1:0] out_tmp [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] out_tmp_rev [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] out_tmp_buf_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] out_tmp_rev_buf_s1 [NUM_SLICES];
 
-  assign dot_l1_result_s1 = $signed($signed(dot_l1_stage_s1[NUM_STAGES_L1-1][0]) + $signed(dot_l1_acc_s1)) >>> o_shift_imm_s1;
-  assign dot_l2_result_s1 = $signed($signed(dot_l2_stage_s1[NUM_STAGES_L2-1][0]) + $signed(dot_l2_acc_s1)) >>> o_shift_imm_s1;
+    logic [2*ATOM_WIDTH+1:0] out_tmp_h [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] out_tmp_rev_h [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] out_tmp_h_buf_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] out_tmp_rev_h_buf_s1 [NUM_SLICES];
+
+    logic [D_WIDTH-1:0] accumulator_s1;
+    logic [1:0] operator_s1;
+    logic op_signed_c_s1;
+    logic round_en_s1;
+    logic [1:0] vector_mode_s1;
+    logic [$clog2(Q_WIDTH)-1:0] o_shift_imm_s1;
+    logic [D_WIDTH-1:0] bmask_tmp_s1, bmask_seed_s1;
+    logic [D_WIDTH-1:0] bmask_s1;
+
+    logic [2*ATOM_WIDTH+1:0] mac_l1_out_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH:0] mac_l1_acc_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] mac_l1_result_s1_tmp [NUM_SLICES];
+
+    logic [2*ATOM_WIDTH+1:0] mac_l2_p_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] mac_l2_cr_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] mac_l2_ci_s1 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] mac_l2_cr_result_s1_tmp [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] mac_l2_ci_result_s1_tmp [NUM_SLICES];
+    logic [4*ATOM_WIDTH+1:0] mac_l2_out_s1 [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+1:0] mac_l2_out_h_s1 [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH:0] mac_l2_acc_s1 [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+1:0] mac_l2_result_s1_tmp [NUM_SLICES/2];
+
+    logic [4*ATOM_WIDTH+1:0] mac_l3_p_s1 [NUM_SLICES/4];
+    logic [4*ATOM_WIDTH+1:0] mac_l3_cr_s1 [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+1:0] mac_l3_ci_s1 [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+1:0] mac_l3_cr_result_s1_tmp [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+1:0] mac_l3_ci_result_s1_tmp [NUM_SLICES/2];
+    logic [8*ATOM_WIDTH+1:0] mac_l3_out_s1 [NUM_SLICES/4];
+    logic [8*ATOM_WIDTH:0] mac_l3_acc_s1 [NUM_SLICES/4];
+    logic [8*ATOM_WIDTH+1:0] mac_l3_result_s1_tmp [NUM_SLICES/4];
 
 
-  always_ff @( posedge clk ) begin : s1_buf_sync
-    if ( reset ) begin
-      for (int i = 0; i < NUM_SLICES; i++) begin
-        out_tmp_buf_s1[i] <= 0;
-        out_tmp_rev_buf_s1[i] <= 0;
-      end
-      accumulator_s1 <= 0;
-      operator_s1 <= 0;
-      op_signed_c_s1 <= 0;
-      round_en_s1 <= 0;
-      vector_mode_s1 <= 0;
-      i_shift_imm_s1 <= 0;
-      o_shift_imm_s1 <= 0;
-      op_predicate_s1 <= 0;
-    end
-    else begin
-      if (recv_rdy[0] & recv_en[0]) begin
-        for (int i = 0; i < NUM_SLICES; i++) begin
-          out_tmp_buf_s1[i] <= out_tmp[i];
-          out_tmp_rev_buf_s1[i] <= out_tmp_rev[i];
+    logic [2*ATOM_WIDTH+1+$clog2(NUM_SLICES):0] dot_l1_stage_s1 [NUM_STAGES_L1][NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+1+$clog2(NUM_SLICES/2):0] dot_l2_stage_s1 [NUM_STAGES_L2][NUM_SLICES/4];
+
+    logic [2*ATOM_WIDTH+1+$clog2(MAX_ITER):0] dot_l1_acc_s1;
+    logic [4*ATOM_WIDTH+1+$clog2(MAX_ITER):0] dot_l2_acc_s1;
+
+    logic [D_WIDTH-1:0] mac_l3_c_result_s1, mac_l3_cj_result_s1;
+    logic [D_WIDTH-1:0] mac_l3_result_s1;
+    logic [D_WIDTH-1:0] mac_l2_c_result_s1, mac_l2_cj_result_s1;
+    logic [D_WIDTH-1:0] mac_l2_result_s1;
+    logic [D_WIDTH-1:0] mac_l1_result_s1;
+    logic [D_WIDTH-1:0] dot_l2_result_s1;
+    logic [D_WIDTH-1:0] dot_l1_result_s1;
+
+    logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s0_masked;
+    logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s1;
+
+    genvar i, j, k, l, m, n;
+
+    logic recv_en[PIPELINE_STAGES-1];
+    logic recv_rdy[PIPELINE_STAGES-1];
+    logic send_en[PIPELINE_STAGES-1];
+    logic send_rdy[PIPELINE_STAGES-1];
+    logic busy[PIPELINE_STAGES-1];
+
+    always_ff @( posedge clk ) begin : pipeline_sync
+      if ( reset ) begin
+        for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+          busy[i] <= 0;
         end
       end
-      accumulator_s1 <= op_c_i;
-      operator_s1 <= operator_i;
-      op_signed_c_s1 <= op_signed_i[2];
-      round_en_s1 <= round_en_i;
-      vector_mode_s1 <= vector_mode_i;
-      i_shift_imm_s1 <= i_imm_i;
-      o_shift_imm_s1 <= o_imm_i;
-      op_predicate_s1 <= op_predicate_i;
+      else begin
+        for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+          busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
+        end
+      end
     end
-  end
 
-  always_comb begin
-    result_o = '0;
+    generate
+      for (i=1; i < PIPELINE_STAGES-1; i++) begin: pipeline_conn
+        assign recv_en[i] = send_en[i-1];
+        assign send_rdy[i-1] = recv_rdy[i];
+      end
+      for (i=0; i < PIPELINE_STAGES-1; i++) begin: pipeline_async
+        assign recv_rdy[i] = ~(send_en[i] & ~send_rdy[i]);
+        assign send_en[i] = busy[i];
+      end
+    endgenerate
 
-    unique case ({vector_mode_s1, operator_s1})
+    assign recv_en[0] = ex_en_i;
+    assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
+    assign ex_rdy_o = recv_rdy[0];
+    assign out_en_o = send_en[PIPELINE_STAGES-2];
 
-      {VEC_MODE8, MUL_MAC}: result_o = mac_l1_result_s1;
-      {VEC_MODE16, MUL_MAC}: result_o = mac_l2_result_s1;
-      {VEC_MODE8, MUL_DOT}: result_o = dot_l1_result_s1;
-      {VEC_MODE16, MUL_DOT}: result_o = dot_l2_result_s1;
-      default: ;  // default case to suppress unique warning
-    endcase
-  end
+    always_comb begin : signed_bits_mask
+      unique case (vector_mode_i)
+        VEC_MODE32: op_signed_mask = 4'b1000;
+        VEC_MODE16: op_signed_mask = 4'b1010;
+        VEC_MODE8: op_signed_mask = 4'b1111;
+        default: op_signed_mask = '0;
+      endcase
+    end
 
-  assign result_predicate_o = op_predicate_s1;
+    always_comb begin : partial_mul_operand
+      for (int i = 0; i < NUM_SLICES; i++) begin
+        char_op_a[i] = {op_signed_mask[i%4] & op_signed_i[0] & op_a_i[(i+1)*ATOM_WIDTH-1], op_a_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
+        char_op_b[i] = {op_signed_mask[i%4] & op_signed_i[1] & op_b_i[(i+1)*ATOM_WIDTH-1], op_b_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
+      end
+    end
+
+    always_comb begin : partial_mul_operand_rev
+      for (int i = 0; i < NUM_SLICES/2; i++) begin
+        char_op_a_rev[i*2] = (vector_mode_i != VEC_MODE8) ? char_op_a[i*2+1] : '0;
+        char_op_a_rev[i*2+1] = (vector_mode_i != VEC_MODE8) ? char_op_a[i*2] : '0;
+      end
+    end
+
+    always_comb begin : partial_mul_operand_rev_h
+      for (int i = 0; i < NUM_SLICES/4; i++) begin
+        char_op_a_h[i*4] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+2] : '0;
+        char_op_a_h[i*4+1] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+3] : '0;
+        char_op_a_h[i*4+2] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4] : '0;
+        char_op_a_h[i*4+3] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+1] : '0;
+        char_op_a_rev_h[i*4] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+3] : '0;
+        char_op_a_rev_h[i*4+1] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+2] : '0;
+        char_op_a_rev_h[i*4+2] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+1] : '0;
+        char_op_a_rev_h[i*4+3] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4] : '0;
+        char_op_b_h[i*4] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4] : '0;
+        char_op_b_h[i*4+1] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4+1] : '0;
+        char_op_b_h[i*4+2] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4+2] : '0;
+        char_op_b_h[i*4+3] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4+3] : '0;
+      end
+    end
+
+    generate
+      for (i=0; i < NUM_SLICES; i++) begin: gen_l1_mult
+        assign out_tmp[i] = $signed(char_op_a[i]) * $signed(char_op_b[i]);
+        assign out_tmp_rev[i] = $signed(char_op_a_rev[i]) * $signed(char_op_b[i]);
+        assign out_tmp_h[i] = $signed(char_op_a_h[i]) * $signed(char_op_b_h[i]);
+        assign out_tmp_rev_h[i] = $signed(char_op_a_rev_h[i]) * $signed(char_op_b_h[i]);
+      end
+    endgenerate
+
+
+
+    assign bmask_tmp_s1 = 'b1 <<< o_shift_imm_s1;
+    assign bmask_s1 = (round_en_s1) ? {1'b0, bmask_tmp_s1[D_WIDTH-1:1]} : 'b0;
+
+    generate
+      for (i=0; i < NUM_SLICES; i++) begin: gen_l1_acc
+        assign mac_l1_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH-1], accumulator_s1[i*ATOM_WIDTH+:ATOM_WIDTH]}) + bmask_s1[0+:ATOM_WIDTH*2];
+      end
+
+      for (i=0; i < NUM_SLICES/2; i++) begin: gen_l2_acc
+        assign mac_l2_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*2-1], accumulator_s1[i*ATOM_WIDTH*2+:ATOM_WIDTH*2]}) + bmask_s1[0+:ATOM_WIDTH*4];
+      end
+
+      for (i=0; i < NUM_SLICES/4; i++) begin: gen_l3_acc
+        assign mac_l3_acc_s1[i] = $signed({op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*4-1], accumulator_s1[i*ATOM_WIDTH*4+:ATOM_WIDTH*4]}) + bmask_s1[0+:ATOM_WIDTH*8];
+      end
+    endgenerate
+
+    assign dot_l1_acc_s1 = $signed({op_signed_c_s1 & accumulator_s1[2*ATOM_WIDTH+$clog2(MAX_ITER)], accumulator_s1[2*ATOM_WIDTH+$clog2(MAX_ITER):0]})+ bmask_s1[2*ATOM_WIDTH+1+$clog2(MAX_ITER):0];
+    assign dot_l2_acc_s1 = $signed({op_signed_c_s1 & accumulator_s1[4*ATOM_WIDTH+$clog2(MAX_ITER)], accumulator_s1[4*ATOM_WIDTH+$clog2(MAX_ITER):0]}) + bmask_s1[4*ATOM_WIDTH+1+$clog2(MAX_ITER):0];
+
+    generate
+      for (l=0; l < NUM_SLICES; l++) begin: gen_l1_out
+        assign mac_l1_out_s1[l] = $signed(out_tmp_buf_s1[l]);
+        assign mac_l1_result_s1_tmp[l] = ($signed(mac_l1_out_s1[l]) + $signed(mac_l1_acc_s1[l])) >>> o_shift_imm_s1;
+        assign mac_l1_result_s1[l*ATOM_WIDTH+:ATOM_WIDTH] = mac_l1_result_s1_tmp[l][0+:ATOM_WIDTH];
+      end
+    endgenerate
+
+    generate
+      for (l=0; l < NUM_SLICES/2; l++) begin: gen_l2_out
+        assign mac_l2_p_s1[l] = $signed(out_tmp_rev_buf_s1[2*l+1]) + $signed(out_tmp_rev_buf_s1[2*l]);
+        assign mac_l2_p_s1[l+NUM_SLICES/2] = $signed(out_tmp_rev_h_buf_s1[2*l+1]) + $signed(out_tmp_rev_h_buf_s1[2*l]); 
+        assign mac_l2_cr_s1[l] = $signed(out_tmp_buf_s1[2*l+1]) - $signed(out_tmp_buf_s1[2*l]);
+        assign mac_l2_cr_s1[l+NUM_SLICES/2] = $signed(out_tmp_buf_s1[2*l+1]) + $signed(out_tmp_buf_s1[2*l]);
+        assign mac_l2_ci_s1[l] = mac_l2_p_s1[l];
+        assign mac_l2_ci_s1[l+NUM_SLICES/2] = $signed(out_tmp_rev_buf_s1[2*l+1]) - $signed(out_tmp_rev_buf_s1[2*l]);
+        assign mac_l2_out_s1[l] = {out_tmp_buf_s1[2*l+1], out_tmp_buf_s1[2*l][0+:ATOM_WIDTH*2]} + {{ATOM_WIDTH{mac_l2_p_s1[l][2*ATOM_WIDTH]}}, mac_l2_p_s1[l], {ATOM_WIDTH{1'b0}}};
+        assign mac_l2_out_h_s1[l] = {out_tmp_h_buf_s1[2*l+1], out_tmp_h_buf_s1[2*l][0+:ATOM_WIDTH*2]} + {{ATOM_WIDTH{mac_l2_p_s1[l+NUM_SLICES/2][2*ATOM_WIDTH]}}, mac_l2_p_s1[l+NUM_SLICES/2], {ATOM_WIDTH{1'b0}}};
+        assign mac_l2_result_s1_tmp[l] = ($signed(mac_l2_out_s1[l]) + $signed(mac_l2_acc_s1[l])) >>> o_shift_imm_s1;
+        assign mac_l2_result_s1[l*ATOM_WIDTH*2+:ATOM_WIDTH*2] = mac_l2_result_s1_tmp[l][0+:ATOM_WIDTH*2];
+        assign mac_l2_c_result_s1[l*ATOM_WIDTH*2+:ATOM_WIDTH] = mac_l2_ci_result_s1_tmp[l][0+:ATOM_WIDTH];
+        assign mac_l2_c_result_s1[l*ATOM_WIDTH*2+ATOM_WIDTH+:ATOM_WIDTH] = mac_l2_cr_result_s1_tmp[l][0+:ATOM_WIDTH];
+        assign mac_l2_cj_result_s1[l*ATOM_WIDTH*2+:ATOM_WIDTH] = mac_l2_ci_result_s1_tmp[l+NUM_SLICES/2][0+:ATOM_WIDTH];
+        assign mac_l2_cj_result_s1[l*ATOM_WIDTH*2+ATOM_WIDTH+:ATOM_WIDTH] = mac_l2_cr_result_s1_tmp[l+NUM_SLICES/2][0+:ATOM_WIDTH];
+      end
+    endgenerate
+
+    generate
+      for (l=0; l < NUM_SLICES; l++) begin: gen_l2_c_out
+        assign mac_l2_cr_result_s1_tmp[l] = ($signed(mac_l2_cr_s1[l]) + $signed(mac_l1_acc_s1[2*l+1])) >>> o_shift_imm_s1;
+        assign mac_l2_ci_result_s1_tmp[l] = ($signed(mac_l2_ci_s1[l]) + $signed(mac_l1_acc_s1[2*l])) >>> o_shift_imm_s1;
+      end
+    endgenerate
+
+
+    generate
+      for (l=0; l < NUM_SLICES/4; l++) begin: gen_l3_out
+        assign mac_l3_p_s1[l] = $signed(mac_l2_out_h_s1[2*l+1]) + $signed(mac_l2_out_h_s1[2*l]);
+        assign mac_l3_cr_s1[l] = $signed(mac_l2_out_s1[2*l+1]) - $signed(mac_l2_out_s1[2*l]);
+        assign mac_l3_cr_s1[l+NUM_SLICES/4] = $signed(mac_l2_out_s1[2*l+1]) + $signed(mac_l2_out_s1[2*l]);
+        assign mac_l3_ci_s1[l] = mac_l3_p_s1[l];
+        assign mac_l3_ci_s1[l+NUM_SLICES/4] = $signed(mac_l2_out_h_s1[2*l+1]) - $signed(mac_l2_out_h_s1[2*l]);
+        assign mac_l3_out_s1[l] = {mac_l2_out_s1[2*l+1], mac_l2_out_s1[2*l][0+:ATOM_WIDTH*4]} + {{(ATOM_WIDTH*2){mac_l3_p_s1[l][4*ATOM_WIDTH]}}, mac_l3_p_s1[l], {(2*ATOM_WIDTH){1'b0}}};
+        assign mac_l3_result_s1_tmp[l] = ($signed(mac_l3_out_s1[l]) + $signed(mac_l3_acc_s1[l])) >>> o_shift_imm_s1;
+        assign mac_l3_result_s1[l*ATOM_WIDTH*4+:ATOM_WIDTH*4] = mac_l3_result_s1_tmp[l][0+:ATOM_WIDTH*4];
+        assign mac_l3_c_result_s1[l*ATOM_WIDTH*4+:ATOM_WIDTH*2] = mac_l3_ci_result_s1_tmp[l][0+:ATOM_WIDTH*2];
+        assign mac_l3_c_result_s1[l*ATOM_WIDTH*4+ATOM_WIDTH*2+:ATOM_WIDTH*2] = mac_l3_cr_result_s1_tmp[l][0+:ATOM_WIDTH*2];
+        assign mac_l3_cj_result_s1[l*ATOM_WIDTH*4+:ATOM_WIDTH*2] = mac_l3_ci_result_s1_tmp[l+NUM_SLICES/2][0+:ATOM_WIDTH*2];
+        assign mac_l3_cj_result_s1[l*ATOM_WIDTH*4+ATOM_WIDTH*2+:ATOM_WIDTH*2] = mac_l3_cr_result_s1_tmp[l+NUM_SLICES/2][0+:ATOM_WIDTH*2];
+      end
+    endgenerate
+
+    generate
+      for (l=0; l < NUM_SLICES/2; l++) begin: gen_l3_c_out
+        assign mac_l3_cr_result_s1_tmp[l] = ($signed(mac_l3_cr_s1[l]) + $signed(mac_l2_acc_s1[2*l+1])) >>> o_shift_imm_s1;
+        assign mac_l3_ci_result_s1_tmp[l] = ($signed(mac_l3_ci_s1[l]) + $signed(mac_l2_acc_s1[2*l])) >>> o_shift_imm_s1;
+      end
+    endgenerate
+
+    generate
+        for (i = 0; i < NUM_SLICES / 4; i++) begin : gen_stage0_dot_l2
+            assign dot_l2_stage_s1[0][i] = $signed(mac_l2_out_s1[2*i]) + $signed(mac_l2_out_s1[2*i+1]);
+        end
+
+        for (i = 1; i < NUM_SLICES / 4; i++) begin : gen_stages_dot_l2
+            for (j = 0; j < (NUM_SLICES >> (i + 2)); j++) begin
+                assign dot_l2_stage_s1[i][j] = $signed(dot_l2_stage_s1[i-1][2*j]) + $signed(dot_l2_stage_s1[i-1][2*j + 1]);
+            end
+        end
+    endgenerate
+
+    generate
+        for (i = 0; i < NUM_SLICES / 2; i++) begin : gen_stage0_dot_l1
+            assign dot_l1_stage_s1[0][i] = $signed(mac_l1_out_s1[2*i]) + $signed(mac_l1_out_s1[2*i+1]);
+        end
+
+        for (i = 1; i < NUM_SLICES / 2; i++) begin : gen_stages_dot_l1
+            for (j = 0; j < (NUM_SLICES >> (i + 1)); j++) begin
+                assign dot_l1_stage_s1[i][j] = $signed(dot_l1_stage_s1[i-1][2*j]) + $signed(dot_l1_stage_s1[i-1][2*j + 1]);
+            end
+        end
+    endgenerate
+
+    assign dot_l1_result_s1 = $signed($signed(dot_l1_stage_s1[NUM_STAGES_L1-1][0]) + $signed(dot_l1_acc_s1)) >>> o_shift_imm_s1;
+    assign dot_l2_result_s1 = $signed($signed(dot_l2_stage_s1[NUM_STAGES_L2-1][0]) + $signed(dot_l2_acc_s1)) >>> o_shift_imm_s1;
+
+
+    always_ff @( posedge clk ) begin : s1_buf_sync
+      if ( reset ) begin
+        for (int i = 0; i < NUM_SLICES; i++) begin
+          out_tmp_buf_s1[i] <= 0;
+          out_tmp_rev_buf_s1[i] <= 0;
+        end
+        accumulator_s1 <= 0;
+        operator_s1 <= 0;
+        op_signed_c_s1 <= 0;
+        round_en_s1 <= 0;
+        vector_mode_s1 <= 0;
+        o_shift_imm_s1 <= 0;
+        op_predicate_s1 <= 0;
+      end
+      else begin
+        if (recv_rdy[0] & recv_en[0]) begin
+          for (int i = 0; i < NUM_SLICES; i++) begin
+            out_tmp_buf_s1[i] <= out_tmp[i];
+            out_tmp_rev_buf_s1[i] <= out_tmp_rev[i];
+          end
+        end
+        accumulator_s1 <= op_c_i;
+        operator_s1 <= operator_i;
+        op_signed_c_s1 <= op_signed_i[2];
+        round_en_s1 <= round_en_i;
+        vector_mode_s1 <= vector_mode_i;
+        o_shift_imm_s1 <= o_imm_i;
+        op_predicate_s1 <= op_predicate_i;
+      end
+    end
+
+    always_ff @( posedge clk ) begin : s1_buf_sync_h
+      if ( reset ) begin
+        for (int i = 0; i < NUM_SLICES; i++) begin
+          out_tmp_h_buf_s1[i] <= 0;
+          out_tmp_rev_h_buf_s1[i] <= 0;
+        end
+      end
+      else begin
+        if (recv_rdy[0] & recv_en[0] & (vector_mode_i == VEC_MODE32) ) begin
+          for (int i = 0; i < NUM_SLICES; i++) begin
+            out_tmp_h_buf_s1[i] <= out_tmp_h[i];
+            out_tmp_rev_h_buf_s1[i] <= out_tmp_rev_h[i];
+          end
+        end
+      end
+    end
+
+
+    always_comb begin
+      result_o[0] = '0;
+      result_o[1] = '0;
+
+      unique case ({vector_mode_s1, operator_s1})
+
+        {VEC_MODE8, MUL_MAC}: result_o[0] = mac_l1_result_s1;
+        {VEC_MODE16, MUL_MAC}: result_o[0] = mac_l2_result_s1;
+        {VEC_MODE32, MUL_MAC}: result_o[0] = mac_l3_result_s1;
+        {VEC_MODE8, MUL_DOT}: result_o[0] = dot_l1_result_s1;
+        {VEC_MODE16, MUL_DOT}: result_o[0] = dot_l2_result_s1;
+        {VEC_MODE16, MUL_CMAC}: begin
+          result_o[0] = mac_l2_c_result_s1;
+          result_o[1] = mac_l2_cj_result_s1;
+        end
+        {VEC_MODE32, MUL_CMAC}: begin
+          result_o[0] = mac_l3_c_result_s1;
+          result_o[1] = mac_l3_cj_result_s1;
+        end
+        default: ;  // default case to suppress unique warning
+      endcase
+    end
+
+    assign result_predicate_o = op_predicate_s1;
 
 
 
@@ -1926,7 +2023,6 @@ module VEC_MUL_noparam
   input logic [2-1:0] clpx_shift_i ,
   input logic [1-1:0] ex_en_i ,
   output logic [1-1:0] ex_rdy_o ,
-  input logic [5-1:0] i_imm_i ,
   input logic [1-1:0] is_clpx_i ,
   input logic [5-1:0] o_imm_i ,
   input logic [64-1:0] op_a_i ,
@@ -1938,7 +2034,7 @@ module VEC_MUL_noparam
   output logic [1-1:0] out_en_o ,
   input logic [1-1:0] out_rdy_i ,
   input logic [1-1:0] reset ,
-  output logic [64-1:0] result_o ,
+  output logic [64-1:0] result_o [0:1],
   output logic [8-1:0] result_predicate_o ,
   input logic [1-1:0] round_en_i ,
   input logic [2-1:0] vector_mode_i 
@@ -1952,7 +2048,6 @@ module VEC_MUL_noparam
     .clpx_shift_i( clpx_shift_i ),
     .ex_en_i( ex_en_i ),
     .ex_rdy_o( ex_rdy_o ),
-    .i_imm_i( i_imm_i ),
     .is_clpx_i( is_clpx_i ),
     .o_imm_i( o_imm_i ),
     .op_a_i( op_a_i ),
@@ -1982,8 +2077,6 @@ module MULRTL__738ecfe6a89ddd7f
   input  logic [2:0] ex_operand_signed_i ,
   input  logic [1:0] ex_operator_i ,
   input  logic [0:0] ex_round_enable ,
-  input  logic [4:0] i_imm_i ,
-  input  logic [0:0] input_valid_i ,
   input  logic [4:0] o_imm_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_a_i ,
   input  CGRAData_64_8__payload_64__predicate_8 operand_b_i ,
@@ -2000,7 +2093,7 @@ module MULRTL__738ecfe6a89ddd7f
   input logic [0:0] send_out__rdy [0:1] 
 );
   logic [0:0] mul_enable;
-  CGRAData_64_8__payload_64__predicate_8 result_o_vector;
+  CGRAData_64_8__payload_64__predicate_8 result_o_vector [0:1];
   logic [7:0] result_predicate;
 
   logic [0:0] mul_element_clk;
@@ -2008,7 +2101,6 @@ module MULRTL__738ecfe6a89ddd7f
   logic [1:0] mul_element_clpx_shift_i;
   logic [0:0] mul_element_ex_en_i;
   logic [0:0] mul_element_ex_rdy_o;
-  logic [4:0] mul_element_i_imm_i;
   logic [0:0] mul_element_is_clpx_i;
   logic [4:0] mul_element_o_imm_i;
   logic [63:0] mul_element_op_a_i;
@@ -2020,7 +2112,7 @@ module MULRTL__738ecfe6a89ddd7f
   logic [0:0] mul_element_out_en_o;
   logic [0:0] mul_element_out_rdy_i;
   logic [0:0] mul_element_reset;
-  logic [63:0] mul_element_result_o;
+  logic [63:0] mul_element_result_o [0:1];
   logic [7:0] mul_element_result_predicate_o;
   logic [0:0] mul_element_round_en_i;
   logic [1:0] mul_element_vector_mode_i;
@@ -2032,7 +2124,6 @@ module MULRTL__738ecfe6a89ddd7f
     .clpx_shift_i( mul_element_clpx_shift_i ),
     .ex_en_i( mul_element_ex_en_i ),
     .ex_rdy_o( mul_element_ex_rdy_o ),
-    .i_imm_i( mul_element_i_imm_i ),
     .is_clpx_i( mul_element_is_clpx_i ),
     .o_imm_i( mul_element_o_imm_i ),
     .op_a_i( mul_element_op_a_i ),
@@ -2052,8 +2143,23 @@ module MULRTL__738ecfe6a89ddd7f
 
 
   
-  always_comb begin : _lambda__s_tile_0__element_fu_1_mul_enable
-    mul_enable = opt_launch_en_i & input_valid_i;
+  always_comb begin : _lambda__s_tile_0__element_fu_1_mul_element_op_a_i
+    mul_element_op_a_i = operand_a_i.payload & { { 63 { mul_enable[0] } }, mul_enable };
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_1_mul_element_op_b_i
+    mul_element_op_b_i = operand_b_i.payload & { { 63 { mul_enable[0] } }, mul_enable };
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_1_mul_element_op_c_i
+    mul_element_op_c_i = operand_c_i.payload & { { 63 { mul_enable[0] } }, mul_enable };
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_1_mul_element_op_predicate_i
+    mul_element_op_predicate_i = result_predicate & { { 7 { mul_enable[0] } }, mul_enable };
   end
 
   
@@ -2066,28 +2172,26 @@ module MULRTL__738ecfe6a89ddd7f
 
   assign mul_element_clk = clk;
   assign mul_element_reset = reset;
+  assign mul_enable = opt_launch_en_i;
   assign mul_element_vector_mode_i = vector_mode_i;
   assign mul_element_operator_i = ex_operator_i;
   assign mul_element_op_signed_i = ex_operand_signed_i;
   assign mul_element_round_en_i = ex_round_enable;
-  assign mul_element_i_imm_i = i_imm_i;
   assign mul_element_o_imm_i = o_imm_i;
-  assign mul_element_op_a_i = operand_a_i.payload;
-  assign mul_element_op_b_i = operand_b_i.payload;
-  assign mul_element_op_c_i = operand_c_i.payload;
   assign mul_element_is_clpx_i = 1'd0;
   assign mul_element_clpx_shift_i = 2'd0;
   assign mul_element_clpx_img_i = 1'd0;
-  assign mul_element_op_predicate_i = result_predicate;
-  assign result_o_vector.payload = mul_element_result_o;
-  assign result_o_vector.predicate = mul_element_result_predicate_o;
+  assign result_o_vector[0].payload = mul_element_result_o[0];
+  assign result_o_vector[0].predicate = mul_element_result_predicate_o;
+  assign result_o_vector[1].payload = mul_element_result_o[1];
+  assign result_o_vector[1].predicate = mul_element_result_predicate_o;
   assign mul_element_ex_en_i = mul_enable;
   assign mul_element_out_rdy_i = output_rdy_i;
   assign opt_launch_rdy_o = mul_element_ex_rdy_o;
-  assign send_out__msg[0] = result_o_vector;
+  assign send_out__msg[0] = result_o_vector[0];
   assign send_out__en[0] = mul_element_out_en_o;
-  assign send_out__msg[1] = { 64'd0, 8'd0 };
-  assign send_out__en[1] = 1'd0;
+  assign send_out__msg[1] = result_o_vector[1];
+  assign send_out__en[1] = mul_element_out_en_o;
 
 endmodule
 
@@ -2175,9 +2279,9 @@ module vec_lut #(
 
 	logic [ATOM_WIDTH-1:0] lut_p_s1 [NUM_SLICES];
 
-	logic [LUT_IDX_BITS-1:0] idx_lower_s1 [NUM_SLICES];
-	logic [LUT_IDX_BITS-1:0] idx_upper_s1 [NUM_SLICES];
-	logic [LUT_IDX_BITS-1:0] idx_mid_s1 [NUM_SLICES];
+	logic [LUT_IDX_BITS+$clog2(LUT_PRECISION)-1:0] idx_lower_s1 [NUM_SLICES];
+	logic [LUT_IDX_BITS+$clog2(LUT_PRECISION)-1:0] idx_upper_s1 [NUM_SLICES];
+	logic [LUT_IDX_BITS+$clog2(LUT_PRECISION)-1:0] idx_mid_s1 [NUM_SLICES];
 	logic [LUT_IDX_BITS+$clog2(LUT_PRECISION)-1:0] idx_fin_s1 [NUM_SLICES];
 
 	logic [LUT_PRECISION-1:0] lut_k_s1 [NUM_SLICES];
@@ -2213,6 +2317,8 @@ module vec_lut #(
 	logic [D_WIDTH/ATOM_WIDTH-1:0] op_predicate_s3;
 
 	genvar i, j, k;
+
+
 	logic recv_en[PIPELINE_STAGES-1];
 	logic recv_rdy[PIPELINE_STAGES-1];
 	logic send_en[PIPELINE_STAGES-1];
@@ -2247,6 +2353,7 @@ module vec_lut #(
 	assign send_rdy[PIPELINE_STAGES-2] = out_rdy_i;
 	assign ex_rdy_o = recv_rdy[0];
 	assign out_en_o = send_en[PIPELINE_STAGES-2];
+
 
 	assign bmask_tmp_s0 = 'b1 <<< i_imm_i;
   	assign bmask_s0 = {1'b0, bmask_tmp_s0[D_WIDTH-1:1]};
@@ -2311,7 +2418,7 @@ module vec_lut #(
 				for (int m=0; m < NUM_LUT_STAGES; m++) begin
 					idx_mid_s1[i] = (idx_lower_s1[i] + idx_upper_s1[i]) >> 1;
 					lut_p_s1[i] = lut_p_i[(idx_mid_s1[i] << $clog2(LUT_PRECISION)) +: LUT_PRECISION];
-					if ( $signed({op_signed_s1[0] & lut_key_s1[i][LUT_PRECISION-1], lut_key_s1[i]}) < $signed({op_signed_s1[0] & lut_p_s1[i][LUT_PRECISION-1], lut_p_s1[i]})) begin
+					if ( $signed({op_signed_s1[0] & lut_key_s1[i][LUT_PRECISION-1], lut_key_s1[i]}) <= $signed({op_signed_s1[0] & lut_p_s1[i][LUT_PRECISION-1], lut_p_s1[i]})) begin
 						idx_upper_s1[i] = idx_mid_s1[i] - 1;
 					end
 					else begin
@@ -2432,6 +2539,7 @@ module vec_lut #(
 		end
 	end
 
+
 	always_comb begin
 		data_o = '0;
 
@@ -2514,7 +2622,6 @@ module LUTRTL__738ecfe6a89ddd7f
   input  logic [1:0] ex_operand_signed_i ,
   input  logic [1:0] ex_operator_i ,
   input  logic [4:0] i_imm_i ,
-  input  logic [0:0] input_valid_i ,
   input  logic [2:0] k_imm_i ,
   input  logic [127:0] lut_b_i ,
   input  logic [127:0] lut_k_i ,
@@ -2584,8 +2691,13 @@ module LUTRTL__738ecfe6a89ddd7f
 
 
   
-  always_comb begin : _lambda__s_tile_0__element_fu_2_lut_enable
-    lut_enable = opt_launch_en_i & input_valid_i;
+  always_comb begin : _lambda__s_tile_0__element_fu_2_lut_element_data_i
+    lut_element_data_i = operand_a_i.payload & { { 63 { lut_enable[0] } }, lut_enable };
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_fu_2_lut_element_op_predicate_i
+    lut_element_op_predicate_i = result_predicate & { { 7 { lut_enable[0] } }, lut_enable };
   end
 
   
@@ -2598,17 +2710,16 @@ module LUTRTL__738ecfe6a89ddd7f
 
   assign lut_element_clk = clk;
   assign lut_element_reset = reset;
+  assign lut_enable = opt_launch_en_i;
   assign lut_element_vector_mode_i = vector_mode_i;
   assign lut_element_lut_mode_i = ex_operator_i;
   assign lut_element_i_imm_i = i_imm_i;
   assign lut_element_o_imm_i = o_imm_i;
   assign lut_element_k_imm_i = k_imm_i;
   assign lut_element_op_signed_i = ex_operand_signed_i;
-  assign lut_element_data_i = operand_a_i.payload;
   assign lut_element_lut_k_i = lut_k_i;
   assign lut_element_lut_b_i = lut_b_i;
   assign lut_element_lut_p_i = lut_p_i;
-  assign lut_element_op_predicate_i = result_predicate;
   assign lut_element_ex_en_i = lut_enable;
   assign lut_element_out_rdy_i = output_rdy_i;
   assign result_o_vector.payload = lut_element_data_o;
@@ -2750,14 +2861,17 @@ module cgra_fu_decoder
   parameter OPT_OR = 5'd15;
   parameter OPT_AND = 5'd16;
 
-  parameter OPT_ROT = 5'd17;   // todo
-  parameter OPT_PHI = 5'd18;  // todo
-  parameter OPT_COMP = 5'd19;  // todo
-
+  parameter OPT_ROT = 5'd17;  
+  parameter OPT_PHI = 5'd18;  
+  
   parameter OPT_CMUL = 5'd20;
   parameter OPT_CMAC = 5'd21; 
   parameter OPT_CMAC_CONST = 5'd22;
   parameter OPT_CDOT = 5'd23;
+
+  parameter OPT_EQ = 5'd24;  
+  parameter OPT_GT = 5'd25; 
+  parameter OPT_GE = 5'd26; 
 
 
   parameter OPT_LUTA = 5'd28;
@@ -2767,6 +2881,7 @@ module cgra_fu_decoder
 
   localparam MUL_MAC = 2'b00;
   localparam MUL_DOT = 2'b01;
+  localparam MUL_CMAC = 2'b10;
 
   localparam VEC_MODE32 = 2'b00;
   localparam VEC_MODE16 = 2'b10;
@@ -2816,6 +2931,20 @@ module cgra_fu_decoder
           1'b1: id_alu_operator_o = ALU_MAX;
         endcase
       end
+
+      OPT_EQ: id_alu_operator_o = ALU_EQ;
+      OPT_GT: begin
+        unique case (cgra_signed_mode_i[0])
+          1'b0: id_alu_operator_o = ALU_GTU;
+          1'b1: id_alu_operator_o = ALU_GTS;
+        endcase
+      end
+      OPT_GE: begin
+        unique case (cgra_signed_mode_i[0])
+          1'b0: id_alu_operator_o = ALU_GEU;
+          1'b1: id_alu_operator_o = ALU_GES;
+        endcase
+      end
       default: id_alu_enable_o = 1'b0;
     endcase
   end
@@ -2830,6 +2959,10 @@ module cgra_fu_decoder
       OPT_MAC_CONST: id_mult_operator_o = MUL_MAC;
       OPT_DOT: id_mult_operator_o = MUL_DOT;
 
+      OPT_CMUL: id_mult_operator_o = MUL_CMAC;
+      OPT_CMAC: id_mult_operator_o = MUL_CMAC;
+      OPT_CMAC_CONST: id_mult_operator_o = MUL_CMAC;
+
       default: id_mult_enable_o = 1'b0;
     endcase
   end
@@ -2842,6 +2975,8 @@ module cgra_fu_decoder
     unique case (id_operator_i[4:0])
       OPT_MAC: id_operand_c_sel_o = {id_operator_i[5], id_operator_i[5]};
       OPT_MAC_CONST: id_operand_c_sel_o = {1'b0, ~id_operator_i[5]};
+      OPT_CMAC: id_operand_c_sel_o = {id_operator_i[5], id_operator_i[5]};
+      OPT_CMAC_CONST: id_operand_c_sel_o = {1'b0, ~id_operator_i[5]};
     endcase    
   end
 
@@ -2850,7 +2985,7 @@ module cgra_fu_decoder
     id_signed_mode_o[1] = cgra_signed_mode_i[1] | (id_operator_i[5] & ~id_lut_enable_o);
     id_signed_mode_o[2] = cgra_signed_mode_i[1] | id_operator_i[5];
     
-    if (id_operator_i[4:0] == OPT_MAC_CONST) begin
+    if (id_operator_i[4:0] == OPT_MAC_CONST || id_operator_i[4:0] == OPT_CMAC_CONST) begin
       id_signed_mode_o[2] = cgra_signed_mode_i[1] | ~id_operator_i[5];
     end
   end
@@ -2859,7 +2994,7 @@ module cgra_fu_decoder
     id_operand_b_repl_o = id_operator_i[6] & ~id_operator_i[5];
     id_operand_c_repl_o = id_operator_i[6] & ~id_operator_i[5];
 
-    if (id_operator_i[4:0] == OPT_MAC_CONST) begin
+    if (id_operator_i[4:0] == OPT_MAC_CONST || id_operator_i[4:0] == OPT_CMAC_CONST) begin
       id_operand_c_repl_o = id_operator_i[6] & id_operator_i[5];
     end     
   end
@@ -2868,7 +3003,7 @@ module cgra_fu_decoder
 
     
 
-  assign id_const_enable_o = (id_operator_i[5] || (id_operator_i[4:0] == OPT_MAC_CONST)) && ~id_lut_enable_o;
+  assign id_const_enable_o = (id_operator_i[5] || (id_operator_i[4:0] == OPT_MAC_CONST || id_operator_i[4:0] == OPT_CMAC_CONST)) && ~id_lut_enable_o;
 
   assign id_round_enable_o = id_operator_i[7] && ~id_lut_enable_o;
 
@@ -3112,14 +3247,11 @@ module CGRAFURTL__66562d1307bd2eec
   input  logic [1:0] cgra_vec_mode_i ,
   input  logic [0:0] clk ,
   input  logic [0:0] fu_dry_run_ack ,
-  input  logic [0:0] fu_dry_run_begin ,
-  input  logic [0:0] fu_execution_ini ,
-  input  logic [0:0] fu_execution_valid ,
   input  logic [0:0] fu_opt_enable ,
   input  logic [0:0] fu_propagate_en ,
   output logic [0:0] fu_propagate_rdy ,
-  output logic [0:0] recv_const_ack ,
   input  logic [31:0] recv_const_data ,
+  output logic [0:0] recv_const_rdy ,
   input  logic [127:0] recv_lut_b_data ,
   input  logic [127:0] recv_lut_k_data ,
   input  logic [127:0] recv_lut_p_data ,
@@ -3127,32 +3259,29 @@ module CGRAFURTL__66562d1307bd2eec
   input  logic [2:0] recv_opt_msg_fu_in [0:3],
   input  logic [2:0] recv_opt_msg_out_routine ,
   input  logic [0:0] recv_opt_msg_predicate ,
-  output logic [3:0] recv_port_ack ,
   input  CGRAData_64_8__payload_64__predicate_8 recv_port_data [0:3],
-  input  logic [3:0] recv_port_valid ,
-  output logic [0:0] recv_predicate_ack ,
+  input  logic [3:0] recv_port_en ,
+  output logic [3:0] recv_port_rdy ,
   input  CGRAData_8__predicate_8 recv_predicate_data ,
-  input  logic [0:0] recv_predicate_valid ,
+  input  logic [0:0] recv_predicate_en ,
+  output logic [0:0] recv_predicate_rdy ,
   input  logic [0:0] reset ,
   output logic [1:0] send_lut_sel ,
-  input  logic [0:0] send_port_ack ,
   output CGRAData_64_8__payload_64__predicate_8 send_port_data [0:1],
-  output logic [1:0] send_port_valid 
+  output logic [1:0] send_port_en ,
+  input  logic [1:0] send_port_rdy 
 );
-  localparam logic [1:0] __const__STAGE_NORMAL  = 2'd0;
-  localparam logic [1:0] __const__STAGE_WAIT_FOR_FU  = 2'd1;
-  localparam logic [1:0] __const__STAGE_WAIT_FOR_NXT  = 2'd3;
   localparam logic [2:0] __const__num_xbar_outports_at_decode_process  = 3'd4;
   localparam logic [2:0] __const__num_xbar_inports_at_decode_process  = 3'd4;
   localparam logic [2:0] __const__num_xbar_outports_at_opt_propagate  = 3'd4;
   localparam logic [2:0] __const__num_xbar_inports_at_opt_propagate  = 3'd4;
-  localparam logic [1:0] __const__num_outports_at_handshake_process  = 2'd2;
   localparam logic [2:0] __const__num_xbar_inports_at_handshake_process  = 3'd4;
+  localparam logic [1:0] __const__fu_list_size_at_handshake_process  = 2'd3;
+  localparam logic [1:0] __const__num_outports_at_handshake_process  = 2'd2;
   localparam logic [2:0] __const__num_xbar_outports_at_fu_propagate_sync  = 3'd4;
   localparam logic [2:0] __const__num_xbar_outports_at_data_routing  = 3'd4;
-  localparam logic [1:0] __const__num_outports_at_data_routing  = 2'd2;
   localparam logic [2:0] __const__num_xbar_inports_at_data_routing  = 3'd4;
-  logic [1:0] cur_stage;
+  localparam logic [1:0] __const__num_outports_at_data_routing  = 2'd2;
   logic [0:0] ex_alu_enable;
   logic [6:0] ex_alu_operator;
   logic [4:0] ex_i_imm_bmask;
@@ -3169,20 +3298,24 @@ module CGRAFURTL__66562d1307bd2eec
   logic [0:0] ex_round_enable;
   logic [2:0] ex_signed_mode;
   logic [1:0] ex_vec_mode;
-  logic [3:0] fu_handshake_vector_xbar_mesh_in_valid_met;
-  logic [0:0] fu_launch_ack;
-  logic [0:0] fu_launch_done;
-  logic [2:0] fu_launch_en_vector;
-  logic [0:0] fu_launch_finish;
+  logic [4:0] fu_inport_handshake;
+  logic [2:0] fu_launch_handshake;
   logic [2:0] fu_launch_rdy_vector;
+  logic [2:0] fu_opt_en_vector;
   logic [2:0] fu_out_routine;
+  logic [2:0] fu_pop_rdy_vector;
+  logic [2:0] fu_push_en_vector;
+  logic [0:0] fu_push_handshake;
   logic [0:0] fu_recv_const_req_nxt;
-  logic [0:0] fu_send_out_ack;
+  logic [1:0] fu_result_handshake;
   logic [0:0] fu_send_out_done;
-  logic [0:0] fu_send_out_finish;
+  logic [0:0] fu_send_out_done_nxt;
+  logic [0:0] fu_send_out_handshake;
   logic [2:0] fu_send_port_valid_vector [0:1];
+  logic [0:0] fu_xbar_done;
+  logic [0:0] fu_xbar_done_nxt;
+  logic [0:0] fu_xbar_handshake;
   logic [3:0] fu_xbar_inport_sel [0:3];
-  logic [0:0] fu_xbar_mesh_in_valid;
   logic [3:0] fu_xbar_outport_sel [0:3];
   logic [3:0] fu_xbar_outport_sel_nxt [0:3];
   logic [4:0] fu_xbar_outport_sel_nxt_decode [0:3];
@@ -3202,14 +3335,14 @@ module CGRAFURTL__66562d1307bd2eec
   logic [1:0] id_operand_c_sel;
   logic [0:0] id_round_enable;
   logic [2:0] id_signed_mode;
-  logic [1:0] nxt_stage;
+  logic [0:0] lc_downstream_rdy;
+  logic [0:0] lc_upstream_en;
   logic [0:0] recv_predicate_req_nxt;
   logic [3:0] xbar_recv_port_req;
 
   logic [4:0] fu_0__bmask_b_i;
   logic [0:0] fu_0__clk;
   logic [6:0] fu_0__ex_operator_i;
-  logic [0:0] fu_0__input_valid_i;
   CGRAData_64_8__payload_64__predicate_8 fu_0__operand_a_i;
   CGRAData_64_8__payload_64__predicate_8 fu_0__operand_b_i;
   logic [0:0] fu_0__opt_launch_en_i;
@@ -3228,7 +3361,6 @@ module CGRAFURTL__66562d1307bd2eec
     .bmask_b_i( fu_0__bmask_b_i ),
     .clk( fu_0__clk ),
     .ex_operator_i( fu_0__ex_operator_i ),
-    .input_valid_i( fu_0__input_valid_i ),
     .operand_a_i( fu_0__operand_a_i ),
     .operand_b_i( fu_0__operand_b_i ),
     .opt_launch_en_i( fu_0__opt_launch_en_i ),
@@ -3249,8 +3381,6 @@ module CGRAFURTL__66562d1307bd2eec
   logic [2:0] fu_1__ex_operand_signed_i;
   logic [1:0] fu_1__ex_operator_i;
   logic [0:0] fu_1__ex_round_enable;
-  logic [4:0] fu_1__i_imm_i;
-  logic [0:0] fu_1__input_valid_i;
   logic [4:0] fu_1__o_imm_i;
   CGRAData_64_8__payload_64__predicate_8 fu_1__operand_a_i;
   CGRAData_64_8__payload_64__predicate_8 fu_1__operand_b_i;
@@ -3272,8 +3402,6 @@ module CGRAFURTL__66562d1307bd2eec
     .ex_operand_signed_i( fu_1__ex_operand_signed_i ),
     .ex_operator_i( fu_1__ex_operator_i ),
     .ex_round_enable( fu_1__ex_round_enable ),
-    .i_imm_i( fu_1__i_imm_i ),
-    .input_valid_i( fu_1__input_valid_i ),
     .o_imm_i( fu_1__o_imm_i ),
     .operand_a_i( fu_1__operand_a_i ),
     .operand_b_i( fu_1__operand_b_i ),
@@ -3296,7 +3424,6 @@ module CGRAFURTL__66562d1307bd2eec
   logic [1:0] fu_2__ex_operand_signed_i;
   logic [1:0] fu_2__ex_operator_i;
   logic [4:0] fu_2__i_imm_i;
-  logic [0:0] fu_2__input_valid_i;
   logic [2:0] fu_2__k_imm_i;
   logic [127:0] fu_2__lut_b_i;
   logic [127:0] fu_2__lut_k_i;
@@ -3321,7 +3448,6 @@ module CGRAFURTL__66562d1307bd2eec
     .ex_operand_signed_i( fu_2__ex_operand_signed_i ),
     .ex_operator_i( fu_2__ex_operator_i ),
     .i_imm_i( fu_2__i_imm_i ),
-    .input_valid_i( fu_2__input_valid_i ),
     .k_imm_i( fu_2__k_imm_i ),
     .lut_b_i( fu_2__lut_b_i ),
     .lut_k_i( fu_2__lut_k_i ),
@@ -3427,36 +3553,6 @@ module CGRAFURTL__66562d1307bd2eec
 
 
   
-  always_comb begin : _lambda__s_tile_0__element_fu_0_opt_launch_en_i
-    fu_0__opt_launch_en_i = fu_launch_en_vector[2'd0] & ( ~fu_launch_done );
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__element_fu_0_output_rdy_i
-    fu_0__output_rdy_i = send_port_ack & fu_out_routine[2'd0];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__element_fu_1_opt_launch_en_i
-    fu_1__opt_launch_en_i = fu_launch_en_vector[2'd1] & ( ~fu_launch_done );
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__element_fu_1_output_rdy_i
-    fu_1__output_rdy_i = send_port_ack & fu_out_routine[2'd1];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__element_fu_2_opt_launch_en_i
-    fu_2__opt_launch_en_i = fu_launch_en_vector[2'd2] & ( ~fu_launch_done );
-  end
-
-  
-  always_comb begin : _lambda__s_tile_0__element_fu_2_output_rdy_i
-    fu_2__output_rdy_i = send_port_ack & fu_out_routine[2'd2];
-  end
-
-  
   always_comb begin : _lambda__s_tile_0__element_fu_decoder_id_operator_i
     fu_decoder_id_operator_i = recv_opt_msg_ctrl & { { 7 { fu_opt_enable[0] } }, fu_opt_enable };
   end
@@ -3464,16 +3560,10 @@ module CGRAFURTL__66562d1307bd2eec
   
   always_comb begin : data_routing
     for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-      fu_xbar_send_data[2'(i)] = { 64'd0, 8'd0 };
-    for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_data_routing ); i += 1'd1 )
-      send_port_data[1'(i)] = { 64'd0, 8'd0 };
-    if ( fu_xbar_mesh_in_valid & ( ~fu_launch_done ) ) begin
-      for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-        for ( int unsigned j = 1'd0; j < 3'( __const__num_xbar_inports_at_data_routing ); j += 1'd1 ) begin
-          fu_xbar_send_data[2'(i)].payload = fu_xbar_send_data[2'(i)].payload | ( recv_port_data[2'(j)].payload & { { 63 { fu_xbar_outport_sel[2'(i)][2'(j)] } }, fu_xbar_outport_sel[2'(i)][2'(j)] } );
-          fu_xbar_send_data[2'(i)].predicate = fu_xbar_send_data[2'(i)].predicate | ( recv_port_data[2'(j)].predicate & { { 7 { fu_xbar_outport_sel[2'(i)][2'(j)] } }, fu_xbar_outport_sel[2'(i)][2'(j)] } );
-        end
-    end
+      for ( int unsigned j = 1'd0; j < 3'( __const__num_xbar_inports_at_data_routing ); j += 1'd1 ) begin
+        fu_xbar_send_data[2'(i)].payload = fu_xbar_send_data[2'(i)].payload | ( recv_port_data[2'(j)].payload & { { 63 { fu_xbar_outport_sel[2'(i)][2'(j)] } }, fu_xbar_outport_sel[2'(i)][2'(j)] } );
+        fu_xbar_send_data[2'(i)].predicate = fu_xbar_send_data[2'(i)].predicate | ( recv_port_data[2'(j)].predicate & { { 7 { fu_xbar_outport_sel[2'(i)][2'(j)] } }, fu_xbar_outport_sel[2'(i)][2'(j)] } );
+      end
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_data_routing ); i += 1'd1 ) begin
       send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_0__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd0] } }, fu_send_port_valid_vector[1'(i)][2'd0] } );
       send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_0__send_out__msg[1'(i)].predicate & { { 7 { fu_send_port_valid_vector[1'(i)][2'd0] } }, fu_send_port_valid_vector[1'(i)][2'd0] } );
@@ -3505,68 +3595,39 @@ module CGRAFURTL__66562d1307bd2eec
   end
 
   
-  always_comb begin : fsm_ctrl_signals
-    fu_launch_done = 1'd0;
-    fu_send_out_done = 1'd0;
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_FU ) ) begin
-      fu_launch_done = 1'd1;
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_NXT ) ) begin
-      fu_launch_done = 1'd1;
-      fu_send_out_done = 1'd1;
-    end
-  end
-
-  
-  always_comb begin : fsm_nxt_stage
-    nxt_stage = cur_stage;
-    if ( cur_stage == 2'( __const__STAGE_NORMAL ) ) begin
-      if ( fu_launch_ack & ( ~fu_send_out_ack ) ) begin
-        nxt_stage = 2'( __const__STAGE_WAIT_FOR_FU );
-      end
-      if ( ( fu_launch_ack & fu_send_out_ack ) & ( ~fu_propagate_en ) ) begin
-        nxt_stage = 2'( __const__STAGE_WAIT_FOR_NXT );
-      end
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_FU ) ) begin
-      if ( fu_send_out_ack ) begin
-        if ( ~fu_propagate_en ) begin
-          nxt_stage = 2'( __const__STAGE_WAIT_FOR_NXT );
-        end
-        else
-          nxt_stage = 2'( __const__STAGE_NORMAL );
-      end
-    end
-    if ( cur_stage == 2'( __const__STAGE_WAIT_FOR_NXT ) ) begin
-      if ( fu_propagate_en ) begin
-        nxt_stage = 2'( __const__STAGE_NORMAL );
-      end
-    end
-  end
-
-  
   always_comb begin : handshake_process
-    for ( int unsigned port = 1'd0; port < 2'( __const__num_outports_at_handshake_process ); port += 1'd1 )
-      fu_send_port_valid_vector[1'(port)] = 3'd0;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
       xbar_recv_port_req[2'(i)] = ( | fu_xbar_inport_sel[2'(i)] );
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
+      fu_inport_handshake[3'(i)] = xbar_recv_port_req[2'(i)] & ( ~recv_port_en[2'(i)] );
+    fu_inport_handshake[3'( __const__num_xbar_inports_at_handshake_process )] = fu_xbar_recv_predicate_req & ( ~recv_predicate_en );
+    for ( int unsigned i = 1'd0; i < 2'( __const__fu_list_size_at_handshake_process ); i += 1'd1 )
+      fu_launch_handshake[2'(i)] = fu_opt_en_vector[2'(i)] & ( ~fu_launch_rdy_vector[2'(i)] );
+    lc_downstream_rdy = ~( | fu_launch_handshake );
+    lc_upstream_en = ~( | fu_inport_handshake );
+    fu_xbar_handshake = ( lc_downstream_rdy & lc_upstream_en ) & ( ~fu_xbar_done );
+    fu_push_handshake = ( ( ( | xbar_recv_port_req ) | fu_xbar_recv_predicate_req ) & lc_upstream_en ) & ( ~fu_xbar_done );
+    for ( int unsigned i = 1'd0; i < 2'( __const__fu_list_size_at_handshake_process ); i += 1'd1 )
+      fu_push_en_vector[2'(i)] = fu_opt_en_vector[2'(i)] & fu_push_handshake;
+    for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
+      recv_port_rdy[2'(i)] = xbar_recv_port_req[2'(i)] & fu_xbar_handshake;
+    recv_predicate_rdy = fu_xbar_recv_predicate_req & fu_xbar_handshake;
+    recv_const_rdy = fu_xbar_recv_const_req & fu_xbar_handshake;
     for ( int unsigned port = 1'd0; port < 2'( __const__num_outports_at_handshake_process ); port += 1'd1 ) begin
       fu_send_port_valid_vector[1'(port)][2'd0] = fu_0__send_out__en[1'(port)] & fu_out_routine[2'd0];
       fu_send_port_valid_vector[1'(port)][2'd1] = fu_1__send_out__en[1'(port)] & fu_out_routine[2'd1];
       fu_send_port_valid_vector[1'(port)][2'd2] = fu_2__send_out__en[1'(port)] & fu_out_routine[2'd2];
     end
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_handshake_process ); i += 1'd1 )
-      send_port_valid[1'(i)] = ( | fu_send_port_valid_vector[1'(i)] );
-    fu_handshake_vector_xbar_mesh_in_valid_met = xbar_recv_port_req & ( ~recv_port_valid );
-    fu_xbar_mesh_in_valid = ( ( ~( | fu_handshake_vector_xbar_mesh_in_valid_met ) ) & ( ( ~fu_xbar_recv_predicate_req ) | recv_predicate_valid ) ) | fu_dry_run_ack;
-    fu_launch_ack = ( & fu_launch_rdy_vector ) & ( ~fu_launch_done );
-    fu_launch_finish = fu_launch_ack | fu_launch_done;
-    fu_send_out_ack = ( ~( & fu_out_routine ) ) | send_port_ack;
-    fu_send_out_finish = fu_send_out_ack | fu_send_out_done;
-    recv_port_ack = xbar_recv_port_req & { { 3 { fu_launch_ack[0] } }, fu_launch_ack };
-    recv_const_ack = fu_xbar_recv_const_req & fu_launch_ack;
-    recv_predicate_ack = fu_xbar_recv_predicate_req & fu_launch_ack;
-    fu_propagate_rdy = fu_launch_finish & fu_send_out_finish;
+      send_port_en[1'(i)] = ( ( | fu_send_port_valid_vector[1'(i)] ) | fu_dry_run_ack ) & ( ~fu_send_out_done );
+    for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_handshake_process ); i += 1'd1 )
+      fu_result_handshake[1'(i)] = send_port_rdy[1'(i)] & ( ~send_port_en[1'(i)] );
+    fu_send_out_handshake = ~( | fu_result_handshake );
+    for ( int unsigned i = 1'd0; i < 2'( __const__fu_list_size_at_handshake_process ); i += 1'd1 )
+      fu_pop_rdy_vector[2'(i)] = ( fu_send_out_handshake & fu_out_routine[2'(i)] ) & ( ~fu_send_out_done );
+    fu_xbar_done_nxt = fu_xbar_handshake | fu_xbar_done;
+    fu_send_out_done_nxt = fu_send_out_handshake | fu_send_out_done;
+    fu_propagate_rdy = fu_xbar_done_nxt & fu_send_out_done_nxt;
   end
 
   
@@ -3579,10 +3640,17 @@ module CGRAFURTL__66562d1307bd2eec
   
   always_ff @(posedge clk) begin : fsm_update
     if ( reset ) begin
-      cur_stage <= 2'( __const__STAGE_NORMAL );
+      fu_xbar_done <= 1'd0;
+      fu_send_out_done <= 1'd0;
     end
-    else
-      cur_stage <= nxt_stage;
+    else if ( fu_propagate_en ) begin
+      fu_xbar_done <= 1'd0;
+      fu_send_out_done <= 1'd0;
+    end
+    else begin
+      fu_xbar_done <= fu_xbar_done_nxt;
+      fu_send_out_done <= fu_send_out_done_nxt;
+    end
   end
 
   
@@ -3616,37 +3684,43 @@ module CGRAFURTL__66562d1307bd2eec
       fu_xbar_recv_const_req <= fu_recv_const_req_nxt;
       fu_xbar_recv_predicate_req <= recv_predicate_req_nxt;
       fu_out_routine <= recv_opt_msg_out_routine;
-      ex_alu_operator <= id_alu_operator;
-      ex_alu_enable <= id_alu_enable;
-      ex_operand_b_sel <= id_operand_b_sel;
-      ex_operand_c_sel <= id_operand_c_sel;
-      ex_operand_b_repl <= id_operand_b_repl;
-      ex_operand_c_repl <= id_operand_c_repl;
-      ex_mult_operator <= id_mult_operator;
-      ex_mult_enable <= id_mult_enable;
-      ex_lut_operator <= id_lut_operator;
-      ex_lut_enable <= id_lut_enable;
-      ex_lut_k_imm <= id_lut_k_imm;
+      ex_alu_operator <= fu_decoder_id_alu_operator_o;
+      ex_alu_enable <= fu_decoder_id_alu_enable_o;
+      ex_operand_b_sel <= fu_decoder_id_operand_b_sel_o;
+      ex_operand_c_sel <= fu_decoder_id_operand_c_sel_o;
+      ex_operand_b_repl <= fu_decoder_id_operand_b_repl_o;
+      ex_operand_c_repl <= fu_decoder_id_operand_c_repl_o;
+      ex_mult_operator <= fu_decoder_id_mult_operator_o;
+      ex_mult_enable <= fu_decoder_id_mult_enable_o;
+      ex_lut_operator <= fu_decoder_id_lut_operator_o;
+      ex_lut_enable <= fu_decoder_id_lut_enable_o;
+      ex_lut_k_imm <= fu_decoder_id_lut_k_imm_o;
       ex_i_imm_bmask <= cgra_i_imm_bmask_i;
       ex_o_imm_bmask <= cgra_o_imm_bmask_i;
       ex_signed_mode <= fu_decoder_id_signed_mode_o;
       ex_vec_mode <= cgra_vec_mode_i;
-      ex_round_enable <= id_round_enable;
+      ex_round_enable <= fu_decoder_id_round_enable_o;
     end
   end
 
+  assign fu_decoder_clk = clk;
+  assign fu_decoder_reset = reset;
+  assign fu_operand_mux_clk = clk;
+  assign fu_operand_mux_reset = reset;
   assign fu_0__clk = clk;
   assign fu_0__reset = reset;
   assign fu_1__clk = clk;
   assign fu_1__reset = reset;
   assign fu_2__clk = clk;
   assign fu_2__reset = reset;
-  assign fu_decoder_clk = clk;
-  assign fu_decoder_reset = reset;
-  assign fu_operand_mux_clk = clk;
-  assign fu_operand_mux_reset = reset;
-  assign fu_decoder_cgra_signed_mode_i = cgra_signed_mode_i;
+  assign fu_launch_rdy_vector[0:0] = fu_0__opt_launch_rdy_o;
+  assign fu_launch_rdy_vector[1:1] = fu_1__opt_launch_rdy_o;
+  assign fu_launch_rdy_vector[2:2] = fu_2__opt_launch_rdy_o;
+  assign fu_opt_en_vector[0:0] = ex_alu_enable;
+  assign fu_opt_en_vector[1:1] = ex_mult_enable;
+  assign fu_opt_en_vector[2:2] = ex_lut_enable;
   assign fu_decoder_cgra_vec_mode_i = cgra_vec_mode_i;
+  assign fu_decoder_cgra_signed_mode_i = cgra_signed_mode_i;
   assign fu_recv_const_req_nxt = fu_decoder_id_const_enable_o;
   assign id_round_enable = fu_decoder_id_round_enable_o;
   assign id_alu_operator = fu_decoder_id_alu_operator_o;
@@ -3659,9 +3733,6 @@ module CGRAFURTL__66562d1307bd2eec
   assign id_lut_operator = fu_decoder_id_lut_operator_o;
   assign id_lut_enable = fu_decoder_id_lut_enable_o;
   assign id_lut_k_imm = fu_decoder_id_lut_k_imm_o;
-  assign fu_launch_en_vector[0:0] = ex_alu_enable;
-  assign fu_launch_en_vector[1:1] = ex_mult_enable;
-  assign fu_launch_en_vector[2:2] = ex_lut_enable;
   assign fu_operand_mux_cgra_vec_mode_i = cgra_vec_mode_i;
   assign fu_operand_mux_ex_operand_b_sel = ex_operand_b_sel;
   assign fu_operand_mux_ex_operand_c_sel = ex_operand_c_sel;
@@ -3674,19 +3745,19 @@ module CGRAFURTL__66562d1307bd2eec
   assign fu_operand_mux_ex_constant_i = recv_const_data;
   assign fu_0__recv_predicate_msg = recv_predicate_data;
   assign fu_0__recv_predicate_en = fu_xbar_recv_predicate_req;
-  assign fu_0__input_valid_i = fu_xbar_mesh_in_valid;
+  assign fu_0__opt_launch_en_i = fu_push_en_vector[0:0];
   assign fu_0__vector_mode_i = ex_vec_mode;
-  assign fu_launch_rdy_vector[0:0] = fu_0__opt_launch_rdy_o;
+  assign fu_0__output_rdy_i = fu_pop_rdy_vector[0:0];
   assign fu_1__recv_predicate_msg = recv_predicate_data;
   assign fu_1__recv_predicate_en = fu_xbar_recv_predicate_req;
-  assign fu_1__input_valid_i = fu_xbar_mesh_in_valid;
+  assign fu_1__opt_launch_en_i = fu_push_en_vector[1:1];
   assign fu_1__vector_mode_i = ex_vec_mode;
-  assign fu_launch_rdy_vector[1:1] = fu_1__opt_launch_rdy_o;
+  assign fu_1__output_rdy_i = fu_pop_rdy_vector[1:1];
   assign fu_2__recv_predicate_msg = recv_predicate_data;
   assign fu_2__recv_predicate_en = fu_xbar_recv_predicate_req;
-  assign fu_2__input_valid_i = fu_xbar_mesh_in_valid;
+  assign fu_2__opt_launch_en_i = fu_push_en_vector[2:2];
   assign fu_2__vector_mode_i = ex_vec_mode;
-  assign fu_launch_rdy_vector[2:2] = fu_2__opt_launch_rdy_o;
+  assign fu_2__output_rdy_i = fu_pop_rdy_vector[2:2];
   assign fu_0__ex_operator_i = ex_alu_operator;
   assign fu_0__operand_a_i = fu_xbar_send_data[0];
   assign fu_0__operand_b_i.payload = fu_operand_mux_ex_operand_b_o;
@@ -3695,7 +3766,6 @@ module CGRAFURTL__66562d1307bd2eec
   assign fu_1__ex_operator_i = ex_mult_operator;
   assign fu_1__ex_operand_signed_i = ex_signed_mode;
   assign fu_1__ex_round_enable = ex_round_enable;
-  assign fu_1__i_imm_i = ex_i_imm_bmask;
   assign fu_1__o_imm_i = ex_o_imm_bmask;
   assign fu_1__operand_a_i = fu_xbar_send_data[0];
   assign fu_1__operand_b_i.payload = fu_operand_mux_ex_operand_b_o;
@@ -3756,7 +3826,6 @@ endmodule
 module NormalQueueDpath__78653061d6c86e67
 (
   input  logic [0:0] clk ,
-  input  logic [0:0] config_ini ,
   output CGRAData_8__predicate_8 deq_msg ,
   input  CGRAData_8__predicate_8 enq_msg ,
   input  logic [0:0] raddr ,
@@ -3765,7 +3834,6 @@ module NormalQueueDpath__78653061d6c86e67
   input  logic [0:0] waddr ,
   input  logic [0:0] wen 
 );
-  localparam logic [1:0] __const__num_entries_at_up_rf_write  = 2'd2;
   CGRAData_8__predicate_8 regs [0:1];
   CGRAData_8__predicate_8 regs_rdata;
 
@@ -3776,11 +3844,7 @@ module NormalQueueDpath__78653061d6c86e67
 
   
   always_ff @(posedge clk) begin : up_rf_write
-    if ( reset | config_ini ) begin
-      for ( int unsigned i = 1'd0; i < 2'( __const__num_entries_at_up_rf_write ); i += 1'd1 )
-        regs[1'(i)] <= 8'd0;
-    end
-    else if ( wen ) begin
+    if ( wen ) begin
       regs[waddr] <= enq_msg;
     end
   end
@@ -3793,28 +3857,29 @@ module NormalQueue__e085cf096285f66d
 (
   input  logic [0:0] clk ,
   input  logic [0:0] config_ini ,
-  input  logic [0:0] deq_en ,
-  output CGRAData_8__predicate_8 deq_msg ,
-  output logic [0:0] deq_valid ,
+  input  logic [0:0] dry_run_ack ,
   input  logic [0:0] dry_run_done ,
-  input  logic [0:0] enq_en ,
-  input  CGRAData_8__predicate_8 enq_msg ,
-  output logic [0:0] enq_rdy ,
+  input  logic [0:0] recv_en_i ,
+  input  CGRAData_8__predicate_8 recv_msg ,
+  output logic [0:0] recv_rdy_o ,
   input  logic [0:0] reset ,
+  input  logic [0:0] send_en_i ,
+  output CGRAData_8__predicate_8 send_msg ,
+  output logic [0:0] send_valid_o ,
   input  logic [0:0] sync_dry_run 
 );
 
   logic [0:0] ctrl__clk;
   logic [0:0] ctrl__config_ini;
-  logic [1:0] ctrl__count;
-  logic [0:0] ctrl__deq_en;
-  logic [0:0] ctrl__deq_valid;
+  logic [0:0] ctrl__dry_run_ack;
   logic [0:0] ctrl__dry_run_done;
-  logic [0:0] ctrl__enq_en;
-  logic [0:0] ctrl__enq_rdy;
   logic [0:0] ctrl__raddr;
+  logic [0:0] ctrl__recv_en_i;
+  logic [0:0] ctrl__recv_rdy_o;
   logic [0:0] ctrl__ren;
   logic [0:0] ctrl__reset;
+  logic [0:0] ctrl__send_en_i;
+  logic [0:0] ctrl__send_valid_o;
   logic [0:0] ctrl__sync_dry_run;
   logic [0:0] ctrl__waddr;
   logic [0:0] ctrl__wen;
@@ -3823,15 +3888,15 @@ module NormalQueue__e085cf096285f66d
   (
     .clk( ctrl__clk ),
     .config_ini( ctrl__config_ini ),
-    .count( ctrl__count ),
-    .deq_en( ctrl__deq_en ),
-    .deq_valid( ctrl__deq_valid ),
+    .dry_run_ack( ctrl__dry_run_ack ),
     .dry_run_done( ctrl__dry_run_done ),
-    .enq_en( ctrl__enq_en ),
-    .enq_rdy( ctrl__enq_rdy ),
     .raddr( ctrl__raddr ),
+    .recv_en_i( ctrl__recv_en_i ),
+    .recv_rdy_o( ctrl__recv_rdy_o ),
     .ren( ctrl__ren ),
     .reset( ctrl__reset ),
+    .send_en_i( ctrl__send_en_i ),
+    .send_valid_o( ctrl__send_valid_o ),
     .sync_dry_run( ctrl__sync_dry_run ),
     .waddr( ctrl__waddr ),
     .wen( ctrl__wen )
@@ -3840,7 +3905,6 @@ module NormalQueue__e085cf096285f66d
 
 
   logic [0:0] dpath__clk;
-  logic [0:0] dpath__config_ini;
   CGRAData_8__predicate_8 dpath__deq_msg;
   CGRAData_8__predicate_8 dpath__enq_msg;
   logic [0:0] dpath__raddr;
@@ -3852,7 +3916,6 @@ module NormalQueue__e085cf096285f66d
   NormalQueueDpath__78653061d6c86e67 dpath
   (
     .clk( dpath__clk ),
-    .config_ini( dpath__config_ini ),
     .deq_msg( dpath__deq_msg ),
     .enq_msg( dpath__enq_msg ),
     .raddr( dpath__raddr ),
@@ -3867,7 +3930,6 @@ module NormalQueue__e085cf096285f66d
   assign ctrl__reset = reset;
   assign dpath__clk = clk;
   assign dpath__reset = reset;
-  assign dpath__config_ini = config_ini;
   assign ctrl__config_ini = config_ini;
   assign ctrl__dry_run_done = dry_run_done;
   assign ctrl__sync_dry_run = sync_dry_run;
@@ -3875,12 +3937,12 @@ module NormalQueue__e085cf096285f66d
   assign dpath__ren = ctrl__ren;
   assign dpath__waddr = ctrl__waddr;
   assign dpath__raddr = ctrl__raddr;
-  assign ctrl__enq_en = enq_en;
-  assign enq_rdy = ctrl__enq_rdy;
-  assign ctrl__deq_en = deq_en;
-  assign deq_valid = ctrl__deq_valid;
-  assign dpath__enq_msg = enq_msg;
-  assign deq_msg = dpath__deq_msg;
+  assign ctrl__recv_en_i = recv_en_i;
+  assign recv_rdy_o = ctrl__recv_rdy_o;
+  assign ctrl__send_en_i = send_en_i;
+  assign send_valid_o = ctrl__send_valid_o;
+  assign dpath__enq_msg = recv_msg;
+  assign send_msg = dpath__deq_msg;
 
 endmodule
 
@@ -3890,54 +3952,58 @@ module ChannelRTL__cd9fb5c905a4d671
 (
   input  logic [0:0] clk ,
   input  logic [0:0] config_ini ,
+  input  logic [0:0] dry_run_ack ,
   input  logic [0:0] dry_run_done ,
-  input  logic [0:0] recv_en ,
+  input  logic [0:0] recv_en_i ,
   input  CGRAData_8__predicate_8 recv_msg ,
-  output logic [0:0] recv_rdy ,
+  output logic [0:0] recv_rdy_o ,
   input  logic [0:0] reset ,
-  input  logic [0:0] send_en ,
+  input  logic [0:0] send_en_i ,
   output CGRAData_8__predicate_8 send_msg ,
-  output logic [0:0] send_valid ,
+  output logic [0:0] send_valid_o ,
   input  logic [0:0] sync_dry_run 
 );
 
   logic [0:0] queue__clk;
   logic [0:0] queue__config_ini;
-  logic [0:0] queue__deq_en;
-  CGRAData_8__predicate_8 queue__deq_msg;
-  logic [0:0] queue__deq_valid;
+  logic [0:0] queue__dry_run_ack;
   logic [0:0] queue__dry_run_done;
-  logic [0:0] queue__enq_en;
-  CGRAData_8__predicate_8 queue__enq_msg;
-  logic [0:0] queue__enq_rdy;
+  logic [0:0] queue__recv_en_i;
+  CGRAData_8__predicate_8 queue__recv_msg;
+  logic [0:0] queue__recv_rdy_o;
   logic [0:0] queue__reset;
+  logic [0:0] queue__send_en_i;
+  CGRAData_8__predicate_8 queue__send_msg;
+  logic [0:0] queue__send_valid_o;
   logic [0:0] queue__sync_dry_run;
 
   NormalQueue__e085cf096285f66d queue
   (
     .clk( queue__clk ),
     .config_ini( queue__config_ini ),
-    .deq_en( queue__deq_en ),
-    .deq_msg( queue__deq_msg ),
-    .deq_valid( queue__deq_valid ),
+    .dry_run_ack( queue__dry_run_ack ),
     .dry_run_done( queue__dry_run_done ),
-    .enq_en( queue__enq_en ),
-    .enq_msg( queue__enq_msg ),
-    .enq_rdy( queue__enq_rdy ),
+    .recv_en_i( queue__recv_en_i ),
+    .recv_msg( queue__recv_msg ),
+    .recv_rdy_o( queue__recv_rdy_o ),
     .reset( queue__reset ),
+    .send_en_i( queue__send_en_i ),
+    .send_msg( queue__send_msg ),
+    .send_valid_o( queue__send_valid_o ),
     .sync_dry_run( queue__sync_dry_run )
   );
 
 
   assign queue__clk = clk;
   assign queue__reset = reset;
-  assign queue__enq_en = recv_en;
-  assign queue__enq_msg = recv_msg;
-  assign recv_rdy = queue__enq_rdy;
-  assign queue__deq_en = send_en;
-  assign send_msg = queue__deq_msg;
-  assign send_valid = queue__deq_valid;
+  assign queue__recv_en_i = recv_en_i;
+  assign queue__recv_msg = recv_msg;
+  assign recv_rdy_o = queue__recv_rdy_o;
+  assign queue__send_en_i = send_en_i;
+  assign send_msg = queue__send_msg;
+  assign send_valid_o = queue__send_valid_o;
   assign queue__config_ini = config_ini;
+  assign queue__dry_run_ack = dry_run_ack;
   assign queue__dry_run_done = dry_run_done;
   assign queue__sync_dry_run = sync_dry_run;
 
@@ -4015,28 +4081,30 @@ module TileRTL__81a1f6d8ea7ff0a1
 
   logic [0:0] channel__clk [0:7];
   logic [0:0] channel__config_ini [0:7];
+  logic [0:0] channel__dry_run_ack [0:7];
   logic [0:0] channel__dry_run_done [0:7];
-  logic [0:0] channel__recv_en [0:7];
+  logic [0:0] channel__recv_en_i [0:7];
   CGRAData_64_8__payload_64__predicate_8 channel__recv_msg [0:7];
-  logic [0:0] channel__recv_rdy [0:7];
+  logic [0:0] channel__recv_rdy_o [0:7];
   logic [0:0] channel__reset [0:7];
-  logic [0:0] channel__send_en [0:7];
+  logic [0:0] channel__send_en_i [0:7];
   CGRAData_64_8__payload_64__predicate_8 channel__send_msg [0:7];
-  logic [0:0] channel__send_valid [0:7];
+  logic [0:0] channel__send_valid_o [0:7];
   logic [0:0] channel__sync_dry_run [0:7];
 
   ChannelRTL__719f99a07587cea0 channel__0
   (
     .clk( channel__clk[0] ),
     .config_ini( channel__config_ini[0] ),
+    .dry_run_ack( channel__dry_run_ack[0] ),
     .dry_run_done( channel__dry_run_done[0] ),
-    .recv_en( channel__recv_en[0] ),
+    .recv_en_i( channel__recv_en_i[0] ),
     .recv_msg( channel__recv_msg[0] ),
-    .recv_rdy( channel__recv_rdy[0] ),
+    .recv_rdy_o( channel__recv_rdy_o[0] ),
     .reset( channel__reset[0] ),
-    .send_en( channel__send_en[0] ),
+    .send_en_i( channel__send_en_i[0] ),
     .send_msg( channel__send_msg[0] ),
-    .send_valid( channel__send_valid[0] ),
+    .send_valid_o( channel__send_valid_o[0] ),
     .sync_dry_run( channel__sync_dry_run[0] )
   );
 
@@ -4044,14 +4112,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[1] ),
     .config_ini( channel__config_ini[1] ),
+    .dry_run_ack( channel__dry_run_ack[1] ),
     .dry_run_done( channel__dry_run_done[1] ),
-    .recv_en( channel__recv_en[1] ),
+    .recv_en_i( channel__recv_en_i[1] ),
     .recv_msg( channel__recv_msg[1] ),
-    .recv_rdy( channel__recv_rdy[1] ),
+    .recv_rdy_o( channel__recv_rdy_o[1] ),
     .reset( channel__reset[1] ),
-    .send_en( channel__send_en[1] ),
+    .send_en_i( channel__send_en_i[1] ),
     .send_msg( channel__send_msg[1] ),
-    .send_valid( channel__send_valid[1] ),
+    .send_valid_o( channel__send_valid_o[1] ),
     .sync_dry_run( channel__sync_dry_run[1] )
   );
 
@@ -4059,14 +4128,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[2] ),
     .config_ini( channel__config_ini[2] ),
+    .dry_run_ack( channel__dry_run_ack[2] ),
     .dry_run_done( channel__dry_run_done[2] ),
-    .recv_en( channel__recv_en[2] ),
+    .recv_en_i( channel__recv_en_i[2] ),
     .recv_msg( channel__recv_msg[2] ),
-    .recv_rdy( channel__recv_rdy[2] ),
+    .recv_rdy_o( channel__recv_rdy_o[2] ),
     .reset( channel__reset[2] ),
-    .send_en( channel__send_en[2] ),
+    .send_en_i( channel__send_en_i[2] ),
     .send_msg( channel__send_msg[2] ),
-    .send_valid( channel__send_valid[2] ),
+    .send_valid_o( channel__send_valid_o[2] ),
     .sync_dry_run( channel__sync_dry_run[2] )
   );
 
@@ -4074,14 +4144,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[3] ),
     .config_ini( channel__config_ini[3] ),
+    .dry_run_ack( channel__dry_run_ack[3] ),
     .dry_run_done( channel__dry_run_done[3] ),
-    .recv_en( channel__recv_en[3] ),
+    .recv_en_i( channel__recv_en_i[3] ),
     .recv_msg( channel__recv_msg[3] ),
-    .recv_rdy( channel__recv_rdy[3] ),
+    .recv_rdy_o( channel__recv_rdy_o[3] ),
     .reset( channel__reset[3] ),
-    .send_en( channel__send_en[3] ),
+    .send_en_i( channel__send_en_i[3] ),
     .send_msg( channel__send_msg[3] ),
-    .send_valid( channel__send_valid[3] ),
+    .send_valid_o( channel__send_valid_o[3] ),
     .sync_dry_run( channel__sync_dry_run[3] )
   );
 
@@ -4089,14 +4160,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[4] ),
     .config_ini( channel__config_ini[4] ),
+    .dry_run_ack( channel__dry_run_ack[4] ),
     .dry_run_done( channel__dry_run_done[4] ),
-    .recv_en( channel__recv_en[4] ),
+    .recv_en_i( channel__recv_en_i[4] ),
     .recv_msg( channel__recv_msg[4] ),
-    .recv_rdy( channel__recv_rdy[4] ),
+    .recv_rdy_o( channel__recv_rdy_o[4] ),
     .reset( channel__reset[4] ),
-    .send_en( channel__send_en[4] ),
+    .send_en_i( channel__send_en_i[4] ),
     .send_msg( channel__send_msg[4] ),
-    .send_valid( channel__send_valid[4] ),
+    .send_valid_o( channel__send_valid_o[4] ),
     .sync_dry_run( channel__sync_dry_run[4] )
   );
 
@@ -4104,14 +4176,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[5] ),
     .config_ini( channel__config_ini[5] ),
+    .dry_run_ack( channel__dry_run_ack[5] ),
     .dry_run_done( channel__dry_run_done[5] ),
-    .recv_en( channel__recv_en[5] ),
+    .recv_en_i( channel__recv_en_i[5] ),
     .recv_msg( channel__recv_msg[5] ),
-    .recv_rdy( channel__recv_rdy[5] ),
+    .recv_rdy_o( channel__recv_rdy_o[5] ),
     .reset( channel__reset[5] ),
-    .send_en( channel__send_en[5] ),
+    .send_en_i( channel__send_en_i[5] ),
     .send_msg( channel__send_msg[5] ),
-    .send_valid( channel__send_valid[5] ),
+    .send_valid_o( channel__send_valid_o[5] ),
     .sync_dry_run( channel__sync_dry_run[5] )
   );
 
@@ -4119,14 +4192,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[6] ),
     .config_ini( channel__config_ini[6] ),
+    .dry_run_ack( channel__dry_run_ack[6] ),
     .dry_run_done( channel__dry_run_done[6] ),
-    .recv_en( channel__recv_en[6] ),
+    .recv_en_i( channel__recv_en_i[6] ),
     .recv_msg( channel__recv_msg[6] ),
-    .recv_rdy( channel__recv_rdy[6] ),
+    .recv_rdy_o( channel__recv_rdy_o[6] ),
     .reset( channel__reset[6] ),
-    .send_en( channel__send_en[6] ),
+    .send_en_i( channel__send_en_i[6] ),
     .send_msg( channel__send_msg[6] ),
-    .send_valid( channel__send_valid[6] ),
+    .send_valid_o( channel__send_valid_o[6] ),
     .sync_dry_run( channel__sync_dry_run[6] )
   );
 
@@ -4134,14 +4208,15 @@ module TileRTL__81a1f6d8ea7ff0a1
   (
     .clk( channel__clk[7] ),
     .config_ini( channel__config_ini[7] ),
+    .dry_run_ack( channel__dry_run_ack[7] ),
     .dry_run_done( channel__dry_run_done[7] ),
-    .recv_en( channel__recv_en[7] ),
+    .recv_en_i( channel__recv_en_i[7] ),
     .recv_msg( channel__recv_msg[7] ),
-    .recv_rdy( channel__recv_rdy[7] ),
+    .recv_rdy_o( channel__recv_rdy_o[7] ),
     .reset( channel__reset[7] ),
-    .send_en( channel__send_en[7] ),
+    .send_en_i( channel__send_en_i[7] ),
     .send_msg( channel__send_msg[7] ),
-    .send_valid( channel__send_valid[7] ),
+    .send_valid_o( channel__send_valid_o[7] ),
     .sync_dry_run( channel__sync_dry_run[7] )
   );
 
@@ -4174,50 +4249,46 @@ module TileRTL__81a1f6d8ea7ff0a1
 
 
 
+  logic [3:0] crossbar__bp_port_en;
+  logic [3:0] crossbar__bp_port_rdy;
+  logic [3:0] crossbar__bp_port_sel;
   logic [0:0] crossbar__clk;
   logic [2:0] crossbar__recv_opt_msg_outport [0:7];
   logic [5:0] crossbar__recv_opt_msg_predicate_in;
   CGRAData_64_8__payload_64__predicate_8 crossbar__recv_port_data [0:5];
-  logic [0:0] crossbar__recv_port_fu_out_ack;
-  logic [3:0] crossbar__recv_port_mesh_in_ack;
-  logic [5:0] crossbar__recv_port_valid;
+  logic [5:0] crossbar__recv_port_en;
+  logic [5:0] crossbar__recv_port_rdy;
   logic [0:0] crossbar__reset;
-  logic [3:0] crossbar__send_bypass_data_valid;
-  logic [3:0] crossbar__send_bypass_port_ack;
-  logic [3:0] crossbar__send_bypass_req;
-  CGRAData_64_8__payload_64__predicate_8 crossbar__send_data_bypass [0:3];
+  CGRAData_64_8__payload_64__predicate_8 crossbar__send_bp_data [0:3];
   CGRAData_64_8__payload_64__predicate_8 crossbar__send_port_data [0:7];
-  logic [8:0] crossbar__send_port_en;
+  logic [7:0] crossbar__send_port_en;
   logic [7:0] crossbar__send_port_rdy;
   CGRAData_8__predicate_8 crossbar__send_predicate;
+  logic [0:0] crossbar__send_predicate_en;
   logic [0:0] crossbar__send_predicate_rdy;
-  logic [0:0] crossbar__xbar_dry_run_ack;
-  logic [0:0] crossbar__xbar_dry_run_begin;
   logic [0:0] crossbar__xbar_opt_enable;
   logic [0:0] crossbar__xbar_propagate_en;
   logic [0:0] crossbar__xbar_propagate_rdy;
 
   CrossbarRTL__3d684959a51d2cb2 crossbar
   (
+    .bp_port_en( crossbar__bp_port_en ),
+    .bp_port_rdy( crossbar__bp_port_rdy ),
+    .bp_port_sel( crossbar__bp_port_sel ),
     .clk( crossbar__clk ),
     .recv_opt_msg_outport( crossbar__recv_opt_msg_outport ),
     .recv_opt_msg_predicate_in( crossbar__recv_opt_msg_predicate_in ),
     .recv_port_data( crossbar__recv_port_data ),
-    .recv_port_fu_out_ack( crossbar__recv_port_fu_out_ack ),
-    .recv_port_mesh_in_ack( crossbar__recv_port_mesh_in_ack ),
-    .recv_port_valid( crossbar__recv_port_valid ),
+    .recv_port_en( crossbar__recv_port_en ),
+    .recv_port_rdy( crossbar__recv_port_rdy ),
     .reset( crossbar__reset ),
-    .send_bypass_data_valid( crossbar__send_bypass_data_valid ),
-    .send_bypass_port_ack( crossbar__send_bypass_port_ack ),
-    .send_bypass_req( crossbar__send_bypass_req ),
-    .send_data_bypass( crossbar__send_data_bypass ),
+    .send_bp_data( crossbar__send_bp_data ),
     .send_port_data( crossbar__send_port_data ),
     .send_port_en( crossbar__send_port_en ),
     .send_port_rdy( crossbar__send_port_rdy ),
     .send_predicate( crossbar__send_predicate ),
+    .send_predicate_en( crossbar__send_predicate_en ),
     .send_predicate_rdy( crossbar__send_predicate_rdy ),
-    .xbar_dry_run_ack( crossbar__xbar_dry_run_ack ),
-    .xbar_dry_run_begin( crossbar__xbar_dry_run_begin ),
     .xbar_opt_enable( crossbar__xbar_opt_enable ),
     .xbar_propagate_en( crossbar__xbar_propagate_en ),
     .xbar_propagate_rdy( crossbar__xbar_propagate_rdy )
@@ -4306,14 +4377,11 @@ module TileRTL__81a1f6d8ea7ff0a1
   logic [1:0] element__cgra_vec_mode_i;
   logic [0:0] element__clk;
   logic [0:0] element__fu_dry_run_ack;
-  logic [0:0] element__fu_dry_run_begin;
-  logic [0:0] element__fu_execution_ini;
-  logic [0:0] element__fu_execution_valid;
   logic [0:0] element__fu_opt_enable;
   logic [0:0] element__fu_propagate_en;
   logic [0:0] element__fu_propagate_rdy;
-  logic [0:0] element__recv_const_ack;
   logic [31:0] element__recv_const_data;
+  logic [0:0] element__recv_const_rdy;
   logic [127:0] element__recv_lut_b_data;
   logic [127:0] element__recv_lut_k_data;
   logic [127:0] element__recv_lut_p_data;
@@ -4321,17 +4389,17 @@ module TileRTL__81a1f6d8ea7ff0a1
   logic [2:0] element__recv_opt_msg_fu_in [0:3];
   logic [2:0] element__recv_opt_msg_out_routine;
   logic [0:0] element__recv_opt_msg_predicate;
-  logic [3:0] element__recv_port_ack;
   CGRAData_64_8__payload_64__predicate_8 element__recv_port_data [0:3];
-  logic [3:0] element__recv_port_valid;
-  logic [0:0] element__recv_predicate_ack;
+  logic [3:0] element__recv_port_en;
+  logic [3:0] element__recv_port_rdy;
   CGRAData_8__predicate_8 element__recv_predicate_data;
-  logic [0:0] element__recv_predicate_valid;
+  logic [0:0] element__recv_predicate_en;
+  logic [0:0] element__recv_predicate_rdy;
   logic [0:0] element__reset;
   logic [1:0] element__send_lut_sel;
-  logic [0:0] element__send_port_ack;
   CGRAData_64_8__payload_64__predicate_8 element__send_port_data [0:1];
-  logic [1:0] element__send_port_valid;
+  logic [1:0] element__send_port_en;
+  logic [1:0] element__send_port_rdy;
 
   CGRAFURTL__66562d1307bd2eec element
   (
@@ -4341,14 +4409,11 @@ module TileRTL__81a1f6d8ea7ff0a1
     .cgra_vec_mode_i( element__cgra_vec_mode_i ),
     .clk( element__clk ),
     .fu_dry_run_ack( element__fu_dry_run_ack ),
-    .fu_dry_run_begin( element__fu_dry_run_begin ),
-    .fu_execution_ini( element__fu_execution_ini ),
-    .fu_execution_valid( element__fu_execution_valid ),
     .fu_opt_enable( element__fu_opt_enable ),
     .fu_propagate_en( element__fu_propagate_en ),
     .fu_propagate_rdy( element__fu_propagate_rdy ),
-    .recv_const_ack( element__recv_const_ack ),
     .recv_const_data( element__recv_const_data ),
+    .recv_const_rdy( element__recv_const_rdy ),
     .recv_lut_b_data( element__recv_lut_b_data ),
     .recv_lut_k_data( element__recv_lut_k_data ),
     .recv_lut_p_data( element__recv_lut_p_data ),
@@ -4356,17 +4421,17 @@ module TileRTL__81a1f6d8ea7ff0a1
     .recv_opt_msg_fu_in( element__recv_opt_msg_fu_in ),
     .recv_opt_msg_out_routine( element__recv_opt_msg_out_routine ),
     .recv_opt_msg_predicate( element__recv_opt_msg_predicate ),
-    .recv_port_ack( element__recv_port_ack ),
     .recv_port_data( element__recv_port_data ),
-    .recv_port_valid( element__recv_port_valid ),
-    .recv_predicate_ack( element__recv_predicate_ack ),
+    .recv_port_en( element__recv_port_en ),
+    .recv_port_rdy( element__recv_port_rdy ),
     .recv_predicate_data( element__recv_predicate_data ),
-    .recv_predicate_valid( element__recv_predicate_valid ),
+    .recv_predicate_en( element__recv_predicate_en ),
+    .recv_predicate_rdy( element__recv_predicate_rdy ),
     .reset( element__reset ),
     .send_lut_sel( element__send_lut_sel ),
-    .send_port_ack( element__send_port_ack ),
     .send_port_data( element__send_port_data ),
-    .send_port_valid( element__send_port_valid )
+    .send_port_en( element__send_port_en ),
+    .send_port_rdy( element__send_port_rdy )
   );
 
 
@@ -4461,28 +4526,30 @@ module TileRTL__81a1f6d8ea7ff0a1
 
   logic [0:0] reg_predicate__clk;
   logic [0:0] reg_predicate__config_ini;
+  logic [0:0] reg_predicate__dry_run_ack;
   logic [0:0] reg_predicate__dry_run_done;
-  logic [0:0] reg_predicate__recv_en;
+  logic [0:0] reg_predicate__recv_en_i;
   CGRAData_8__predicate_8 reg_predicate__recv_msg;
-  logic [0:0] reg_predicate__recv_rdy;
+  logic [0:0] reg_predicate__recv_rdy_o;
   logic [0:0] reg_predicate__reset;
-  logic [0:0] reg_predicate__send_en;
+  logic [0:0] reg_predicate__send_en_i;
   CGRAData_8__predicate_8 reg_predicate__send_msg;
-  logic [0:0] reg_predicate__send_valid;
+  logic [0:0] reg_predicate__send_valid_o;
   logic [0:0] reg_predicate__sync_dry_run;
 
   ChannelRTL__cd9fb5c905a4d671 reg_predicate
   (
     .clk( reg_predicate__clk ),
     .config_ini( reg_predicate__config_ini ),
+    .dry_run_ack( reg_predicate__dry_run_ack ),
     .dry_run_done( reg_predicate__dry_run_done ),
-    .recv_en( reg_predicate__recv_en ),
+    .recv_en_i( reg_predicate__recv_en_i ),
     .recv_msg( reg_predicate__recv_msg ),
-    .recv_rdy( reg_predicate__recv_rdy ),
+    .recv_rdy_o( reg_predicate__recv_rdy_o ),
     .reset( reg_predicate__reset ),
-    .send_en( reg_predicate__send_en ),
+    .send_en_i( reg_predicate__send_en_i ),
     .send_msg( reg_predicate__send_msg ),
-    .send_valid( reg_predicate__send_valid ),
+    .send_valid_o( reg_predicate__send_valid_o ),
     .sync_dry_run( reg_predicate__sync_dry_run )
   );
 
@@ -4582,30 +4649,39 @@ module TileRTL__81a1f6d8ea7ff0a1
   assign ctrl_mem__execution_ini = tile_execution_ini_begin;
   assign ctrl_mem__nxt_ctrl_en = tile_propagate_en;
   assign channel__config_ini[0] = tile_config_ini_begin;
+  assign channel__dry_run_ack[0] = tile_dry_run_ack;
   assign channel__dry_run_done[0] = tile_dry_run_done;
   assign channel__sync_dry_run[0] = tile_execution_ini_begin;
   assign channel__config_ini[1] = tile_config_ini_begin;
+  assign channel__dry_run_ack[1] = tile_dry_run_ack;
   assign channel__dry_run_done[1] = tile_dry_run_done;
   assign channel__sync_dry_run[1] = tile_execution_ini_begin;
   assign channel__config_ini[2] = tile_config_ini_begin;
+  assign channel__dry_run_ack[2] = tile_dry_run_ack;
   assign channel__dry_run_done[2] = tile_dry_run_done;
   assign channel__sync_dry_run[2] = tile_execution_ini_begin;
   assign channel__config_ini[3] = tile_config_ini_begin;
+  assign channel__dry_run_ack[3] = tile_dry_run_ack;
   assign channel__dry_run_done[3] = tile_dry_run_done;
   assign channel__sync_dry_run[3] = tile_execution_ini_begin;
   assign channel__config_ini[4] = tile_config_ini_begin;
+  assign channel__dry_run_ack[4] = tile_dry_run_ack;
   assign channel__dry_run_done[4] = tile_dry_run_done;
   assign channel__sync_dry_run[4] = tile_execution_ini_begin;
   assign channel__config_ini[5] = tile_config_ini_begin;
+  assign channel__dry_run_ack[5] = tile_dry_run_ack;
   assign channel__dry_run_done[5] = tile_dry_run_done;
   assign channel__sync_dry_run[5] = tile_execution_ini_begin;
   assign channel__config_ini[6] = tile_config_ini_begin;
+  assign channel__dry_run_ack[6] = tile_dry_run_ack;
   assign channel__dry_run_done[6] = tile_dry_run_done;
   assign channel__sync_dry_run[6] = tile_execution_ini_begin;
   assign channel__config_ini[7] = tile_config_ini_begin;
+  assign channel__dry_run_ack[7] = tile_dry_run_ack;
   assign channel__dry_run_done[7] = tile_dry_run_done;
   assign channel__sync_dry_run[7] = tile_execution_ini_begin;
   assign reg_predicate__config_ini = tile_config_ini_begin;
+  assign reg_predicate__dry_run_ack = tile_dry_run_ack;
   assign reg_predicate__dry_run_done = tile_dry_run_done;
   assign reg_predicate__sync_dry_run = tile_execution_ini_begin;
   assign tile_ctrl_mux__in_[0] = ctrl_mem__send_ctrl_msg;
@@ -4627,96 +4703,94 @@ module TileRTL__81a1f6d8ea7ff0a1
   assign crossbar__recv_opt_msg_predicate_in[4:4] = tile_ctrl_msg.predicate_in[4];
   assign crossbar__recv_opt_msg_predicate_in[5:5] = tile_ctrl_msg.predicate_in[5];
   assign crossbar__xbar_opt_enable = tile_opt_enable;
-  assign crossbar__xbar_dry_run_begin = tile_dry_run_begin;
-  assign crossbar__xbar_dry_run_ack = tile_dry_run_ack;
   assign crossbar__xbar_propagate_en = tile_propagate_en;
   assign crossbar__recv_port_data[0] = recv_data[0];
-  assign recv_data_ack[0] = crossbar__recv_port_mesh_in_ack[0:0];
-  assign crossbar__recv_port_valid[0:0] = recv_data_valid[0];
+  assign recv_data_ack[0] = crossbar__recv_port_rdy[0:0];
+  assign crossbar__recv_port_en[0:0] = recv_data_valid[0];
   assign crossbar__recv_port_data[1] = recv_data[1];
-  assign recv_data_ack[1] = crossbar__recv_port_mesh_in_ack[1:1];
-  assign crossbar__recv_port_valid[1:1] = recv_data_valid[1];
+  assign recv_data_ack[1] = crossbar__recv_port_rdy[1:1];
+  assign crossbar__recv_port_en[1:1] = recv_data_valid[1];
   assign crossbar__recv_port_data[2] = recv_data[2];
-  assign recv_data_ack[2] = crossbar__recv_port_mesh_in_ack[2:2];
-  assign crossbar__recv_port_valid[2:2] = recv_data_valid[2];
+  assign recv_data_ack[2] = crossbar__recv_port_rdy[2:2];
+  assign crossbar__recv_port_en[2:2] = recv_data_valid[2];
   assign crossbar__recv_port_data[3] = recv_data[3];
-  assign recv_data_ack[3] = crossbar__recv_port_mesh_in_ack[3:3];
-  assign crossbar__recv_port_valid[3:3] = recv_data_valid[3];
+  assign recv_data_ack[3] = crossbar__recv_port_rdy[3:3];
+  assign crossbar__recv_port_en[3:3] = recv_data_valid[3];
   assign channel__recv_msg[0] = crossbar__send_port_data[0];
-  assign channel__recv_en[0] = crossbar__send_port_en[0:0];
-  assign crossbar__send_port_rdy[0:0] = channel__recv_rdy[0];
+  assign channel__recv_en_i[0] = crossbar__send_port_en[0:0];
+  assign crossbar__send_port_rdy[0:0] = channel__recv_rdy_o[0];
   assign channel__recv_msg[1] = crossbar__send_port_data[1];
-  assign channel__recv_en[1] = crossbar__send_port_en[1:1];
-  assign crossbar__send_port_rdy[1:1] = channel__recv_rdy[1];
+  assign channel__recv_en_i[1] = crossbar__send_port_en[1:1];
+  assign crossbar__send_port_rdy[1:1] = channel__recv_rdy_o[1];
   assign channel__recv_msg[2] = crossbar__send_port_data[2];
-  assign channel__recv_en[2] = crossbar__send_port_en[2:2];
-  assign crossbar__send_port_rdy[2:2] = channel__recv_rdy[2];
+  assign channel__recv_en_i[2] = crossbar__send_port_en[2:2];
+  assign crossbar__send_port_rdy[2:2] = channel__recv_rdy_o[2];
   assign channel__recv_msg[3] = crossbar__send_port_data[3];
-  assign channel__recv_en[3] = crossbar__send_port_en[3:3];
-  assign crossbar__send_port_rdy[3:3] = channel__recv_rdy[3];
+  assign channel__recv_en_i[3] = crossbar__send_port_en[3:3];
+  assign crossbar__send_port_rdy[3:3] = channel__recv_rdy_o[3];
   assign channel__recv_msg[4] = crossbar__send_port_data[4];
-  assign channel__recv_en[4] = crossbar__send_port_en[4:4];
-  assign crossbar__send_port_rdy[4:4] = channel__recv_rdy[4];
+  assign channel__recv_en_i[4] = crossbar__send_port_en[4:4];
+  assign crossbar__send_port_rdy[4:4] = channel__recv_rdy_o[4];
   assign channel__recv_msg[5] = crossbar__send_port_data[5];
-  assign channel__recv_en[5] = crossbar__send_port_en[5:5];
-  assign crossbar__send_port_rdy[5:5] = channel__recv_rdy[5];
+  assign channel__recv_en_i[5] = crossbar__send_port_en[5:5];
+  assign crossbar__send_port_rdy[5:5] = channel__recv_rdy_o[5];
   assign channel__recv_msg[6] = crossbar__send_port_data[6];
-  assign channel__recv_en[6] = crossbar__send_port_en[6:6];
-  assign crossbar__send_port_rdy[6:6] = channel__recv_rdy[6];
+  assign channel__recv_en_i[6] = crossbar__send_port_en[6:6];
+  assign crossbar__send_port_rdy[6:6] = channel__recv_rdy_o[6];
   assign channel__recv_msg[7] = crossbar__send_port_data[7];
-  assign channel__recv_en[7] = crossbar__send_port_en[7:7];
-  assign crossbar__send_port_rdy[7:7] = channel__recv_rdy[7];
+  assign channel__recv_en_i[7] = crossbar__send_port_en[7:7];
+  assign crossbar__send_port_rdy[7:7] = channel__recv_rdy_o[7];
   assign reg_predicate__recv_msg = crossbar__send_predicate;
-  assign crossbar__send_predicate_rdy = reg_predicate__recv_rdy;
-  assign reg_predicate__recv_en = crossbar__send_port_en[8:8];
+  assign crossbar__send_predicate_rdy = reg_predicate__recv_rdy_o;
+  assign reg_predicate__recv_en_i = crossbar__send_predicate_en;
   assign demux_bypass_ack__in_[0] = send_data_ack[0];
-  assign channel__send_en[0] = demux_bypass_ack__out[0][0];
-  assign crossbar__send_bypass_port_ack[0:0] = demux_bypass_ack__out[0][1];
-  assign demux_bypass_ack__sel[0] = crossbar__send_bypass_req[0:0];
-  assign mux_bypass_valid__in_[0][0] = channel__send_valid[0];
-  assign mux_bypass_valid__in_[0][1] = crossbar__send_bypass_data_valid[0:0];
+  assign channel__send_en_i[0] = demux_bypass_ack__out[0][0];
+  assign crossbar__bp_port_rdy[0:0] = demux_bypass_ack__out[0][1];
+  assign demux_bypass_ack__sel[0] = crossbar__bp_port_sel[0:0];
+  assign mux_bypass_valid__in_[0][0] = channel__send_valid_o[0];
+  assign mux_bypass_valid__in_[0][1] = crossbar__bp_port_en[0:0];
   assign send_data_valid[0] = mux_bypass_valid__out[0];
-  assign mux_bypass_valid__sel[0] = crossbar__send_bypass_req[0:0];
+  assign mux_bypass_valid__sel[0] = crossbar__bp_port_sel[0:0];
   assign mux_bypass_data__in_[0][0] = channel__send_msg[0];
-  assign mux_bypass_data__in_[0][1] = crossbar__send_data_bypass[0];
+  assign mux_bypass_data__in_[0][1] = crossbar__send_bp_data[0];
   assign send_data[0] = mux_bypass_data__out[0];
-  assign mux_bypass_data__sel[0] = crossbar__send_bypass_req[0:0];
+  assign mux_bypass_data__sel[0] = crossbar__bp_port_sel[0:0];
   assign demux_bypass_ack__in_[1] = send_data_ack[1];
-  assign channel__send_en[1] = demux_bypass_ack__out[1][0];
-  assign crossbar__send_bypass_port_ack[1:1] = demux_bypass_ack__out[1][1];
-  assign demux_bypass_ack__sel[1] = crossbar__send_bypass_req[1:1];
-  assign mux_bypass_valid__in_[1][0] = channel__send_valid[1];
-  assign mux_bypass_valid__in_[1][1] = crossbar__send_bypass_data_valid[1:1];
+  assign channel__send_en_i[1] = demux_bypass_ack__out[1][0];
+  assign crossbar__bp_port_rdy[1:1] = demux_bypass_ack__out[1][1];
+  assign demux_bypass_ack__sel[1] = crossbar__bp_port_sel[1:1];
+  assign mux_bypass_valid__in_[1][0] = channel__send_valid_o[1];
+  assign mux_bypass_valid__in_[1][1] = crossbar__bp_port_en[1:1];
   assign send_data_valid[1] = mux_bypass_valid__out[1];
-  assign mux_bypass_valid__sel[1] = crossbar__send_bypass_req[1:1];
+  assign mux_bypass_valid__sel[1] = crossbar__bp_port_sel[1:1];
   assign mux_bypass_data__in_[1][0] = channel__send_msg[1];
-  assign mux_bypass_data__in_[1][1] = crossbar__send_data_bypass[1];
+  assign mux_bypass_data__in_[1][1] = crossbar__send_bp_data[1];
   assign send_data[1] = mux_bypass_data__out[1];
-  assign mux_bypass_data__sel[1] = crossbar__send_bypass_req[1:1];
+  assign mux_bypass_data__sel[1] = crossbar__bp_port_sel[1:1];
   assign demux_bypass_ack__in_[2] = send_data_ack[2];
-  assign channel__send_en[2] = demux_bypass_ack__out[2][0];
-  assign crossbar__send_bypass_port_ack[2:2] = demux_bypass_ack__out[2][1];
-  assign demux_bypass_ack__sel[2] = crossbar__send_bypass_req[2:2];
-  assign mux_bypass_valid__in_[2][0] = channel__send_valid[2];
-  assign mux_bypass_valid__in_[2][1] = crossbar__send_bypass_data_valid[2:2];
+  assign channel__send_en_i[2] = demux_bypass_ack__out[2][0];
+  assign crossbar__bp_port_rdy[2:2] = demux_bypass_ack__out[2][1];
+  assign demux_bypass_ack__sel[2] = crossbar__bp_port_sel[2:2];
+  assign mux_bypass_valid__in_[2][0] = channel__send_valid_o[2];
+  assign mux_bypass_valid__in_[2][1] = crossbar__bp_port_en[2:2];
   assign send_data_valid[2] = mux_bypass_valid__out[2];
-  assign mux_bypass_valid__sel[2] = crossbar__send_bypass_req[2:2];
+  assign mux_bypass_valid__sel[2] = crossbar__bp_port_sel[2:2];
   assign mux_bypass_data__in_[2][0] = channel__send_msg[2];
-  assign mux_bypass_data__in_[2][1] = crossbar__send_data_bypass[2];
+  assign mux_bypass_data__in_[2][1] = crossbar__send_bp_data[2];
   assign send_data[2] = mux_bypass_data__out[2];
-  assign mux_bypass_data__sel[2] = crossbar__send_bypass_req[2:2];
+  assign mux_bypass_data__sel[2] = crossbar__bp_port_sel[2:2];
   assign demux_bypass_ack__in_[3] = send_data_ack[3];
-  assign channel__send_en[3] = demux_bypass_ack__out[3][0];
-  assign crossbar__send_bypass_port_ack[3:3] = demux_bypass_ack__out[3][1];
-  assign demux_bypass_ack__sel[3] = crossbar__send_bypass_req[3:3];
-  assign mux_bypass_valid__in_[3][0] = channel__send_valid[3];
-  assign mux_bypass_valid__in_[3][1] = crossbar__send_bypass_data_valid[3:3];
+  assign channel__send_en_i[3] = demux_bypass_ack__out[3][0];
+  assign crossbar__bp_port_rdy[3:3] = demux_bypass_ack__out[3][1];
+  assign demux_bypass_ack__sel[3] = crossbar__bp_port_sel[3:3];
+  assign mux_bypass_valid__in_[3][0] = channel__send_valid_o[3];
+  assign mux_bypass_valid__in_[3][1] = crossbar__bp_port_en[3:3];
   assign send_data_valid[3] = mux_bypass_valid__out[3];
-  assign mux_bypass_valid__sel[3] = crossbar__send_bypass_req[3:3];
+  assign mux_bypass_valid__sel[3] = crossbar__bp_port_sel[3:3];
   assign mux_bypass_data__in_[3][0] = channel__send_msg[3];
-  assign mux_bypass_data__in_[3][1] = crossbar__send_data_bypass[3];
+  assign mux_bypass_data__in_[3][1] = crossbar__send_bp_data[3];
   assign send_data[3] = mux_bypass_data__out[3];
-  assign mux_bypass_data__sel[3] = crossbar__send_bypass_req[3:3];
+  assign mux_bypass_data__sel[3] = crossbar__bp_port_sel[3:3];
   assign element__recv_opt_msg_ctrl = tile_ctrl_msg.ctrl;
   assign element__recv_opt_msg_predicate = tile_ctrl_msg.predicate;
   assign element__recv_opt_msg_out_routine = tile_ctrl_msg.out_routine;
@@ -4728,34 +4802,32 @@ module TileRTL__81a1f6d8ea7ff0a1
   assign element__cgra_i_imm_bmask_i = tile_ctrl_msg.i_imm_bmask;
   assign element__cgra_o_imm_bmask_i = tile_ctrl_msg.o_imm_bmask;
   assign element__cgra_signed_mode_i = tile_ctrl_msg.signed_mode;
-  assign element__fu_execution_ini = tile_execution_ini_begin;
-  assign element__fu_execution_valid = tile_execution_valid;
-  assign element__fu_dry_run_begin = tile_dry_run_begin;
   assign element__fu_dry_run_ack = tile_dry_run_ack;
   assign element__fu_opt_enable = tile_opt_enable;
   assign element__fu_propagate_en = tile_propagate_en;
   assign element__recv_port_data[0] = channel__send_msg[4];
-  assign element__recv_port_valid[0:0] = channel__send_valid[4];
-  assign channel__send_en[4] = element__recv_port_ack[0:0];
+  assign element__recv_port_en[0:0] = channel__send_valid_o[4];
+  assign channel__send_en_i[4] = element__recv_port_rdy[0:0];
   assign element__recv_port_data[1] = channel__send_msg[5];
-  assign element__recv_port_valid[1:1] = channel__send_valid[5];
-  assign channel__send_en[5] = element__recv_port_ack[1:1];
+  assign element__recv_port_en[1:1] = channel__send_valid_o[5];
+  assign channel__send_en_i[5] = element__recv_port_rdy[1:1];
   assign element__recv_port_data[2] = channel__send_msg[6];
-  assign element__recv_port_valid[2:2] = channel__send_valid[6];
-  assign channel__send_en[6] = element__recv_port_ack[2:2];
+  assign element__recv_port_en[2:2] = channel__send_valid_o[6];
+  assign channel__send_en_i[6] = element__recv_port_rdy[2:2];
   assign element__recv_port_data[3] = channel__send_msg[7];
-  assign element__recv_port_valid[3:3] = channel__send_valid[7];
-  assign channel__send_en[7] = element__recv_port_ack[3:3];
+  assign element__recv_port_en[3:3] = channel__send_valid_o[7];
+  assign channel__send_en_i[7] = element__recv_port_rdy[3:3];
   assign element__recv_predicate_data = reg_predicate__send_msg;
-  assign element__recv_predicate_valid = reg_predicate__send_valid;
-  assign reg_predicate__send_en = element__recv_predicate_ack;
+  assign element__recv_predicate_en = reg_predicate__send_valid_o;
+  assign reg_predicate__send_en_i = element__recv_predicate_rdy;
   assign element__recv_const_data = const_queue__send_const_msg;
-  assign const_queue__send_const_en = element__recv_const_ack;
+  assign const_queue__send_const_en = element__recv_const_rdy;
   assign crossbar__recv_port_data[4] = element__send_port_data[0];
-  assign crossbar__recv_port_valid[4:4] = element__send_port_valid[0:0];
+  assign crossbar__recv_port_en[4:4] = element__send_port_en[0:0];
+  assign element__send_port_rdy[0:0] = crossbar__recv_port_rdy[4:4];
   assign crossbar__recv_port_data[5] = element__send_port_data[1];
-  assign crossbar__recv_port_valid[5:5] = element__send_port_valid[1:1];
-  assign element__send_port_ack = crossbar__recv_port_fu_out_ack;
+  assign crossbar__recv_port_en[5:5] = element__send_port_en[1:1];
+  assign element__send_port_rdy[1:1] = crossbar__recv_port_rdy[5:5];
   assign element__recv_lut_k_data = recv_lut_k;
   assign element__recv_lut_b_data = recv_lut_b;
   assign element__recv_lut_p_data = recv_lut_p;
@@ -4798,6 +4870,26 @@ module CGRARTL__top
   localparam logic [3:0] __const__STAGE_CONFIG_DONE  = 4'd5;
   localparam logic [3:0] __const__STAGE_COMP  = 4'd6;
   localparam logic [3:0] __const__STAGE_COMP_HALT  = 4'd7;
+  localparam logic [2:0] __const__height_at__lambda__s_tile_0__send_data_ack_1_  = 3'd4;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__send_data_ack_1_  = 1'd0;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_0__send_data_ack_1_  = 3'd4;
+  localparam logic [2:0] __const__height_at__lambda__s_tile_1__send_data_ack_1_  = 3'd4;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_1__send_data_ack_1_  = 1'd1;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_1__send_data_ack_1_  = 3'd4;
+  localparam logic [2:0] __const__height_at__lambda__s_tile_2__send_data_ack_1_  = 3'd4;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_2__send_data_ack_1_  = 2'd2;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_2__send_data_ack_1_  = 3'd4;
+  localparam logic [2:0] __const__height_at__lambda__s_tile_3__send_data_ack_1_  = 3'd4;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_3__send_data_ack_1_  = 2'd3;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_3__send_data_ack_1_  = 3'd4;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_3__send_data_ack_3_  = 2'd3;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_3__send_data_ack_3_  = 3'd4;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_7__send_data_ack_3_  = 3'd7;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_7__send_data_ack_3_  = 3'd4;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_11__send_data_ack_3_  = 4'd11;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_11__send_data_ack_3_  = 3'd4;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_15__send_data_ack_3_  = 4'd15;
+  localparam logic [2:0] __const__width_at__lambda__s_tile_15__send_data_ack_3_  = 3'd4;
   logic [0:0] cgra_cmd_dry_run_begin;
   logic [0:0] cgra_computation_en;
   logic [0:0] cgra_config_cmd_begin;
@@ -4851,6 +4943,7 @@ module CGRARTL__top
   logic [7:0] tile_recv_ni_data_ack;
   logic [7:0] tile_recv_ni_data_valid;
   logic [0:0] tile_recv_opt_waddr_en;
+  logic [7:0] tile_send_ni_ack;
   logic [15:0] tile_xbar_propagate_rdy_vector;
 
   logic [0:0] lut_array__clk;
@@ -5739,11 +5832,6 @@ module CGRARTL__top
   end
 
   
-  always_comb begin : _lambda__s_cgra_recv_wi_data_ack
-    cgra_recv_wi_data_ack = cgra_recv_wi_data_rdy & cgra_recv_wi_data_valid;
-  end
-
-  
   always_comb begin : _lambda__s_cgra_recv_wi_data_rdy
     cgra_recv_wi_data_rdy = ( recv_wopt_sliced_flattened_rdy | recv_wconst_flattened_rdy ) | recv_wlut_flattened_rdy;
   end
@@ -5755,17 +5843,57 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_recv_wconst_flattened_en
-    recv_wconst_flattened_en = cgra_recv_wi_data_ack & cgra_config_data_begin;
+    recv_wconst_flattened_en = ( cgra_recv_wi_data_rdy & cgra_recv_wi_data_valid ) & cgra_config_data_begin;
   end
 
   
   always_comb begin : _lambda__s_recv_wlut_flattened_en
-    recv_wlut_flattened_en = cgra_recv_wi_data_ack & cgra_config_lut_begin;
+    recv_wlut_flattened_en = ( cgra_recv_wi_data_rdy & cgra_recv_wi_data_valid ) & cgra_config_lut_begin;
   end
 
   
   always_comb begin : _lambda__s_recv_wopt_sliced_flattened_en
-    recv_wopt_sliced_flattened_en = cgra_recv_wi_data_ack & cgra_config_cmd_begin;
+    recv_wopt_sliced_flattened_en = ( cgra_recv_wi_data_rdy & cgra_recv_wi_data_valid ) & cgra_config_cmd_begin;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__send_data_ack_1_
+    tile__send_data_ack[4'd0][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_0__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_0__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_0__send_data_ack_1_ ) )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_11__send_data_ack_3_
+    tile__send_data_ack[4'd11][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_15__send_data_ack_3_
+    tile__send_data_ack[4'd15][2'd3] = cgra_send_ni_data__rdy[( 4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ ) + 4'd1 ) / 5'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_1__send_data_ack_1_
+    tile__send_data_ack[4'd1][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_1__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_1__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_1__send_data_ack_1_ ) )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_2__send_data_ack_1_
+    tile__send_data_ack[4'd2][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_2__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_2__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_2__send_data_ack_1_ ) )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_3__send_data_ack_1_
+    tile__send_data_ack[4'd3][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_3__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_3__send_data_ack_1_ ) )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_3__send_data_ack_3_
+    tile__send_data_ack[4'd3][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ )] | tile_dry_run_ack;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_7__send_data_ack_3_
+    tile__send_data_ack[4'd7][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ )] | tile_dry_run_ack;
   end
 
   
@@ -6019,6 +6147,7 @@ module CGRARTL__top
   assign recv_wopt_sliced_flattened = cgra_recv_wi_data;
   assign recv_wconst_flattened = cgra_recv_wi_data;
   assign recv_wlut_flattened = cgra_recv_wi_data;
+  assign cgra_recv_wi_data_ack = cgra_recv_wi_data_rdy;
   assign tile__clk[0] = clk;
   assign tile__reset[0] = reset;
   assign tile__clk[1] = clk;
@@ -6268,7 +6397,6 @@ module CGRARTL__top
   assign tile__recv_data[1][2] = tile__send_data[0][3];
   assign tile__recv_data_valid[1][2] = tile__send_data_valid[0][3];
   assign tile__send_data_ack[0][3] = tile__recv_data_ack[1][2];
-  assign tile__send_data_ack[0][1] = cgra_send_ni_data__rdy[4];
   assign cgra_send_ni_data__en[4] = tile__send_data_valid[0][1];
   assign cgra_send_ni_data__msg[4] = tile__send_data[0][1].payload;
   assign tile__recv_data_valid[0][1] = 1'd0;
@@ -6300,7 +6428,6 @@ module CGRARTL__top
   assign tile__recv_data[2][2] = tile__send_data[1][3];
   assign tile__recv_data_valid[2][2] = tile__send_data_valid[1][3];
   assign tile__send_data_ack[1][3] = tile__recv_data_ack[2][2];
-  assign tile__send_data_ack[1][1] = cgra_send_ni_data__rdy[5];
   assign cgra_send_ni_data__en[5] = tile__send_data_valid[1][1];
   assign cgra_send_ni_data__msg[5] = tile__send_data[1][1].payload;
   assign tile__recv_data_valid[1][1] = 1'd0;
@@ -6327,7 +6454,6 @@ module CGRARTL__top
   assign tile__recv_data[3][2] = tile__send_data[2][3];
   assign tile__recv_data_valid[3][2] = tile__send_data_valid[2][3];
   assign tile__send_data_ack[2][3] = tile__recv_data_ack[3][2];
-  assign tile__send_data_ack[2][1] = cgra_send_ni_data__rdy[6];
   assign cgra_send_ni_data__en[6] = tile__send_data_valid[2][1];
   assign cgra_send_ni_data__msg[6] = tile__send_data[2][1].payload;
   assign tile__recv_data_valid[2][1] = 1'd0;
@@ -6351,12 +6477,10 @@ module CGRARTL__top
   assign tile__recv_data[2][3] = tile__send_data[3][2];
   assign tile__recv_data_valid[2][3] = tile__send_data_valid[3][2];
   assign tile__send_data_ack[3][2] = tile__recv_data_ack[2][3];
-  assign tile__send_data_ack[3][1] = cgra_send_ni_data__rdy[7];
   assign cgra_send_ni_data__en[7] = tile__send_data_valid[3][1];
   assign cgra_send_ni_data__msg[7] = tile__send_data[3][1].payload;
   assign tile__recv_data_valid[3][1] = 1'd0;
   assign tile__recv_data[3][1] = { 64'd0, 8'd0 };
-  assign tile__send_data_ack[3][3] = cgra_send_ni_data__rdy[0];
   assign cgra_send_ni_data__en[0] = tile__send_data_valid[3][3];
   assign cgra_send_ni_data__msg[0] = tile__send_data[3][3].payload;
   assign tile__recv_data_valid[3][3] = 1'd0;
@@ -6460,7 +6584,6 @@ module CGRARTL__top
   assign tile__recv_data[6][3] = tile__send_data[7][2];
   assign tile__recv_data_valid[6][3] = tile__send_data_valid[7][2];
   assign tile__send_data_ack[7][2] = tile__recv_data_ack[6][3];
-  assign tile__send_data_ack[7][3] = cgra_send_ni_data__rdy[1];
   assign cgra_send_ni_data__en[1] = tile__send_data_valid[7][3];
   assign cgra_send_ni_data__msg[1] = tile__send_data[7][3].payload;
   assign tile__recv_data_valid[7][3] = 1'd0;
@@ -6564,7 +6687,6 @@ module CGRARTL__top
   assign tile__recv_data[10][3] = tile__send_data[11][2];
   assign tile__recv_data_valid[10][3] = tile__send_data_valid[11][2];
   assign tile__send_data_ack[11][2] = tile__recv_data_ack[10][3];
-  assign tile__send_data_ack[11][3] = cgra_send_ni_data__rdy[2];
   assign cgra_send_ni_data__en[2] = tile__send_data_valid[11][3];
   assign cgra_send_ni_data__msg[2] = tile__send_data[11][3].payload;
   assign tile__recv_data_valid[11][3] = 1'd0;
@@ -6676,7 +6798,6 @@ module CGRARTL__top
   assign tile__recv_data_valid[15][0] = cgra_recv_ni_data__en[7];
   assign tile__recv_data[15][0].payload = cgra_recv_ni_data__msg[7];
   assign tile__recv_data[15][0].predicate = 8'd0;
-  assign tile__send_data_ack[15][3] = cgra_send_ni_data__rdy[3];
   assign cgra_send_ni_data__en[3] = tile__send_data_valid[15][3];
   assign cgra_send_ni_data__msg[3] = tile__send_data[15][3].payload;
   assign tile__recv_data_valid[15][3] = 1'd0;
