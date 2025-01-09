@@ -206,6 +206,7 @@ module NormalQueueDpath__667be9aa0698ac40
   input  logic [0:0] waddr ,
   input  logic [0:0] wen 
 );
+  localparam CGRAData_64_1__payload_64__predicate_1 default_value  = { 64'd0, 1'd1 };
   localparam logic [1:0] __const__num_entries_at_up_rf_write  = 2'd2;
   CGRAData_64_1__payload_64__predicate_1 regs [0:1];
   CGRAData_64_1__payload_64__predicate_1 regs_rdata;
@@ -219,7 +220,7 @@ module NormalQueueDpath__667be9aa0698ac40
   always_ff @(posedge clk) begin : up_rf_write
     if ( reset | local_reset_data ) begin
       for ( int unsigned i = 1'd0; i < 2'( __const__num_entries_at_up_rf_write ); i += 1'd1 )
-        regs[1'(i)] <= { 64'd0, 1'd0 };
+        regs[1'(i)] <= default_value;
     end
     else if ( wen ) begin
       regs[waddr] <= enq_msg;
@@ -535,6 +536,7 @@ module NormalQueueDpath__87869422fafcf71b
   input  logic [1:0] waddr ,
   input  logic [0:0] wen 
 );
+  localparam CGRAData_64_1__payload_64__predicate_1 default_value  = { 64'd0, 1'd1 };
   localparam logic [2:0] __const__num_entries_at_up_rf_write  = 3'd4;
   CGRAData_64_1__payload_64__predicate_1 regs [0:3];
   CGRAData_64_1__payload_64__predicate_1 regs_rdata;
@@ -548,7 +550,7 @@ module NormalQueueDpath__87869422fafcf71b
   always_ff @(posedge clk) begin : up_rf_write
     if ( reset | local_reset_data ) begin
       for ( int unsigned i = 1'd0; i < 3'( __const__num_entries_at_up_rf_write ); i += 1'd1 )
-        regs[2'(i)] <= { 64'd0, 1'd0 };
+        regs[2'(i)] <= default_value;
     end
     else if ( wen ) begin
       regs[waddr] <= enq_msg;
@@ -777,6 +779,7 @@ module ConstQueueRTL__a54094f779e9bc58
 );
   logic [4:0] data_counter;
   logic [4:0] data_counter_biased;
+  logic [4:0] data_counter_biased_nxt;
   logic [4:0] data_counter_nxt;
 
   logic [0:0] reg_file__clk;
@@ -800,19 +803,27 @@ module ConstQueueRTL__a54094f779e9bc58
 
 
   
+  always_comb begin : _lambda__s_tile_0__const_queue_data_counter_biased
+    data_counter_biased = data_counter + data_counter_base;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__const_queue_data_counter_biased_nxt
+    data_counter_biased_nxt = ( data_counter_base == data_counter_th ) ? data_counter_base : data_counter_biased + 5'd1;
+  end
+
+  
   always_comb begin : _lambda__s_tile_0__const_queue_data_counter_nxt
-    data_counter_nxt = data_counter + 5'd1;
+    data_counter_nxt = ( data_counter_base == data_counter_th ) ? 5'd0 : data_counter + 5'd1;
   end
 
   
   always_ff @(posedge clk) begin : update_raddr
     if ( reset | execution_ini ) begin
       data_counter <= 5'd0;
-      data_counter_biased <= 5'd0;
     end
     else if ( send_const_en ) begin
-      data_counter <= ( data_counter_nxt == data_counter_th ) ? 5'd0 : data_counter_nxt;
-      data_counter_biased <= ( data_counter_nxt == data_counter_th ) ? data_counter_base : data_counter + data_counter_base;
+      data_counter <= ( data_counter_biased_nxt == data_counter_th ) ? 5'd0 : data_counter_nxt;
     end
   end
 
@@ -835,6 +846,7 @@ module CrossbarRTL__549e61f8d5b6eb92
   output logic [3:0] bp_port_sel ,
   input  logic [0:0] clk ,
   input  logic [0:0] exe_fsafe_en ,
+  input  logic [0:0] execution_ini ,
   input  logic [2:0] recv_opt_msg_outport [0:8],
   input  CGRAData_64_1__payload_64__predicate_1 recv_port_data [0:5],
   input  logic [5:0] recv_port_en ,
@@ -885,10 +897,10 @@ module CrossbarRTL__549e61f8d5b6eb92
   
   always_comb begin : data_routing
     for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-      send_port_data[3'(i)] = { 64'd0, 1'd0 };
+      send_port_data[3'(i)] = { 64'd0, 1'd1 };
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_inports_at_data_routing ); i += 1'd1 )
-      send_bp_data[2'(i)] = { 64'd0, 1'd0 };
-    send_predicate = 1'd0;
+      send_bp_data[2'(i)] = { 64'd0, 1'd1 };
+    send_predicate = 1'd1;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_data_routing ); i += 1'd1 ) begin
       for ( int unsigned j = 1'd0; j < 3'( __const__num_connect_inports_at_data_routing ); j += 1'd1 ) begin
         send_port_data[3'(i)].payload = send_port_data[3'(i)].payload | ( recv_port_data[3'(j)].payload & { { 63 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
@@ -980,7 +992,7 @@ module CrossbarRTL__549e61f8d5b6eb92
 
   
   always_ff @(posedge clk) begin : xbar_propagate_sync
-    if ( reset ) begin
+    if ( reset | execution_ini ) begin
       for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_xbar_propagate_sync ) + 4'd1; i += 1'd1 )
         xbar_outport_sel[4'(i)] <= 6'd0;
     end
@@ -1050,8 +1062,9 @@ module CtrlMemRTL__d3d31847de3fc702
   input  logic [0:0] clk ,
   input  logic [4:0] cmd_counter_base ,
   input  logic [4:0] cmd_counter_th ,
-  input  logic [15:0] cmd_iter_counter_th ,
+  input  logic [0:0] cmd_el_mode_en ,
   output logic [0:0] cmd_iter_th_hit ,
+  input  logic [31:0] cmd_iter_th_info ,
   input  logic [0:0] execution_ini ,
   input  logic [0:0] nxt_ctrl_en ,
   input  logic [0:0] re_execution_ini ,
@@ -1067,9 +1080,16 @@ module CtrlMemRTL__d3d31847de3fc702
   localparam logic [1:0] __const__num_opt_slice_at_buffer_opt_slice  = 2'd2;
   logic [4:0] cmd_counter;
   logic [4:0] cmd_counter_biased;
+  logic [4:0] cmd_counter_biased_nxt;
   logic [4:0] cmd_counter_nxt;
-  logic [15:0] cmd_iter_counter;
+  logic [26:0] cmd_iter_counter;
+  logic [26:0] cmd_iter_counter_th;
   logic [63:0] concat_ctrl_msg;
+  logic [0:0] global_iter_hit;
+  logic [4:0] iter_counter;
+  logic [4:0] iter_counter_nxt;
+  logic [4:0] iter_counter_th;
+  logic [0:0] local_iter_hit;
   logic [31:0] opt_slice_regs [0:1];
 
   logic [0:0] reg_file__clk;
@@ -1098,6 +1118,11 @@ module CtrlMemRTL__d3d31847de3fc702
   end
 
   
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_cmd_counter_biased_nxt
+    cmd_counter_biased_nxt = cmd_counter_biased + 5'd1;
+  end
+
+  
   always_comb begin : _lambda__s_tile_0__ctrl_mem_cmd_counter_nxt
     cmd_counter_nxt = cmd_counter + 5'd1;
   end
@@ -1105,6 +1130,21 @@ module CtrlMemRTL__d3d31847de3fc702
   
   always_comb begin : _lambda__s_tile_0__ctrl_mem_cmd_iter_th_hit
     cmd_iter_th_hit = cmd_iter_counter == cmd_iter_counter_th;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_global_iter_hit
+    global_iter_hit = ( ( ~cmd_el_mode_en ) & ( iter_counter_nxt == iter_counter_th ) ) | ( cmd_el_mode_en & local_iter_hit );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_iter_counter_nxt
+    iter_counter_nxt = iter_counter + 5'd1;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_local_iter_hit
+    local_iter_hit = cmd_counter_biased_nxt == cmd_counter_th;
   end
 
   
@@ -1121,10 +1161,10 @@ module CtrlMemRTL__d3d31847de3fc702
   
   always_ff @(posedge clk) begin : update_iter
     if ( ( reset | re_execution_ini ) | execution_ini ) begin
-      cmd_iter_counter <= ( cmd_counter_th == 5'd1 ) ? 16'd1 : 16'd0;
+      cmd_iter_counter <= ( iter_counter_th == 5'd1 ) ? 27'd1 : 27'd0;
     end
-    else if ( nxt_ctrl_en & ( cmd_counter_nxt == cmd_counter_th ) ) begin
-      cmd_iter_counter <= cmd_iter_counter + 16'd1;
+    else if ( nxt_ctrl_en & global_iter_hit ) begin
+      cmd_iter_counter <= cmd_iter_counter + 27'd1;
     end
   end
 
@@ -1132,9 +1172,11 @@ module CtrlMemRTL__d3d31847de3fc702
   always_ff @(posedge clk) begin : update_raddr
     if ( reset | execution_ini ) begin
       cmd_counter <= 5'd0;
+      iter_counter <= 5'd0;
     end
     else if ( nxt_ctrl_en ) begin
-      cmd_counter <= ( cmd_counter_nxt == cmd_counter_th ) ? 5'd0 : cmd_counter_nxt;
+      cmd_counter <= local_iter_hit ? 5'd0 : cmd_counter_nxt;
+      iter_counter <= global_iter_hit ? 5'd0 : iter_counter_nxt;
     end
   end
 
@@ -1146,6 +1188,8 @@ module CtrlMemRTL__d3d31847de3fc702
   assign reg_file__waddr[0] = recv_waddr;
   assign reg_file__wdata[0] = recv_ctrl_msg;
   assign reg_file__wen[0] = recv_waddr_en;
+  assign iter_counter_th = cmd_iter_th_info[4:0];
+  assign cmd_iter_counter_th = cmd_iter_th_info[31:5];
   assign reg_file__raddr[0] = cmd_counter_biased[3:0];
   assign send_ctrl_msg = reg_file__rdata[0];
 
@@ -1290,18 +1334,18 @@ module vec_alu #(
 
 	generate
 		for (i = 0; i<NUM_SLICES; i++) begin
-			assign l1_op_a[i] = $signed({op_signed_mask[i] & op_signed_i[0] & operand_a_i[(i+1)*ATOM_WIDTH-1], operand_a_i[i*ATOM_WIDTH+:ATOM_WIDTH]});
-			assign l1_op_b[i] = $signed({op_signed_mask[i] & op_signed_i[1] & operand_b_i[(i+1)*ATOM_WIDTH-1], operand_b_i[i*ATOM_WIDTH+:ATOM_WIDTH]});
+			assign l1_op_a[i] = $signed({op_signed_i[0] & operand_a_i[(i+1)*ATOM_WIDTH-1], operand_a_i[i*ATOM_WIDTH+:ATOM_WIDTH]});
+			assign l1_op_b[i] = $signed({op_signed_i[1] & operand_b_i[(i+1)*ATOM_WIDTH-1], operand_b_i[i*ATOM_WIDTH+:ATOM_WIDTH]});
 		end
 
 		for (i = 0; i<NUM_SLICES/2; i++) begin
-			assign l2_op_a[i] = $signed({op_signed_mask[i] & op_signed_i[0] & operand_a_i[(i+1)*2*ATOM_WIDTH-1], operand_a_i[i*2*ATOM_WIDTH+:2*ATOM_WIDTH]});
-			assign l2_op_b[i] = $signed({op_signed_mask[i] & op_signed_i[1] & operand_b_i[(i+1)*2*ATOM_WIDTH-1], operand_b_i[i*2*ATOM_WIDTH+:2*ATOM_WIDTH]});
+			assign l2_op_a[i] = $signed({op_signed_i[0] & operand_a_i[(i+1)*2*ATOM_WIDTH-1], operand_a_i[i*2*ATOM_WIDTH+:2*ATOM_WIDTH]});
+			assign l2_op_b[i] = $signed({op_signed_i[1] & operand_b_i[(i+1)*2*ATOM_WIDTH-1], operand_b_i[i*2*ATOM_WIDTH+:2*ATOM_WIDTH]});
 		end
 
 		for (i = 0; i<NUM_SLICES/4; i++) begin
-			assign l3_op_a[i] = $signed({op_signed_mask[i] & op_signed_i[0] & operand_a_i[(i+1)*4*ATOM_WIDTH-1], operand_a_i[i*4*ATOM_WIDTH+:4*ATOM_WIDTH]});
-			assign l3_op_b[i] = $signed({op_signed_mask[i] & op_signed_i[1] & operand_b_i[(i+1)*4*ATOM_WIDTH-1], operand_b_i[i*4*ATOM_WIDTH+:4*ATOM_WIDTH]});
+			assign l3_op_a[i] = $signed({op_signed_i[0] & operand_a_i[(i+1)*4*ATOM_WIDTH-1], operand_a_i[i*4*ATOM_WIDTH+:4*ATOM_WIDTH]});
+			assign l3_op_b[i] = $signed({op_signed_i[1] & operand_b_i[(i+1)*4*ATOM_WIDTH-1], operand_b_i[i*4*ATOM_WIDTH+:4*ATOM_WIDTH]});
 		end
 	endgenerate
 
@@ -1309,20 +1353,20 @@ module vec_alu #(
 		unique case (vector_mode_i)
 			VEC_MODE8: begin
 				for (int i = 0; i<NUM_SLICES; i++) begin
-					op_a_ext[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3] = (operator_i == ALU_RADD) ? l1_op_a[(2*i)%NUM_SLICES] : l1_op_a[i];
-					op_b_ext[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3] = (operator_i == ALU_RADD) ? l1_op_a[(2*i+1)%NUM_SLICES] : l1_op_b[i];
+					op_a_ext[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3] = l1_op_a[i];
+					op_b_ext[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3] = l1_op_b[i];
 				end
 			end
 			VEC_MODE16: begin
 				for (int i = 0; i<NUM_SLICES/2; i++) begin
-					op_a_ext[i*2*(ATOM_WIDTH+3)+:2*(ATOM_WIDTH+3)] = (operator_i == ALU_RADD) ? l2_op_a[(2*i)%(NUM_SLICES/2)] : l2_op_a[i];
-					op_b_ext[i*2*(ATOM_WIDTH+3)+:2*(ATOM_WIDTH+3)] = (operator_i == ALU_RADD) ? l2_op_a[(2*i+1)%(NUM_SLICES/2)] : l2_op_b[i];
+					op_a_ext[i*2*(ATOM_WIDTH+3)+:2*(ATOM_WIDTH+3)] = l2_op_a[i];
+					op_b_ext[i*2*(ATOM_WIDTH+3)+:2*(ATOM_WIDTH+3)] = l2_op_b[i];
 				end
 			end
 			VEC_MODE32: begin
 				for (int i = 0; i<NUM_SLICES/4; i++) begin
-					op_a_ext[i*4*(ATOM_WIDTH+3)+:4*(ATOM_WIDTH+3)] = (operator_i == ALU_RADD) ? l3_op_a[(2*i)%(NUM_SLICES/4)] : l3_op_a[i];
-					op_b_ext[i*4*(ATOM_WIDTH+3)+:4*(ATOM_WIDTH+3)] = (operator_i == ALU_RADD) ? l3_op_a[(2*i+1)%(NUM_SLICES/4)] : l3_op_b[i];
+					op_a_ext[i*4*(ATOM_WIDTH+3)+:4*(ATOM_WIDTH+3)] = l3_op_a[i];
+					op_b_ext[i*4*(ATOM_WIDTH+3)+:4*(ATOM_WIDTH+3)] = l3_op_b[i];
 				end
 			end
 			default: begin
@@ -1410,27 +1454,26 @@ module vec_alu #(
 		op_a_ext[65:44], op_b_ext[87:66], op_a_ext[21:0], op_b_ext[43:22]
 	} : ~{
 		op_a_ext[43:0], op_b_ext[87:44]
-	} ) ) : op_b_ext_neg) : ((operator_i == ALU_RADD) ? {{(4*ATOM_WIDTH+12){1'b0}}, op_b_ext[0+:4*ATOM_WIDTH+12]} : op_b_ext);
+	} ) ) : op_b_ext_neg) : ((operator_i == ALU_RADD) ? {{(4*ATOM_WIDTH+12){1'b0}}, op_a_ext[4*ATOM_WIDTH+12+:4*ATOM_WIDTH+12]} : op_b_ext);
 
 	generate
 		for (i = 0; i < NUM_SLICES; i++) begin
 			assign adder_in_a[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_op_a[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3];
-			assign adder_in_a[i*(ATOM_WIDTH+4)] = ~op_signed_mask[(i+7)%8];
+			assign adder_in_a[i*(ATOM_WIDTH+4)] = (adder_op_b_negate || (operator_i == ALU_ABS )) ? 1'b1 : ~op_signed_mask[7-i%8];
 		end
 	endgenerate
 
-	assign adder_in_b[0] = (adder_op_b_negate || (operator_i == ALU_ABS )) ? 1'b1 : 1'b0;
 	generate
-		for (i = 1; i < NUM_SLICES; i++) begin
+		for (i = 0; i < NUM_SLICES; i++) begin
 			assign adder_in_b[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_op_b[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3];
 			assign adder_in_b[i*(ATOM_WIDTH+4)] = (adder_op_b_negate || (operator_i == ALU_ABS )) ? op_signed_mask[7-i%8] : 1'b0;
 		end
 	endgenerate
 
 	generate
-		for (i = 1; i < NUM_SLICES; i++) begin
+		for (i = 0; i < NUM_SLICES; i++) begin
 			assign adder_in_round[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_result_expanded_tmp[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3];
-			assign adder_in_round[i*(ATOM_WIDTH+4)] = ~op_signed_mask[(i+7)%8];
+			assign adder_in_round[i*(ATOM_WIDTH+4)] = ~op_signed_mask[7-i%8];
 			assign adder_in_round_bmask[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = (round_en_i && ~o_imm_i[5]) ? adder_op_round[i*(ATOM_WIDTH+3)+:ATOM_WIDTH+3] : '0;
 			assign adder_in_round_bmask[i*(ATOM_WIDTH+4)] = 1'b0;
 		end
@@ -1438,10 +1481,10 @@ module vec_alu #(
 
 	generate
 		for (i = 0; i < NUM_SLICES/4; i++) begin
-			assign radder_in_a_l2_tmp[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_result_expanded_tmp[2*i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3];
-			assign radder_in_a_l2_tmp[i*(ATOM_WIDTH+4)] = ~op_signed_mask[(i+7)%8];
-			assign radder_in_b_l2_tmp[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_result_expanded_tmp[(2*i+1)*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3];
-			assign radder_in_b_l2_tmp[i*(ATOM_WIDTH+4)] = ~op_signed_mask[(i+7)%8];
+			assign radder_in_a_l2_tmp[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_result_expanded_tmp[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3];
+			assign radder_in_a_l2_tmp[i*(ATOM_WIDTH+4)] = ~op_signed_mask[7-i%8];
+			assign radder_in_b_l2_tmp[i*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3] = adder_result_expanded_tmp[(i+NUM_SLICES/4)*(ATOM_WIDTH+4)+1+:ATOM_WIDTH+3];
+			assign radder_in_b_l2_tmp[i*(ATOM_WIDTH+4)] = 1'b0;
 		end
 	endgenerate
 
@@ -2135,6 +2178,8 @@ module ALURTL__e9baeef75836042d
   assign alu_element_reset = reset;
   assign alu_enable = opt_launch_en_i;
   assign opt_launch_rdy_o = alu_element_ex_rdy_o;
+  assign alu_element_ex_en_i = alu_enable;
+  assign alu_element_out_rdy_i = output_rdy_i;
   assign alu_element_alu_ext_mode_i = ex_alu_ext_mode_i;
   assign alu_element_vector_mode_i = vector_mode_i;
   assign alu_element_operator_i = ex_operator_i;
@@ -2181,7 +2226,11 @@ module vec_mult #(
 (
     input logic clk,
     input logic reset,
-    input logic fu_local_reset,
+    input logic fu_local_reset_stage,
+    input logic fu_local_reset_ctrl,
+    input logic fu_local_reset_data,
+    input logic fu_dry_run_done,
+    input logic fu_sync_dry_run,
 
     input logic [1:0] vector_mode_i,
     input logic [1:0] operator_i,
@@ -2201,6 +2250,7 @@ module vec_mult #(
     input logic op_predicate_i,
     output logic result_predicate_o,
 
+    output logic mul_is_ff_cc_rdy_o,
     output logic out_en_o,
     input logic out_rdy_i,
     output logic ex_rdy_o,
@@ -2241,6 +2291,8 @@ module vec_mult #(
     logic is_cplx, is_cplx_s1, is_cplx_s2;
     logic is_ff_cc_s0, is_ff_rdy_s0;
     logic is_ff_cc_s1, is_ff_rdy_s1;
+    logic l2_p_en_s0, l3_p_en_s0;
+    logic l1_p_en_s1, l2_p_en_s1, l3_p_en_s1;
 
     logic [D_WIDTH-1:0] accumulator_s1;
     logic [1:0] operator_s1, operator_s2;
@@ -2251,7 +2303,9 @@ module vec_mult #(
     logic [$clog2(Q_WIDTH):0] o_shift_imm_s1, o_shift_imm_s2;
 
     logic [2*ATOM_WIDTH+1:0] mac_in_a_s0 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+1:0] mac_in_b_tmp_s0 [NUM_SLICES];
     logic [2*ATOM_WIDTH+1:0] mac_in_b_s0 [NUM_SLICES];
+    logic [2*ATOM_WIDTH+4:0] mac_l1_acc_s1_tmp [NUM_SLICES];
     logic [2*ATOM_WIDTH+4:0] mac_l1_acc_s1 [NUM_SLICES];
     logic [2*ATOM_WIDTH+1:0] dot_l1_out_s0 [NUM_SLICES/2];
     logic [2*ATOM_WIDTH+1:0] dot_l1_out_s1 [NUM_SLICES/2];
@@ -2271,6 +2325,7 @@ module vec_mult #(
     logic [4*ATOM_WIDTH+1:0] mac_l2_out_h_s0 [NUM_SLICES/2];
     logic [4*ATOM_WIDTH+1:0] mac_l2_out_h_s1 [NUM_SLICES/2];
     logic [4*ATOM_WIDTH+9:0] mac_l2_out_ext_s1 [NUM_SLICES/2];
+    logic [4*ATOM_WIDTH+9:0] mac_l2_acc_s1_tmp [NUM_SLICES/2];
     logic [4*ATOM_WIDTH+9:0] mac_l2_acc_s1 [NUM_SLICES/2];
     logic [4*ATOM_WIDTH+9:0] mac_l2_acc_s2 [NUM_SLICES/2];
 
@@ -2284,6 +2339,7 @@ module vec_mult #(
     logic [4*ATOM_WIDTH+1:0] mac_l3_ci_result_s1_tmp [NUM_SLICES/2];
     logic [8*ATOM_WIDTH+1:0] mac_l3_out_s1 [NUM_SLICES/4];
     logic [8*ATOM_WIDTH+19:0] mac_l3_out_ext_s1 [NUM_SLICES/4];
+    logic [8*ATOM_WIDTH+19:0] mac_l3_acc_s1_tmp [NUM_SLICES/4];
     logic [8*ATOM_WIDTH+19:0] mac_l3_acc_s1 [NUM_SLICES/4];
     logic [8*ATOM_WIDTH+19:0] mac_l3_acc_s2 [NUM_SLICES/4];
     logic [8*ATOM_WIDTH+19:0] dot_l3_acc_s1, dot_l3_acc_cr_s1, dot_l3_acc_ci_s1;
@@ -2363,16 +2419,46 @@ module vec_mult #(
     logic send_rdy[PIPELINE_STAGES-1];
     logic busy[PIPELINE_STAGES-1];
 
+    logic busy_ini[PIPELINE_STAGES-1];
+    logic operator_s1_ini, vector_mode_s1_ini;
+    logic operator_s2_ini, vector_mode_s2_ini;
+
     always_ff @( posedge clk ) begin : pipeline_sync
-      if ( reset | fu_local_reset ) begin
+      if ( reset | fu_local_reset_stage ) begin
         for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
           busy[i] <= 0;
         end
       end
+      else if ( fu_sync_dry_run & ~fu_dry_run_done ) begin
+        for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+          busy[i] <= busy_ini[i];
+        end
+      end 
       else begin
         for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
           busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
         end
+      end
+    end
+
+    always_ff @( posedge clk ) begin
+      if ( reset | fu_local_reset_ctrl ) begin
+        for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+          busy_ini[i] <= 0;
+        end
+        operator_s1_ini <= 0;
+        vector_mode_s1_ini <= 0;
+        operator_s2_ini <= 0;
+        vector_mode_s2_ini <= 0;
+      end
+      else if ( fu_dry_run_done ) begin
+        for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+          busy_ini[i] <= busy[i];
+        end
+        operator_s1_ini <= operator_s1;
+        vector_mode_s1_ini <= vector_mode_s1;
+        operator_s2_ini <= operator_s2;
+        vector_mode_s2_ini <= vector_mode_s2;
       end
     end
 
@@ -2392,9 +2478,11 @@ module vec_mult #(
     assign recv_en[0] = is_ff_cc_s0 ? 1'b0 : ex_en_i;
     assign recv_en[1] = is_ff_cc_s1 ? 1'b0 : send_en[0];
     assign send_rdy[1] = ((is_ff_cc_s0 & is_ff_rdy_s0) | (is_ff_cc_s1 & is_ff_rdy_s1)) ? 1'b0 : out_rdy_i;
-    assign send_rdy[0] = (is_ff_cc_s0 & is_ff_rdy_s0) ? 1'b0 : ( (is_ff_cc_s1 & is_ff_rdy_s1) ? out_rdy_i : recv_rdy[1] );
-    assign ex_rdy_o = (is_ff_cc_s0 & is_ff_rdy_s0) ? out_rdy_i : recv_rdy[0];
+    assign send_rdy[0] = (is_ff_cc_s0 & is_ff_rdy_s0) ? 1'b0 : ( is_ff_cc_s1 ? out_rdy_i & is_ff_rdy_s1 : recv_rdy[1] );
+    assign ex_rdy_o = is_ff_cc_s0 ? out_rdy_i & is_ff_rdy_s0 : recv_rdy[0];
     assign out_en_o = (is_ff_cc_s0 & is_ff_rdy_s0) ? ex_en_i : ( (is_ff_cc_s1 & is_ff_rdy_s1) ? send_en[0] : send_en[1] );
+
+    assign mul_is_ff_cc_rdy_o = is_ff_rdy_s0;
 
     always_comb begin : signed_bits_mask
       unique case (vector_mode_i)
@@ -2413,6 +2501,9 @@ module vec_mult #(
       endcase
     end
 
+    assign l2_p_en_s0 = (vector_mode_i == VEC_MODE32) || (vector_mode_i == VEC_MODE16);
+    assign l3_p_en_s0 = (vector_mode_i == VEC_MODE32);
+
     always_comb begin : partial_mul_operand
       for (int i = 0; i < NUM_SLICES; i++) begin
         char_op_a[i] = {op_signed_mask[i%4] & op_signed_i[0] & op_a_i[(i+1)*ATOM_WIDTH-1], op_a_i[i*ATOM_WIDTH+:ATOM_WIDTH]};
@@ -2422,25 +2513,25 @@ module vec_mult #(
 
     always_comb begin : partial_mul_operand_rev
       for (int i = 0; i < NUM_SLICES/2; i++) begin
-        char_op_a_rev[i*2] = (vector_mode_i != VEC_MODE8) ? char_op_a[i*2+1] : '0;
-        char_op_a_rev[i*2+1] = (vector_mode_i != VEC_MODE8) ? char_op_a[i*2] : '0;
+        char_op_a_rev[i*2] = l2_p_en_s0 ? char_op_a[i*2+1] : '0;
+        char_op_a_rev[i*2+1] = l2_p_en_s0 ? char_op_a[i*2] : '0;
       end
     end
 
     always_comb begin : partial_mul_operand_rev_h
       for (int i = 0; i < NUM_SLICES/4; i++) begin
-        char_op_a_h[i*4] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+2] : '0;
-        char_op_a_h[i*4+1] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+3] : '0;
-        char_op_a_h[i*4+2] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4] : '0;
-        char_op_a_h[i*4+3] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+1] : '0;
-        char_op_a_rev_h[i*4] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+3] : '0;
-        char_op_a_rev_h[i*4+1] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+2] : '0;
-        char_op_a_rev_h[i*4+2] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4+1] : '0;
-        char_op_a_rev_h[i*4+3] = (vector_mode_i == VEC_MODE32) ? char_op_a[i*4] : '0;
-        char_op_b_h[i*4] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4] : '0;
-        char_op_b_h[i*4+1] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4+1] : '0;
-        char_op_b_h[i*4+2] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4+2] : '0;
-        char_op_b_h[i*4+3] = (vector_mode_i == VEC_MODE32) ? char_op_b[i*4+3] : '0;
+        char_op_a_h[i*4] = l3_p_en_s0 ? char_op_a[i*4+2] : '0;
+        char_op_a_h[i*4+1] = l3_p_en_s0 ? char_op_a[i*4+3] : '0;
+        char_op_a_h[i*4+2] = l3_p_en_s0 ? char_op_a[i*4] : '0;
+        char_op_a_h[i*4+3] = l3_p_en_s0 ? char_op_a[i*4+1] : '0;
+        char_op_a_rev_h[i*4] = l3_p_en_s0 ? char_op_a[i*4+3] : '0;
+        char_op_a_rev_h[i*4+1] = l3_p_en_s0 ? char_op_a[i*4+2] : '0;
+        char_op_a_rev_h[i*4+2] = l3_p_en_s0 ? char_op_a[i*4+1] : '0;
+        char_op_a_rev_h[i*4+3] = l3_p_en_s0 ? char_op_a[i*4] : '0;
+        char_op_b_h[i*4] = l3_p_en_s0 ? char_op_b[i*4] : '0;
+        char_op_b_h[i*4+1] = l3_p_en_s0 ? char_op_b[i*4+1] : '0;
+        char_op_b_h[i*4+2] = l3_p_en_s0 ? char_op_b[i*4+2] : '0;
+        char_op_b_h[i*4+3] = l3_p_en_s0 ? char_op_b[i*4+3] : '0;
       end
     end
 
@@ -2457,21 +2548,22 @@ module vec_mult #(
 
     generate
       for (l=0; l < NUM_SLICES/2; l++) begin: gen_l2_op
-        assign mac_l2_p_s0[l] = $signed(out_tmp_rev[2*l+1]) + $signed(out_tmp_rev[2*l]);
-        assign mac_l2_p_s0[l+NUM_SLICES/2] = $signed(out_tmp_rev_h[2*l+1]) + $signed(out_tmp_rev_h[2*l]); 
-        assign mac_l2_cr_s0[l] = $signed(out_tmp[2*l+1]) - $signed(out_tmp[2*l]);
-        assign mac_l2_cr_s0[l+NUM_SLICES/2] = $signed(out_tmp[2*l+1]) + $signed(out_tmp[2*l]);
-        assign mac_l2_ci_s0[l] = mac_l2_p_s0[l];
-        assign mac_l2_ci_s0[l+NUM_SLICES/2] = $signed(out_tmp_rev[2*l+1]) - $signed(out_tmp_rev[2*l]);
-        assign mac_l2_out_s0[l] = {out_tmp[2*l+1], out_tmp[2*l][0+:ATOM_WIDTH*2]} + {{ATOM_WIDTH{mac_l2_p_s0[l][2*ATOM_WIDTH]}}, mac_l2_p_s0[l], {ATOM_WIDTH{1'b0}}};
-        assign mac_l2_out_h_s0[l] = {out_tmp_h[2*l+1], out_tmp_h[2*l][0+:ATOM_WIDTH*2]} + {{ATOM_WIDTH{mac_l2_p_s0[l+NUM_SLICES/2][2*ATOM_WIDTH]}}, mac_l2_p_s0[l+NUM_SLICES/2], {ATOM_WIDTH{1'b0}}};
+        assign mac_l2_p_s0[l] = l2_p_en_s0 ? $signed(out_tmp_rev[2*l+1]) + $signed(out_tmp_rev[2*l]) : '0;
+        assign mac_l2_p_s0[l+NUM_SLICES/2] = l2_p_en_s0 ? $signed(out_tmp_rev_h[2*l+1]) + $signed(out_tmp_rev_h[2*l]) : '0; 
+        assign mac_l2_cr_s0[l] = l2_p_en_s0 ? $signed(out_tmp[2*l+1]) - $signed(out_tmp[2*l]) : '0;
+        assign mac_l2_cr_s0[l+NUM_SLICES/2] = l2_p_en_s0 ? $signed(out_tmp[2*l+1]) + $signed(out_tmp[2*l]) : '0;
+        assign mac_l2_ci_s0[l] = l2_p_en_s0 ? mac_l2_p_s0[l] : '0;
+        assign mac_l2_ci_s0[l+NUM_SLICES/2] = l2_p_en_s0 ? $signed(out_tmp_rev[2*l+1]) - $signed(out_tmp_rev[2*l]) : '0;
+        assign mac_l2_out_s0[l] = l2_p_en_s0 ? {out_tmp[2*l+1], out_tmp[2*l][0+:ATOM_WIDTH*2]} + {{ATOM_WIDTH{mac_l2_p_s0[l][2*ATOM_WIDTH+1]}}, mac_l2_p_s0[l], {ATOM_WIDTH{1'b0}}} : '0;
+        assign mac_l2_out_h_s0[l] = l3_p_en_s0 ? {out_tmp_h[2*l+1], out_tmp_h[2*l][0+:ATOM_WIDTH*2]} + {{ATOM_WIDTH{mac_l2_p_s0[l+NUM_SLICES/2][2*ATOM_WIDTH+1]}}, mac_l2_p_s0[l+NUM_SLICES/2], {ATOM_WIDTH{1'b0}}} : '0;
       end
     endgenerate
 
     generate
       for (i = 0; i < NUM_SLICES; i++) begin
         assign mac_in_a_s0[i] = (operator_i == MUL_MAC && vector_mode_i == VEC_MODE8) ? $signed(out_tmp[i]) : '0;
-        assign mac_in_b_s0[i] = (operator_i == MUL_MAC && vector_mode_i == VEC_MODE8) ? $signed({{(ATOM_WIDTH*2){op_signed_i[2] & op_c_i[(i+1)*ATOM_WIDTH-1]}}, op_c_i[i*ATOM_WIDTH+:ATOM_WIDTH], round_en_s1} <<< o_imm_i[0+:$clog2(ATOM_WIDTH*2)]) : '0;
+        assign mac_in_b_tmp_s0[i] = (operator_i == MUL_MAC && vector_mode_i == VEC_MODE8) ? $signed({{(ATOM_WIDTH*2){op_signed_i[2] & op_c_i[(i+1)*ATOM_WIDTH-1]}}, op_c_i[i*ATOM_WIDTH+:ATOM_WIDTH], round_en_i} <<< o_imm_i[0+:$clog2(ATOM_WIDTH*2)]) : '0;
+        assign mac_in_b_s0[i] = $signed(mac_in_b_tmp_s0[i][2*ATOM_WIDTH+1:1]);
       end
     endgenerate
 
@@ -2484,17 +2576,31 @@ module vec_mult #(
       
     generate
       for (i = 0; i < NUM_SLICES/2; i++) begin
-        assign dot_l1_out_s0[i] = $signed(out_tmp[i*2]) + $signed(out_tmp[i*2+1]);
+        assign dot_l1_out_s0[i] = (operator_i == MUL_DOT && vector_mode_i == VEC_MODE8) ? $signed(out_tmp[i*2]) + $signed(out_tmp[i*2+1]) : '0;
       end
     endgenerate
 
 
-    always_comb begin : signed_bits_mask_s1
-      unique case (vector_mode_s1)
-        VEC_MODE32: op_signed_mask_s1 = is_cplx_s1 ? 4'b1010 : 4'b1000;
-        VEC_MODE16: op_signed_mask_s1 = is_cplx_s1 ? 4'b1111 : 4'b1010;
-        VEC_MODE8: op_signed_mask_s1 = 4'b1111;
-        default: op_signed_mask_s1 = '0;
+    always_comb begin 
+      unique case ({vector_mode_s1, is_cplx_s1})
+        {VEC_MODE32, 1'b0}: begin
+          op_signed_mask_s1 = 4'b1000;
+          l3_p_en_s1 = 1'b1;
+        end
+        {VEC_MODE16, 1'b0}, {VEC_MODE32, 1'b1}: begin
+          op_signed_mask_s1 = 4'b1010;
+          l2_p_en_s1 = 1'b1;
+        end 
+        {VEC_MODE8, 1'b0}, {VEC_MODE16, 1'b1}: begin
+          op_signed_mask_s1 = 4'b1111;
+          l1_p_en_s1 = 1'b1;
+        end 
+        default: begin
+          op_signed_mask_s1 = '0;
+          l1_p_en_s1 = 1'b0;
+          l2_p_en_s1 = 1'b0;
+          l3_p_en_s1 = 1'b0;
+        end
       endcase
     end
 
@@ -2509,15 +2615,18 @@ module vec_mult #(
 
     generate
       for (i=0; i < NUM_SLICES; i++) begin: gen_l1_acc_s1
-        assign mac_l1_acc_s1[i] = $signed({{(ATOM_WIDTH*2){op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH-1]}}, accumulator_s1[i*ATOM_WIDTH+:ATOM_WIDTH], round_en_s1} <<< o_shift_imm_s1[0+:$clog2(ATOM_WIDTH*2)]);
+        assign mac_l1_acc_s1_tmp[i] = l1_p_en_s1 ? $signed({{(ATOM_WIDTH*2){op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH-1]}}, accumulator_s1[i*ATOM_WIDTH+:ATOM_WIDTH], round_en_s1} <<< o_shift_imm_s1[0+:$clog2(ATOM_WIDTH*2)]) : '0;
+        assign mac_l1_acc_s1[i] = $signed(mac_l1_acc_s1_tmp[i][2*ATOM_WIDTH+4:1]);
       end
       
       for (i=0; i < NUM_SLICES/2; i++) begin: gen_l2_acc_s1
-        assign mac_l2_acc_s1[i] = $signed({{(ATOM_WIDTH*4){op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*2-1]}}, accumulator_s1[i*ATOM_WIDTH*2+:ATOM_WIDTH*2], round_en_s1} <<< o_shift_imm_s1[0+:$clog2(ATOM_WIDTH*4)]);
+        assign mac_l2_acc_s1_tmp[i] = l2_p_en_s1 ? $signed({{(ATOM_WIDTH*4){op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*2-1]}}, accumulator_s1[i*ATOM_WIDTH*2+:ATOM_WIDTH*2], round_en_s1} <<< o_shift_imm_s1[0+:$clog2(ATOM_WIDTH*4)]) : '0;
+        assign mac_l2_acc_s1[i] = $signed(mac_l2_acc_s1_tmp[i][4*ATOM_WIDTH+9:1]);
       end
 
       for (i=0; i < NUM_SLICES/4; i++) begin: gen_l3_acc_s1
-        assign mac_l3_acc_s1[i] = $signed({{(ATOM_WIDTH*8){op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*4-1]}}, accumulator_s1[i*ATOM_WIDTH*4+:ATOM_WIDTH*4], round_en_s1} <<< o_shift_imm_s1[0+:$clog2(ATOM_WIDTH*8)]);
+        assign mac_l3_acc_s1_tmp[i] = l3_p_en_s1 ? $signed({{(ATOM_WIDTH*8){op_signed_c_s1 & accumulator_s1[(i+1)*ATOM_WIDTH*4-1]}}, accumulator_s1[i*ATOM_WIDTH*4+:ATOM_WIDTH*4], round_en_s1} <<< o_shift_imm_s1[0+:$clog2(ATOM_WIDTH*8)]) : '0;
+        assign mac_l3_acc_s1[i] = $signed(mac_l3_acc_s1_tmp[i][8*ATOM_WIDTH+19:1]);
       end
     endgenerate
 
@@ -2530,6 +2639,8 @@ module vec_mult #(
       for (i = 0; i < NUM_SLICES/2; i++) begin
         assign dot_l1_out_ext_s1[i] = $signed(dot_l1_out_s1[i]);
         assign mac_l2_out_ext_s1[i] = $signed(mac_l2_out_s1[i]);
+      end
+      for (i = 0; i < NUM_SLICES; i++) begin
         assign mac_l2_ci_ext_s1[i] = $signed(mac_l2_ci_s1[i]);
         assign mac_l2_cr_ext_s1[i] = $signed(mac_l2_cr_s1[i]);
       end
@@ -2537,59 +2648,81 @@ module vec_mult #(
 
     generate
         for (l=0; l < NUM_SLICES/4; l++) begin: gen_l3_op
-        assign mac_l3_p_s1[l] = $signed(mac_l2_out_h_s1[2*l+1]) + $signed(mac_l2_out_h_s1[2*l]);
-        assign mac_l3_cr_s1[l] = $signed(mac_l2_out_s1[2*l+1]) - $signed(mac_l2_out_s1[2*l]);
-        assign mac_l3_cr_s1[l+NUM_SLICES/4] = $signed(mac_l2_out_s1[2*l+1]) + $signed(mac_l2_out_s1[2*l]);
-        assign mac_l3_ci_s1[l] = mac_l3_p_s1[l];
-        assign mac_l3_ci_s1[l+NUM_SLICES/4] = $signed(mac_l2_out_h_s1[2*l+1]) - $signed(mac_l2_out_h_s1[2*l]);
-        assign mac_l3_out_s1[l] = {mac_l2_out_s1[2*l+1], mac_l2_out_s1[2*l][0+:ATOM_WIDTH*4]} + {{(ATOM_WIDTH*2){mac_l3_p_s1[l][4*ATOM_WIDTH]}}, mac_l3_p_s1[l], {(2*ATOM_WIDTH){1'b0}}};
+          assign mac_l3_p_s1[l] = $signed(mac_l2_out_h_s1[2*l+1]) + $signed(mac_l2_out_h_s1[2*l]);
+          assign mac_l3_cr_s1[l] = $signed(mac_l2_out_s1[2*l+1]) - $signed(mac_l2_out_s1[2*l]);
+          assign mac_l3_cr_s1[l+NUM_SLICES/4] = $signed(mac_l2_out_s1[2*l+1]) + $signed(mac_l2_out_s1[2*l]);
+          assign mac_l3_ci_s1[l] = mac_l3_p_s1[l];
+          assign mac_l3_ci_s1[l+NUM_SLICES/4] = $signed(mac_l2_out_h_s1[2*l+1]) - $signed(mac_l2_out_h_s1[2*l]);
+          assign mac_l3_out_s1[l] = {mac_l2_out_s1[2*l+1], mac_l2_out_s1[2*l][0+:ATOM_WIDTH*4]} + {{(ATOM_WIDTH*2){mac_l3_p_s1[l][4*ATOM_WIDTH]}}, mac_l3_p_s1[l], {(2*ATOM_WIDTH){1'b0}}};
 
-        assign mac_l3_out_ext_s1[l] = $signed(mac_l3_out_s1[l]);
-        assign mac_l3_ci_ext_s1[l] = $signed(mac_l3_ci_s1[l]);
-        assign mac_l3_cr_ext_s1[l] = $signed(mac_l3_cr_s1[l]);
-      end
+          assign mac_l3_out_ext_s1[l] = $signed(mac_l3_out_s1[l]);
+        end
+        for (l=0; l < NUM_SLICES/2; l++) begin: gen_l3_c_op
+          assign mac_l3_ci_ext_s1[l] = $signed(mac_l3_ci_s1[l]);
+          assign mac_l3_cr_ext_s1[l] = $signed(mac_l3_cr_s1[l]);
+        end
     endgenerate
 
     always_comb begin : gen_acc_0_op
-
       acc_0_out_s1 = '0;
+      
+      unique case ({vector_mode_s1, is_cplx_s1})
+        {VEC_MODE8, 1'b0}, {VEC_MODE16, 1'b1}: begin
+          for (int i=0; i<NUM_SLICES; i++) begin
+            acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = mac_l1_acc_s1[i]; 
+          end
+        end
+        {VEC_MODE16, 1'b0}, {VEC_MODE32, 1'b1}: begin
+          for (int i=0; i<NUM_SLICES; i++) begin
+            acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = mac_l2_acc_s1[i/2][i%2*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
+          end
+        end
+        {VEC_MODE32, 1'b0}: begin
+          for (int i=0; i<NUM_SLICES; i++) begin
+            acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = mac_l3_acc_s1[i/4][i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
+          end
+        end
+        default: ;
+      endcase
+    end
 
-
+    always_comb begin: gen_dot_acc_op
+      for(int i=0; i<NUM_SLICES/4; i++) begin
+        dot_l3_acc_out_s1[i] = 0;
+      end
+      
       if (dot_ext_en_s1) begin
         for (int i=0; i<NUM_SLICES/2; i++) begin
-          acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = (operator_s1 == MUL_DOT) ? dot_l3_acc_s1[i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)] : dot_l3_acc_ci_s1[i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
+          dot_l3_acc_out_s1[0][i*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)] = (operator_s1 == MUL_DOT) ? dot_l3_acc_s1[i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)] : dot_l3_acc_ci_s1[i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
         end
-        for (int i=NUM_SLICES/2; i<NUM_SLICES; i++) begin
-          acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = (operator_s1 == MUL_DOT) ? '0 : dot_l3_acc_cr_s1[i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
+        for (int i=0; i<NUM_SLICES/2; i++) begin
+          dot_l3_acc_out_s1[1][i*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)] = (operator_s1 == MUL_DOT) ? '0 : dot_l3_acc_cr_s1[i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
         end
       end
       else begin
         unique case ({vector_mode_s1, is_cplx_s1})
-          {VEC_MODE8, 1'b0}, {VEC_MODE8, 1'b1}, {VEC_MODE16, 1'b1}: begin
-            for (int i=0; i<NUM_SLICES; i++) begin
-              acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = mac_l1_acc_s1[i]; 
-            end
+          {VEC_MODE8, 1'b0}: begin
+            dot_l3_acc_out_s1[0] = $signed(mac_l1_acc_s1[0]);
           end
-          {VEC_MODE16, 1'b0}, {VEC_MODE32, 1'b1}: begin
-            for (int i=0; i<NUM_SLICES; i++) begin
-              acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = mac_l2_acc_s1[i/2][i%2*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
-            end
+          {VEC_MODE16, 1'b0}: begin
+            dot_l3_acc_out_s1[0] = $signed(mac_l2_acc_s1[0]);
+          end
+          {VEC_MODE16, 1'b1}: begin
+            dot_l3_acc_out_s1[0] = $signed(mac_l1_acc_s1[0]);
+            dot_l3_acc_out_s1[1] = $signed(mac_l1_acc_s1[NUM_SLICES/2]);
           end
           {VEC_MODE32, 1'b0}: begin
-            for (int i=0; i<NUM_SLICES; i++) begin
-              acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)] = mac_l3_acc_s1[i/4][i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)]; 
-            end
+            dot_l3_acc_out_s1[0] = $signed(mac_l3_acc_s1[0]);
+          end
+          {VEC_MODE32, 1'b1}: begin
+            dot_l3_acc_out_s1[0] = $signed(mac_l2_acc_s1[0]);
+            dot_l3_acc_out_s1[1] = $signed(mac_l2_acc_s1[NUM_SLICES/4]);
           end
           default: ;
         endcase
       end
     end
 
-    generate
-      for (i=0; i<NUM_SLICES; i++) begin
-        assign dot_l3_acc_out_s1[i/4][i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)] = acc_0_out_s1[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)];
-      end
-    endgenerate
 
 
     always_comb begin : gen_acc_1_op
@@ -3198,11 +3331,8 @@ module vec_mult #(
       endcase
     end
 
-    generate
-      for (i=0; i<NUM_SLICES; i++) begin
-        assign dot_l3_acc_out_s2[i/4][i%4*(2*ATOM_WIDTH+5)+:(2*ATOM_WIDTH+5)] = acc_0_out_s2[i*(2*ATOM_WIDTH+6)+:(2*ATOM_WIDTH+5)];
-      end
-    endgenerate
+
+        
 
     generate
       for (i = 0; i<NUM_SLICES/4; i++) begin
@@ -3430,24 +3560,41 @@ module vec_mult #(
     assign l3_result_s2 = ((vector_mode_s2 == VEC_MODE32) && (operator_s2 == MUL_DOT)) ? l3_result_s2_q[0+:D_WIDTH] : '0;
 
 
+    always_ff @( posedge clk ) begin : s1_ctrl_sync
+      if ( reset | fu_local_reset_data ) begin
+        vector_mode_s1 <= 0;
+        operator_s1 <= 0;
+      end
+      else if ( fu_sync_dry_run & ~fu_dry_run_done ) begin
+        vector_mode_s1 <= vector_mode_s1_ini;
+        operator_s1 <= operator_s1_ini;
+      end
+      else if (recv_rdy[0] & recv_en[0]) begin
+        operator_s1 <= operator_i;
+        vector_mode_s1 <= vector_mode_i;
+      end
+    end
+    
     always_ff @( posedge clk ) begin : s1_buf_sync
-      if ( reset ) begin
+      if ( reset | fu_local_reset_data ) begin
         for (int i = 0; i < NUM_SLICES/2; i++) begin
           dot_l1_out_s1[i] <= 0;
         end
         for (int i = 0; i < NUM_SLICES/2; i++) begin
           mac_l2_out_s1[i] <= 0;
+        end
+        for (int i = 0; i < NUM_SLICES; i++) begin
           mac_l2_ci_s1[i] <= 0;
           mac_l2_cr_s1[i] <= 0;
         end
         accumulator_s1 <= 0;
-        operator_s1 <= 0;
+        
         op_signed_c_s1 <= 0;
         round_en_s1 <= 0;
         dot_ext_en_s1 <= 0;
-        vector_mode_s1 <= 0;
+        
         o_shift_imm_s1 <= 0;
-        op_predicate_s1 <= 0;
+        op_predicate_s1 <= 1;
       end
       else begin
         if (recv_rdy[0] & recv_en[0]) begin
@@ -3456,15 +3603,15 @@ module vec_mult #(
           end
           for (int i = 0; i < NUM_SLICES/2; i++) begin
             mac_l2_out_s1[i] <= mac_l2_out_s0[i];
+          end
+          for (int i = 0; i < NUM_SLICES; i++) begin
             mac_l2_ci_s1[i] <= mac_l2_ci_s0[i];
             mac_l2_cr_s1[i] <= mac_l2_cr_s0[i];
           end
           accumulator_s1 <= op_c_i;
-          operator_s1 <= operator_i;
           op_signed_c_s1 <= op_signed_i[2];
           round_en_s1 <= round_en_i;
           dot_ext_en_s1 <= dot_ext_en_i;
-          vector_mode_s1 <= vector_mode_i;
           o_shift_imm_s1 <= o_imm_i;
           op_predicate_s1 <= op_predicate_i;
         end
@@ -3472,13 +3619,13 @@ module vec_mult #(
     end
 
     always_ff @( posedge clk ) begin : s1_buf_sync_h
-      if ( reset ) begin
+      if ( reset | fu_local_reset_data ) begin
         for (int i = 0; i < NUM_SLICES/2; i++) begin
           mac_l2_out_h_s1[i] <= 0;
         end
       end
       else begin
-        if (recv_rdy[0] & recv_en[0] & (vector_mode_i == VEC_MODE32) ) begin
+        if (recv_rdy[0] & recv_en[0] & l3_p_en_s0 ) begin
           for (int i = 0; i < NUM_SLICES/2; i++) begin
             mac_l2_out_h_s1[i] <= mac_l2_out_h_s0[i];
           end
@@ -3486,33 +3633,44 @@ module vec_mult #(
       end
     end
 
+    always_ff @( posedge clk ) begin : s2_ctrl_sync
+      if ( reset | fu_local_reset_data ) begin
+        vector_mode_s2 <= 0;
+        operator_s2 <= 0;
+      end
+      else if ( fu_sync_dry_run & ~fu_dry_run_done ) begin
+        vector_mode_s2 <= vector_mode_s2_ini;
+        operator_s2 <= operator_s2_ini;
+      end
+      else if (recv_rdy[1] & recv_en[1]) begin
+        operator_s2 <= operator_s1;
+        vector_mode_s2 <= vector_mode_s1;
+      end
+    end
+
     always_ff @( posedge clk ) begin : s2_buf_sync
-      if ( reset ) begin
+      if ( reset | fu_local_reset_data ) begin
         for (int i = 0; i < 2; i++) begin
           acc_fw_s2[i] <= 0;
+          dot_l3_acc_out_s2[i] <= 0;
         end
-        operator_s2 <= 0;
-        vector_mode_s2 <= 0;
         o_shift_imm_s2 <= 0;
-        op_predicate_s2 <= 0;
-        acc_0_out_s2 <= 0;
+        op_predicate_s2 <= 1;
       end
       else begin
         if (recv_rdy[1] & recv_en[1]) begin
           for (int i = 0; i < 2; i++) begin
             acc_fw_s2[i] <= acc_s1_fw[i*2];
+            dot_l3_acc_out_s2[i] <= dot_l3_acc_out_s1[i];
           end
-          operator_s2 <= operator_s1;
-          vector_mode_s2 <= vector_mode_s1;
           o_shift_imm_s2 <= o_shift_imm_s1;
           op_predicate_s2 <= op_predicate_s1;
-          acc_0_out_s2 <= acc_0_out_s1;
         end
       end
     end
 
     always_ff @( posedge clk ) begin : s2_buf_sync_h
-      if ( reset ) begin
+      if ( reset | fu_local_reset_data ) begin
         for (int i = 0; i < 2; i++) begin
           acc_fw_s2_h[i] <= 0;
         end
@@ -3589,7 +3747,12 @@ module VEC_MUL_noparam
   input logic [1-1:0] clk ,
   input logic [1-1:0] ex_en_i ,
   output logic [1-1:0] ex_rdy_o ,
-  input logic [1-1:0] fu_local_reset ,
+  input logic [1-1:0] fu_dry_run_done ,
+  input logic [1-1:0] fu_local_reset_ctrl ,
+  input logic [1-1:0] fu_local_reset_data ,
+  input logic [1-1:0] fu_local_reset_stage ,
+  input logic [1-1:0] fu_sync_dry_run ,
+  output logic [1-1:0] mul_is_ff_cc_rdy_o ,
   input logic [6-1:0] o_imm_i ,
   input logic [64-1:0] op_a_i ,
   input logic [64-1:0] op_b_i ,
@@ -3613,7 +3776,12 @@ module VEC_MUL_noparam
     .clk( clk ),
     .ex_en_i( ex_en_i ),
     .ex_rdy_o( ex_rdy_o ),
-    .fu_local_reset( fu_local_reset ),
+    .fu_dry_run_done( fu_dry_run_done ),
+    .fu_local_reset_ctrl( fu_local_reset_ctrl ),
+    .fu_local_reset_data( fu_local_reset_data ),
+    .fu_local_reset_stage( fu_local_reset_stage ),
+    .fu_sync_dry_run( fu_sync_dry_run ),
+    .mul_is_ff_cc_rdy_o( mul_is_ff_cc_rdy_o ),
     .o_imm_i( o_imm_i ),
     .op_a_i( op_a_i ),
     .op_b_i( op_b_i ),
@@ -3640,10 +3808,14 @@ endmodule
 module MULRTL__e9baeef75836042d
 (
   input  logic [0:0] clk ,
+  output logic [0:0] ex_mul_is_ff_cc_rdy_o ,
   input  logic [2:0] ex_operand_signed_i ,
   input  logic [1:0] ex_operator_i ,
   input  logic [0:0] ex_round_enable_i ,
-  input  logic [0:0] fu_local_reset ,
+  input  logic [0:0] fu_dry_run_done ,
+  input  logic [0:0] fu_local_reset_a ,
+  input  logic [0:0] fu_local_reset_c ,
+  input  logic [0:0] fu_sync_dry_run ,
   input  logic [5:0] o_imm_i ,
   input  CGRAData_64_1__payload_64__predicate_1 operand_a_i ,
   input  CGRAData_64_1__payload_64__predicate_1 operand_b_i ,
@@ -3667,7 +3839,12 @@ module MULRTL__e9baeef75836042d
   logic [0:0] mul_element_clk;
   logic [0:0] mul_element_ex_en_i;
   logic [0:0] mul_element_ex_rdy_o;
-  logic [0:0] mul_element_fu_local_reset;
+  logic [0:0] mul_element_fu_dry_run_done;
+  logic [0:0] mul_element_fu_local_reset_ctrl;
+  logic [0:0] mul_element_fu_local_reset_data;
+  logic [0:0] mul_element_fu_local_reset_stage;
+  logic [0:0] mul_element_fu_sync_dry_run;
+  logic [0:0] mul_element_mul_is_ff_cc_rdy_o;
   logic [5:0] mul_element_o_imm_i;
   logic [63:0] mul_element_op_a_i;
   logic [63:0] mul_element_op_b_i;
@@ -3689,7 +3866,12 @@ module MULRTL__e9baeef75836042d
     .clk( mul_element_clk ),
     .ex_en_i( mul_element_ex_en_i ),
     .ex_rdy_o( mul_element_ex_rdy_o ),
-    .fu_local_reset( mul_element_fu_local_reset ),
+    .fu_dry_run_done( mul_element_fu_dry_run_done ),
+    .fu_local_reset_ctrl( mul_element_fu_local_reset_ctrl ),
+    .fu_local_reset_data( mul_element_fu_local_reset_data ),
+    .fu_local_reset_stage( mul_element_fu_local_reset_stage ),
+    .fu_sync_dry_run( mul_element_fu_sync_dry_run ),
+    .mul_is_ff_cc_rdy_o( mul_element_mul_is_ff_cc_rdy_o ),
     .o_imm_i( mul_element_o_imm_i ),
     .op_a_i( mul_element_op_a_i ),
     .op_b_i( mul_element_op_b_i ),
@@ -3739,7 +3921,11 @@ module MULRTL__e9baeef75836042d
   assign mul_element_clk = clk;
   assign mul_element_reset = reset;
   assign mul_enable = opt_launch_en_i;
-  assign mul_element_fu_local_reset = fu_local_reset;
+  assign mul_element_fu_local_reset_ctrl = fu_local_reset_c;
+  assign mul_element_fu_local_reset_data = fu_local_reset_a;
+  assign mul_element_fu_local_reset_stage = fu_local_reset_a;
+  assign mul_element_fu_dry_run_done = fu_dry_run_done;
+  assign mul_element_fu_sync_dry_run = fu_sync_dry_run;
   assign mul_element_vector_mode_i = vector_mode_i;
   assign mul_element_operator_i = ex_operator_i;
   assign mul_element_op_signed_i = ex_operand_signed_i;
@@ -3753,6 +3939,7 @@ module MULRTL__e9baeef75836042d
   assign mul_element_ex_en_i = mul_enable;
   assign mul_element_out_rdy_i = output_rdy_i;
   assign opt_launch_rdy_o = mul_element_ex_rdy_o;
+  assign ex_mul_is_ff_cc_rdy_o = mul_element_mul_is_ff_cc_rdy_o;
   assign send_out__msg[0] = result_o_vector[0];
   assign send_out__en[0] = mul_element_out_en_o;
   assign send_out__msg[1] = result_o_vector[1];
@@ -3782,7 +3969,11 @@ module vec_lut #(
 )(
 	input  logic clk,
 	input  logic reset,
-	input logic fu_local_reset,
+	input logic fu_local_reset_stage,
+	input logic fu_local_reset_ctrl,
+	input logic fu_local_reset_data,
+	input logic fu_dry_run_done,
+	input logic fu_sync_dry_run,
     input  logic [1:0] vector_mode_i,
 
 	input logic [$clog2(LUT_PRECISION)-1:0] k_imm_i,
@@ -3895,15 +4086,35 @@ module vec_lut #(
 	logic send_rdy[PIPELINE_STAGES-1];
 	logic busy[PIPELINE_STAGES-1];
 
+	logic busy_ini[PIPELINE_STAGES-1];
+
 	always_ff @( posedge clk ) begin : pipeline_sync
-		if ( reset | fu_local_reset ) begin
+		if ( reset | fu_local_reset_stage ) begin
 			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
 				busy[i] <= 0;
+			end
+		end
+		else if ( fu_sync_dry_run & ~fu_dry_run_done ) begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy[i] <= busy_ini[i];
 			end
 		end
 		else begin
 			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
 				busy[i] <= recv_rdy[i] ? recv_en[i] : busy[i];
+			end
+		end
+	end
+
+	always_ff @( posedge clk ) begin
+		if ( reset | fu_local_reset_ctrl ) begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy_ini[i] <= 0;
+			end
+		end
+		else if ( fu_dry_run_done ) begin
+			for (int i = 0; i < PIPELINE_STAGES - 1; i++) begin
+				busy_ini[i] <= busy[i];
 			end
 		end
 	end
@@ -4034,7 +4245,7 @@ module vec_lut #(
 
 
 	always_ff @( posedge clk ) begin : s1_buf_sync
-		if ( reset ) begin
+		if ( reset | fu_local_reset_data ) begin
 			for (int m=0; m < NUM_SLICES; m++) begin
 				lut_key_s1[m] <= 0;
 			end
@@ -4044,7 +4255,7 @@ module vec_lut #(
 			vector_mode_s1 <= 0;
 			k_imm_s1 <= 0;
 			o_imm_s1 <= 0;
-			op_predicate_s1 <= 0;
+			op_predicate_s1 <= 1;
 		end
 		else if (recv_rdy[0] & recv_en[0]) begin
 			for (int m=0; m < NUM_SLICES; m++) begin
@@ -4061,7 +4272,7 @@ module vec_lut #(
 	end
 
 	always_ff @( posedge clk ) begin : s2_buf_sync
-		if ( reset ) begin
+		if ( reset | fu_local_reset_data ) begin
 			for (int m=0; m < NUM_SLICES; m++) begin
 				lut_key_s2[m] <= 0;
 				lut_k_s2[m] <= 0;
@@ -4072,7 +4283,7 @@ module vec_lut #(
 			vector_mode_s2 <= 0;
 			k_imm_s2 <= 0;
 			o_imm_s2 <= 0;
-			op_predicate_s2 <= 0;
+			op_predicate_s2 <= 1;
 		end
 		else if (recv_rdy[1] & recv_en[1]) begin
 			for (int m=0; m < NUM_SLICES; m++) begin
@@ -4090,14 +4301,14 @@ module vec_lut #(
 	end
 
 	always_ff @( posedge clk ) begin : s3_buf_sync
-		if ( reset ) begin
+		if ( reset | fu_local_reset_data ) begin
 			for (int m=0; m < NUM_SLICES; m++) begin
 				lut_approx_s3[m] <= 0;
 			end
 			round_en_s3 <= 0;
 			vector_mode_s3 <= 0;
 			o_imm_s3 <= 0;
-			op_predicate_s3 <= 0;
+			op_predicate_s3 <= 1;
 		end
 		else if (recv_rdy[2] & recv_en[2]) begin
 			for (int m=0; m < NUM_SLICES; m++) begin
@@ -4139,7 +4350,11 @@ module VEC_LUT_noparam
   output logic [64-1:0] data_o ,
   input logic [1-1:0] ex_en_i ,
   output logic [1-1:0] ex_rdy_o ,
-  input logic [1-1:0] fu_local_reset ,
+  input logic [1-1:0] fu_dry_run_done ,
+  input logic [1-1:0] fu_local_reset_ctrl ,
+  input logic [1-1:0] fu_local_reset_data ,
+  input logic [1-1:0] fu_local_reset_stage ,
+  input logic [1-1:0] fu_sync_dry_run ,
   input logic [3-1:0] k_imm_i ,
   input logic [128-1:0] lut_b_i ,
   input logic [128-1:0] lut_k_i ,
@@ -4165,7 +4380,11 @@ module VEC_LUT_noparam
     .data_o( data_o ),
     .ex_en_i( ex_en_i ),
     .ex_rdy_o( ex_rdy_o ),
-    .fu_local_reset( fu_local_reset ),
+    .fu_dry_run_done( fu_dry_run_done ),
+    .fu_local_reset_ctrl( fu_local_reset_ctrl ),
+    .fu_local_reset_data( fu_local_reset_data ),
+    .fu_local_reset_stage( fu_local_reset_stage ),
+    .fu_sync_dry_run( fu_sync_dry_run ),
     .k_imm_i( k_imm_i ),
     .lut_b_i( lut_b_i ),
     .lut_k_i( lut_k_i ),
@@ -4194,7 +4413,10 @@ module LUTRTL__e9baeef75836042d
   input  logic [0:0] clk ,
   input  logic [1:0] ex_operand_signed_i ,
   input  logic [1:0] ex_operator_i ,
-  input  logic [0:0] fu_local_reset ,
+  input  logic [0:0] fu_dry_run_done ,
+  input  logic [0:0] fu_local_reset_a ,
+  input  logic [0:0] fu_local_reset_c ,
+  input  logic [0:0] fu_sync_dry_run ,
   input  logic [2:0] k_imm_i ,
   input  logic [127:0] lut_b_i ,
   input  logic [127:0] lut_k_i ,
@@ -4223,7 +4445,11 @@ module LUTRTL__e9baeef75836042d
   logic [63:0] lut_element_data_o;
   logic [0:0] lut_element_ex_en_i;
   logic [0:0] lut_element_ex_rdy_o;
-  logic [0:0] lut_element_fu_local_reset;
+  logic [0:0] lut_element_fu_dry_run_done;
+  logic [0:0] lut_element_fu_local_reset_ctrl;
+  logic [0:0] lut_element_fu_local_reset_data;
+  logic [0:0] lut_element_fu_local_reset_stage;
+  logic [0:0] lut_element_fu_sync_dry_run;
   logic [2:0] lut_element_k_imm_i;
   logic [127:0] lut_element_lut_b_i;
   logic [127:0] lut_element_lut_k_i;
@@ -4247,7 +4473,11 @@ module LUTRTL__e9baeef75836042d
     .data_o( lut_element_data_o ),
     .ex_en_i( lut_element_ex_en_i ),
     .ex_rdy_o( lut_element_ex_rdy_o ),
-    .fu_local_reset( lut_element_fu_local_reset ),
+    .fu_dry_run_done( lut_element_fu_dry_run_done ),
+    .fu_local_reset_ctrl( lut_element_fu_local_reset_ctrl ),
+    .fu_local_reset_data( lut_element_fu_local_reset_data ),
+    .fu_local_reset_stage( lut_element_fu_local_reset_stage ),
+    .fu_sync_dry_run( lut_element_fu_sync_dry_run ),
     .k_imm_i( lut_element_k_imm_i ),
     .lut_b_i( lut_element_lut_b_i ),
     .lut_k_i( lut_element_lut_k_i ),
@@ -4287,7 +4517,11 @@ module LUTRTL__e9baeef75836042d
   assign lut_element_clk = clk;
   assign lut_element_reset = reset;
   assign lut_enable = opt_launch_en_i;
-  assign lut_element_fu_local_reset = fu_local_reset;
+  assign lut_element_fu_local_reset_ctrl = fu_local_reset_c;
+  assign lut_element_fu_local_reset_data = fu_local_reset_a;
+  assign lut_element_fu_local_reset_stage = fu_local_reset_a;
+  assign lut_element_fu_dry_run_done = fu_dry_run_done;
+  assign lut_element_fu_sync_dry_run = fu_sync_dry_run;
   assign lut_element_vector_mode_i = vector_mode_i;
   assign lut_element_operator_ext_en_i = operator_ext_en_i;
   assign lut_element_lut_mode_i = ex_operator_i;
@@ -4470,7 +4704,8 @@ module cgra_fu_decoder
   always_comb begin : const_mux_selector_b
     id_operand_b_sel_o = 2'b10;
     unique case (id_operator_i[4:0])
-      OPT_ADD, OPT_SUB, OPT_RADD, OPT_MUL, OPT_SLL, OPT_SRL, OPT_SRA,
+      OPT_ADD, OPT_SUB, OPT_SLL, OPT_SRL, OPT_SRA,
+      OPT_RADD, OPT_MUL,
       OPT_MIN, OPT_MAX, OPT_XOR, OPT_OR, OPT_AND, OPT_PHI, 
       OPT_CMUL, OPT_EQ, OPT_GT, OPT_GE: begin
         id_operand_b_sel_o = id_operator_i[9] ? 2'b10 : ( id_operator_i[5] ? 2'b01 : 2'b00);
@@ -4806,11 +5041,15 @@ module CGRAFURTL__0090f6af61ee96c5
   input  logic [1:0] cgra_vec_mode_i ,
   input  logic [0:0] clk ,
   input  logic [0:0] exe_fsafe_en ,
+  input  logic [0:0] execution_ini ,
   input  logic [0:0] fu_dry_run_ack ,
-  input  logic [0:0] fu_local_reset ,
+  input  logic [0:0] fu_dry_run_done ,
+  input  logic [0:0] fu_local_reset_a ,
+  input  logic [0:0] fu_local_reset_c ,
   input  logic [0:0] fu_opt_enable ,
   input  logic [0:0] fu_propagate_en ,
   output logic [0:0] fu_propagate_rdy ,
+  input  logic [0:0] fu_sync_dry_run ,
   input  logic [31:0] recv_const_data ,
   output logic [0:0] recv_const_rdy ,
   input  logic [127:0] recv_lut_b_data ,
@@ -4943,10 +5182,14 @@ module CGRAFURTL__0090f6af61ee96c5
 
 
   logic [0:0] fu_1__clk;
+  logic [0:0] fu_1__ex_mul_is_ff_cc_rdy_o;
   logic [2:0] fu_1__ex_operand_signed_i;
   logic [1:0] fu_1__ex_operator_i;
   logic [0:0] fu_1__ex_round_enable_i;
-  logic [0:0] fu_1__fu_local_reset;
+  logic [0:0] fu_1__fu_dry_run_done;
+  logic [0:0] fu_1__fu_local_reset_a;
+  logic [0:0] fu_1__fu_local_reset_c;
+  logic [0:0] fu_1__fu_sync_dry_run;
   logic [5:0] fu_1__o_imm_i;
   CGRAData_64_1__payload_64__predicate_1 fu_1__operand_a_i;
   CGRAData_64_1__payload_64__predicate_1 fu_1__operand_b_i;
@@ -4966,10 +5209,14 @@ module CGRAFURTL__0090f6af61ee96c5
   MULRTL__e9baeef75836042d fu_1
   (
     .clk( fu_1__clk ),
+    .ex_mul_is_ff_cc_rdy_o( fu_1__ex_mul_is_ff_cc_rdy_o ),
     .ex_operand_signed_i( fu_1__ex_operand_signed_i ),
     .ex_operator_i( fu_1__ex_operator_i ),
     .ex_round_enable_i( fu_1__ex_round_enable_i ),
-    .fu_local_reset( fu_1__fu_local_reset ),
+    .fu_dry_run_done( fu_1__fu_dry_run_done ),
+    .fu_local_reset_a( fu_1__fu_local_reset_a ),
+    .fu_local_reset_c( fu_1__fu_local_reset_c ),
+    .fu_sync_dry_run( fu_1__fu_sync_dry_run ),
     .o_imm_i( fu_1__o_imm_i ),
     .operand_a_i( fu_1__operand_a_i ),
     .operand_b_i( fu_1__operand_b_i ),
@@ -4992,7 +5239,10 @@ module CGRAFURTL__0090f6af61ee96c5
   logic [0:0] fu_2__clk;
   logic [1:0] fu_2__ex_operand_signed_i;
   logic [1:0] fu_2__ex_operator_i;
-  logic [0:0] fu_2__fu_local_reset;
+  logic [0:0] fu_2__fu_dry_run_done;
+  logic [0:0] fu_2__fu_local_reset_a;
+  logic [0:0] fu_2__fu_local_reset_c;
+  logic [0:0] fu_2__fu_sync_dry_run;
   logic [2:0] fu_2__k_imm_i;
   logic [127:0] fu_2__lut_b_i;
   logic [127:0] fu_2__lut_k_i;
@@ -5017,7 +5267,10 @@ module CGRAFURTL__0090f6af61ee96c5
     .clk( fu_2__clk ),
     .ex_operand_signed_i( fu_2__ex_operand_signed_i ),
     .ex_operator_i( fu_2__ex_operator_i ),
-    .fu_local_reset( fu_2__fu_local_reset ),
+    .fu_dry_run_done( fu_2__fu_dry_run_done ),
+    .fu_local_reset_a( fu_2__fu_local_reset_a ),
+    .fu_local_reset_c( fu_2__fu_local_reset_c ),
+    .fu_sync_dry_run( fu_2__fu_sync_dry_run ),
     .k_imm_i( fu_2__k_imm_i ),
     .lut_b_i( fu_2__lut_b_i ),
     .lut_k_i( fu_2__lut_k_i ),
@@ -5137,21 +5390,17 @@ module CGRAFURTL__0090f6af61ee96c5
   
   always_comb begin : data_routing
     for ( int unsigned i = 1'd0; i < 2'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-      fu_xbar_send_data[2'(i)] = { 64'd0, 1'd0 };
+      fu_xbar_send_data[2'(i)] = { 64'd0, 1'd1 };
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_data_routing ); i += 1'd1 )
-      send_port_data[1'(i)] = { 64'd0, 1'd0 };
+      send_port_data[1'(i)] = { 64'd0, 1'd1 };
     for ( int unsigned i = 1'd0; i < 2'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
       for ( int unsigned j = 1'd0; j < 3'( __const__num_xbar_inports_at_data_routing ); j += 1'd1 ) begin
         fu_xbar_send_data[2'(i)].payload = fu_xbar_send_data[2'(i)].payload | ( recv_port_data[2'(j)].payload & { { 63 { fu_xbar_outport_sel[2'(i)][2'(j)] } }, fu_xbar_outport_sel[2'(i)][2'(j)] } );
         fu_xbar_send_data[2'(i)].predicate = fu_xbar_send_data[2'(i)].predicate | ( recv_port_data[2'(j)].predicate & fu_xbar_outport_sel[2'(i)][2'(j)] );
       end
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_data_routing ); i += 1'd1 ) begin
-      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_0__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd0] } }, fu_send_port_valid_vector[1'(i)][2'd0] } );
-      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_0__send_out__msg[1'(i)].predicate & fu_send_port_valid_vector[1'(i)][2'd0] );
-      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_1__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd1] } }, fu_send_port_valid_vector[1'(i)][2'd1] } );
-      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_1__send_out__msg[1'(i)].predicate & fu_send_port_valid_vector[1'(i)][2'd1] );
-      send_port_data[1'(i)].payload = send_port_data[1'(i)].payload | ( fu_2__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd2] } }, fu_send_port_valid_vector[1'(i)][2'd2] } );
-      send_port_data[1'(i)].predicate = send_port_data[1'(i)].predicate | ( fu_2__send_out__msg[1'(i)].predicate & fu_send_port_valid_vector[1'(i)][2'd2] );
+      send_port_data[1'(i)].payload = ( ( send_port_data[1'(i)].payload | ( fu_0__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd0] } }, fu_send_port_valid_vector[1'(i)][2'd0] } ) ) | ( fu_1__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd1] } }, fu_send_port_valid_vector[1'(i)][2'd1] } ) ) | ( fu_2__send_out__msg[1'(i)].payload & { { 63 { fu_send_port_valid_vector[1'(i)][2'd2] } }, fu_send_port_valid_vector[1'(i)][2'd2] } );
+      send_port_data[1'(i)].predicate = ( ( send_port_data[1'(i)].predicate | ( fu_0__send_out__msg[1'(i)].predicate & fu_send_port_valid_vector[1'(i)][2'd0] ) ) | ( fu_1__send_out__msg[1'(i)].predicate & fu_send_port_valid_vector[1'(i)][2'd1] ) ) | ( fu_2__send_out__msg[1'(i)].predicate & fu_send_port_valid_vector[1'(i)][2'd2] );
     end
   end
 
@@ -5191,7 +5440,7 @@ module CGRAFURTL__0090f6af61ee96c5
     lc_downstream_rdy = ( ~( | fu_launch_handshake ) ) | ex_nah_enable;
     lc_upstream_en = ~( | fu_inport_handshake );
     fu_xbar_handshake = ( lc_downstream_rdy & ( lc_upstream_en | exe_fsafe_en ) ) & ( ~fu_xbar_done );
-    fu_push_handshake = ( ( ( | xbar_recv_port_req ) | fu_xbar_recv_predicate_req ) & ( lc_upstream_en | exe_fsafe_en ) ) & ( ~fu_xbar_done );
+    fu_push_handshake = ( lc_upstream_en | exe_fsafe_en ) & ( ~fu_xbar_done );
     for ( int unsigned i = 1'd0; i < 2'( __const__fu_list_size_at_handshake_process ); i += 1'd1 )
       fu_push_en_vector[2'(i)] = fu_opt_en_vector[2'(i)] & fu_push_handshake;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_xbar_inports_at_handshake_process ); i += 1'd1 )
@@ -5240,7 +5489,7 @@ module CGRAFURTL__0090f6af61ee96c5
 
   
   always_ff @(posedge clk) begin : fu_propagate_sync
-    if ( reset | fu_local_reset ) begin
+    if ( ( reset | fu_local_reset_a ) | execution_ini ) begin
       fu_xbar_recv_const_req <= 1'd0;
       fu_xbar_recv_predicate_req <= 1'd0;
       for ( int unsigned i = 1'd0; i < 2'( __const__num_xbar_outports_at_fu_propagate_sync ); i += 1'd1 )
@@ -5350,7 +5599,10 @@ module CGRAFURTL__0090f6af61ee96c5
   assign fu_0__operand_c_i.predicate = fu_operand_mux_ex_operand_c_pred_o;
   assign fu_0__bmask_b_i = ex_o_imm_bmask;
   assign fu_0__operator_ext_en_i = ex_operator_ext_en;
-  assign fu_1__fu_local_reset = fu_local_reset;
+  assign fu_1__fu_local_reset_c = fu_local_reset_c;
+  assign fu_1__fu_local_reset_a = fu_local_reset_a;
+  assign fu_1__fu_dry_run_done = fu_dry_run_done;
+  assign fu_1__fu_sync_dry_run = fu_sync_dry_run;
   assign fu_1__ex_operator_i = ex_mult_operator;
   assign fu_1__ex_operand_signed_i = ex_signed_mode;
   assign fu_1__ex_round_enable_i = ex_round_enable;
@@ -5361,7 +5613,10 @@ module CGRAFURTL__0090f6af61ee96c5
   assign fu_1__operand_c_i.payload = fu_operand_mux_ex_operand_c_o;
   assign fu_1__operand_c_i.predicate = fu_operand_mux_ex_operand_c_pred_o;
   assign fu_1__operator_ext_en_i = ex_operator_ext_en;
-  assign fu_2__fu_local_reset = fu_local_reset;
+  assign fu_2__fu_local_reset_c = fu_local_reset_c;
+  assign fu_2__fu_local_reset_a = fu_local_reset_a;
+  assign fu_2__fu_dry_run_done = fu_dry_run_done;
+  assign fu_2__fu_sync_dry_run = fu_sync_dry_run;
   assign fu_2__ex_operator_i = ex_lut_operator;
   assign fu_2__ex_operand_signed_i = ex_signed_mode[1:0];
   assign fu_2__operator_ext_en_i = ex_operator_ext_en;
@@ -5425,6 +5680,7 @@ module NormalQueueDpath__2b0cbb41a869ddc6
   input  logic [1:0] waddr ,
   input  logic [0:0] wen 
 );
+  localparam CGRAData_1__predicate_1 default_value  = { 1'd1 };
   localparam logic [2:0] __const__num_entries_at_up_rf_write  = 3'd4;
   CGRAData_1__predicate_1 regs [0:3];
   CGRAData_1__predicate_1 regs_rdata;
@@ -5438,7 +5694,7 @@ module NormalQueueDpath__2b0cbb41a869ddc6
   always_ff @(posedge clk) begin : up_rf_write
     if ( reset | local_reset_data ) begin
       for ( int unsigned i = 1'd0; i < 3'( __const__num_entries_at_up_rf_write ); i += 1'd1 )
-        regs[2'(i)] <= 1'd0;
+        regs[2'(i)] <= default_value;
     end
     else if ( wen ) begin
       regs[waddr] <= enq_msg;
@@ -5642,7 +5898,7 @@ module TileRTL__ea67303889430dc3
   input  logic [0:0] clk ,
   input  logic [4:0] config_cmd_counter_base ,
   input  logic [4:0] config_cmd_counter_th ,
-  input  logic [15:0] config_cmd_iter_counter_th ,
+  input  logic [31:0] config_cmd_iter_counter_th ,
   input  logic [4:0] config_data_counter_base ,
   input  logic [4:0] config_data_counter_th ,
   input  logic [0:0] ctrl_slice_idx ,
@@ -5664,6 +5920,7 @@ module TileRTL__ea67303889430dc3
   input  logic [0:0] send_data_ack [0:3],
   output logic [0:0] send_data_valid [0:3],
   output logic [1:0] send_lut_sel ,
+  input  logic [0:0] tile_cmd_el_mode_en ,
   input  logic [0:0] tile_config_ini_begin ,
   input  logic [0:0] tile_dry_run_ack ,
   input  logic [0:0] tile_dry_run_done ,
@@ -5692,6 +5949,26 @@ module TileRTL__ea67303889430dc3
   output CGRAData_64_1__payload_64__predicate_1 to_mem_wdata__msg  ,
   input logic [0:0] to_mem_wdata__rdy  
 );
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__channel_a_0__recv_msg  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__channel_a_1__recv_msg  = 1'd1;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__channel_a_2__recv_msg  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__channel_a_3__recv_msg  = 2'd3;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__channel_b_0__recv_msg  = 1'd0;
+  localparam logic [2:0] __const__num_connect_outports_at__lambda__s_tile_0__channel_b_0__recv_msg  = 3'd4;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__channel_b_1__recv_msg  = 1'd1;
+  localparam logic [2:0] __const__num_connect_outports_at__lambda__s_tile_0__channel_b_1__recv_msg  = 3'd4;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__channel_b_2__recv_msg  = 2'd2;
+  localparam logic [2:0] __const__num_connect_outports_at__lambda__s_tile_0__channel_b_2__recv_msg  = 3'd4;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__channel_b_3__recv_msg  = 2'd3;
+  localparam logic [2:0] __const__num_connect_outports_at__lambda__s_tile_0__channel_b_3__recv_msg  = 3'd4;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__mux_bypass_data_0__in__0_  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__mux_bypass_data_1__in__0_  = 1'd1;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__mux_bypass_data_2__in__0_  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__mux_bypass_data_3__in__0_  = 2'd3;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__element_recv_port_data_0_  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_0__element_recv_port_data_1_  = 1'd1;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__element_recv_port_data_2_  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_0__element_recv_port_data_3_  = 2'd3;
   CGRAConfig_10_3_6_8_3__877613aa0dfe8ae0 tile_ctrl_msg;
   logic [0:0] tile_dry_run_begin;
   logic [0:0] tile_opt_enable;
@@ -5899,6 +6176,7 @@ module TileRTL__ea67303889430dc3
   logic [3:0] crossbar__bp_port_sel;
   logic [0:0] crossbar__clk;
   logic [0:0] crossbar__exe_fsafe_en;
+  logic [0:0] crossbar__execution_ini;
   logic [2:0] crossbar__recv_opt_msg_outport [0:8];
   CGRAData_64_1__payload_64__predicate_1 crossbar__recv_port_data [0:5];
   logic [5:0] crossbar__recv_port_en;
@@ -5922,6 +6200,7 @@ module TileRTL__ea67303889430dc3
     .bp_port_sel( crossbar__bp_port_sel ),
     .clk( crossbar__clk ),
     .exe_fsafe_en( crossbar__exe_fsafe_en ),
+    .execution_ini( crossbar__execution_ini ),
     .recv_opt_msg_outport( crossbar__recv_opt_msg_outport ),
     .recv_port_data( crossbar__recv_port_data ),
     .recv_port_en( crossbar__recv_port_en ),
@@ -5944,8 +6223,9 @@ module TileRTL__ea67303889430dc3
   logic [0:0] ctrl_mem__clk;
   logic [4:0] ctrl_mem__cmd_counter_base;
   logic [4:0] ctrl_mem__cmd_counter_th;
-  logic [15:0] ctrl_mem__cmd_iter_counter_th;
+  logic [0:0] ctrl_mem__cmd_el_mode_en;
   logic [0:0] ctrl_mem__cmd_iter_th_hit;
+  logic [31:0] ctrl_mem__cmd_iter_th_info;
   logic [0:0] ctrl_mem__execution_ini;
   logic [0:0] ctrl_mem__nxt_ctrl_en;
   logic [0:0] ctrl_mem__re_execution_ini;
@@ -5963,8 +6243,9 @@ module TileRTL__ea67303889430dc3
     .clk( ctrl_mem__clk ),
     .cmd_counter_base( ctrl_mem__cmd_counter_base ),
     .cmd_counter_th( ctrl_mem__cmd_counter_th ),
-    .cmd_iter_counter_th( ctrl_mem__cmd_iter_counter_th ),
+    .cmd_el_mode_en( ctrl_mem__cmd_el_mode_en ),
     .cmd_iter_th_hit( ctrl_mem__cmd_iter_th_hit ),
+    .cmd_iter_th_info( ctrl_mem__cmd_iter_th_info ),
     .execution_ini( ctrl_mem__execution_ini ),
     .nxt_ctrl_en( ctrl_mem__nxt_ctrl_en ),
     .re_execution_ini( ctrl_mem__re_execution_ini ),
@@ -6029,11 +6310,15 @@ module TileRTL__ea67303889430dc3
   logic [1:0] element__cgra_vec_mode_i;
   logic [0:0] element__clk;
   logic [0:0] element__exe_fsafe_en;
+  logic [0:0] element__execution_ini;
   logic [0:0] element__fu_dry_run_ack;
-  logic [0:0] element__fu_local_reset;
+  logic [0:0] element__fu_dry_run_done;
+  logic [0:0] element__fu_local_reset_a;
+  logic [0:0] element__fu_local_reset_c;
   logic [0:0] element__fu_opt_enable;
   logic [0:0] element__fu_propagate_en;
   logic [0:0] element__fu_propagate_rdy;
+  logic [0:0] element__fu_sync_dry_run;
   logic [31:0] element__recv_const_data;
   logic [0:0] element__recv_const_rdy;
   logic [127:0] element__recv_lut_b_data;
@@ -6063,11 +6348,15 @@ module TileRTL__ea67303889430dc3
     .cgra_vec_mode_i( element__cgra_vec_mode_i ),
     .clk( element__clk ),
     .exe_fsafe_en( element__exe_fsafe_en ),
+    .execution_ini( element__execution_ini ),
     .fu_dry_run_ack( element__fu_dry_run_ack ),
-    .fu_local_reset( element__fu_local_reset ),
+    .fu_dry_run_done( element__fu_dry_run_done ),
+    .fu_local_reset_a( element__fu_local_reset_a ),
+    .fu_local_reset_c( element__fu_local_reset_c ),
     .fu_opt_enable( element__fu_opt_enable ),
     .fu_propagate_en( element__fu_propagate_en ),
     .fu_propagate_rdy( element__fu_propagate_rdy ),
+    .fu_sync_dry_run( element__fu_sync_dry_run ),
     .recv_const_data( element__recv_const_data ),
     .recv_const_rdy( element__recv_const_rdy ),
     .recv_lut_b_data( element__recv_lut_b_data ),
@@ -6231,6 +6520,96 @@ module TileRTL__ea67303889430dc3
 
 
   
+  always_comb begin : _lambda__s_tile_0__channel_a_0__recv_msg
+    channel_a__recv_msg[2'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_a_0__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_a_1__recv_msg
+    channel_a__recv_msg[2'd1] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_a_1__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_a_2__recv_msg
+    channel_a__recv_msg[2'd2] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_a_2__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_a_3__recv_msg
+    channel_a__recv_msg[2'd3] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_a_3__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_b_0__recv_msg
+    channel_b__recv_msg[2'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_b_0__recv_msg ) + 3'( __const__num_connect_outports_at__lambda__s_tile_0__channel_b_0__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_b_1__recv_msg
+    channel_b__recv_msg[2'd1] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_b_1__recv_msg ) + 3'( __const__num_connect_outports_at__lambda__s_tile_0__channel_b_1__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_b_2__recv_msg
+    channel_b__recv_msg[2'd2] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_b_2__recv_msg ) + 3'( __const__num_connect_outports_at__lambda__s_tile_0__channel_b_2__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__channel_b_3__recv_msg
+    channel_b__recv_msg[2'd3] = tile_dry_run_ack ? { 64'd0, 1'd1 } : crossbar__send_port_data[3'( __const__i_at__lambda__s_tile_0__channel_b_3__recv_msg ) + 3'( __const__num_connect_outports_at__lambda__s_tile_0__channel_b_3__recv_msg )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_recv_port_data_0_
+    element__recv_port_data[2'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_b__send_msg[2'( __const__i_at__lambda__s_tile_0__element_recv_port_data_0_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_recv_port_data_1_
+    element__recv_port_data[2'd1] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_b__send_msg[2'( __const__i_at__lambda__s_tile_0__element_recv_port_data_1_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_recv_port_data_2_
+    element__recv_port_data[2'd2] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_b__send_msg[2'( __const__i_at__lambda__s_tile_0__element_recv_port_data_2_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_recv_port_data_3_
+    element__recv_port_data[2'd3] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_b__send_msg[2'( __const__i_at__lambda__s_tile_0__element_recv_port_data_3_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__element_recv_predicate_data
+    element__recv_predicate_data = tile_dry_run_ack ? 1'd1 : reg_predicate__send_msg;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__mux_bypass_data_0__in__0_
+    mux_bypass_data__in_[2'd0][1'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_a__send_msg[2'( __const__i_at__lambda__s_tile_0__mux_bypass_data_0__in__0_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__mux_bypass_data_1__in__0_
+    mux_bypass_data__in_[2'd1][1'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_a__send_msg[2'( __const__i_at__lambda__s_tile_0__mux_bypass_data_1__in__0_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__mux_bypass_data_2__in__0_
+    mux_bypass_data__in_[2'd2][1'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_a__send_msg[2'( __const__i_at__lambda__s_tile_0__mux_bypass_data_2__in__0_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__mux_bypass_data_3__in__0_
+    mux_bypass_data__in_[2'd3][1'd0] = tile_dry_run_ack ? { 64'd0, 1'd1 } : channel_a__send_msg[2'( __const__i_at__lambda__s_tile_0__mux_bypass_data_3__in__0_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__reg_predicate_recv_msg
+    reg_predicate__recv_msg = tile_dry_run_ack ? 1'd1 : crossbar__send_predicate;
+  end
+
+  
   always_comb begin : _lambda__s_tile_0__tile_opt_enable
     tile_opt_enable = tile_dry_run_begin | tile_execution_begin;
   end
@@ -6307,9 +6686,10 @@ module TileRTL__ea67303889430dc3
   assign ctrl_mem__recv_ctrl_slice_en = recv_wopt_en;
   assign ctrl_mem__cmd_counter_th = config_cmd_counter_th;
   assign ctrl_mem__cmd_counter_base = config_cmd_counter_base;
-  assign ctrl_mem__cmd_iter_counter_th = config_cmd_iter_counter_th;
+  assign ctrl_mem__cmd_iter_th_info = config_cmd_iter_counter_th;
   assign ctrl_mem__execution_ini = tile_execution_ini_begin;
   assign ctrl_mem__re_execution_ini = tile_re_execution_ini_begin;
+  assign ctrl_mem__cmd_el_mode_en = tile_cmd_el_mode_en;
   assign ctrl_mem__nxt_ctrl_en = tile_propagate_en;
   assign tile_iter_th_hit = ctrl_mem__cmd_iter_th_hit;
   assign channel_a__local_reset_b[0] = tile_local_reset_b;
@@ -6370,6 +6750,7 @@ module TileRTL__ea67303889430dc3
   assign crossbar__recv_opt_msg_outport[6] = tile_ctrl_msg.outport[6];
   assign crossbar__recv_opt_msg_outport[7] = tile_ctrl_msg.outport[7];
   assign crossbar__recv_opt_msg_outport[8] = tile_ctrl_msg.outport[8];
+  assign crossbar__execution_ini = tile_execution_ini_begin;
   assign crossbar__xbar_opt_enable = tile_opt_enable;
   assign crossbar__exe_fsafe_en = tile_exe_fsafe_en;
   assign crossbar__xbar_propagate_en = tile_propagate_en;
@@ -6385,31 +6766,22 @@ module TileRTL__ea67303889430dc3
   assign crossbar__recv_port_data[3] = recv_data[3];
   assign recv_data_ack[3] = crossbar__recv_port_rdy[3:3];
   assign crossbar__recv_port_en[3:3] = recv_data_valid[3];
-  assign channel_a__recv_msg[0] = crossbar__send_port_data[0];
   assign channel_a__recv_en_i[0] = crossbar__send_port_en[0:0];
   assign crossbar__send_port_rdy[0:0] = channel_a__recv_rdy_o[0];
-  assign channel_a__recv_msg[1] = crossbar__send_port_data[1];
   assign channel_a__recv_en_i[1] = crossbar__send_port_en[1:1];
   assign crossbar__send_port_rdy[1:1] = channel_a__recv_rdy_o[1];
-  assign channel_a__recv_msg[2] = crossbar__send_port_data[2];
   assign channel_a__recv_en_i[2] = crossbar__send_port_en[2:2];
   assign crossbar__send_port_rdy[2:2] = channel_a__recv_rdy_o[2];
-  assign channel_a__recv_msg[3] = crossbar__send_port_data[3];
   assign channel_a__recv_en_i[3] = crossbar__send_port_en[3:3];
   assign crossbar__send_port_rdy[3:3] = channel_a__recv_rdy_o[3];
-  assign channel_b__recv_msg[0] = crossbar__send_port_data[4];
   assign channel_b__recv_en_i[0] = crossbar__send_port_en[4:4];
   assign crossbar__send_port_rdy[4:4] = channel_b__recv_rdy_o[0];
-  assign channel_b__recv_msg[1] = crossbar__send_port_data[5];
   assign channel_b__recv_en_i[1] = crossbar__send_port_en[5:5];
   assign crossbar__send_port_rdy[5:5] = channel_b__recv_rdy_o[1];
-  assign channel_b__recv_msg[2] = crossbar__send_port_data[6];
   assign channel_b__recv_en_i[2] = crossbar__send_port_en[6:6];
   assign crossbar__send_port_rdy[6:6] = channel_b__recv_rdy_o[2];
-  assign channel_b__recv_msg[3] = crossbar__send_port_data[7];
   assign channel_b__recv_en_i[3] = crossbar__send_port_en[7:7];
   assign crossbar__send_port_rdy[7:7] = channel_b__recv_rdy_o[3];
-  assign reg_predicate__recv_msg = crossbar__send_predicate;
   assign crossbar__send_predicate_rdy = reg_predicate__recv_rdy_o;
   assign reg_predicate__recv_en_i = crossbar__send_predicate_en;
   assign demux_bypass_ack__in_[0] = send_data_ack[0];
@@ -6420,7 +6792,6 @@ module TileRTL__ea67303889430dc3
   assign mux_bypass_valid__in_[0][1] = crossbar__bp_port_en[0:0];
   assign send_data_valid[0] = mux_bypass_valid__out[0];
   assign mux_bypass_valid__sel[0] = crossbar__bp_port_sel[0:0];
-  assign mux_bypass_data__in_[0][0] = channel_a__send_msg[0];
   assign mux_bypass_data__in_[0][1] = crossbar__send_bp_data[0];
   assign send_data[0] = mux_bypass_data__out[0];
   assign mux_bypass_data__sel[0] = crossbar__bp_port_sel[0:0];
@@ -6432,7 +6803,6 @@ module TileRTL__ea67303889430dc3
   assign mux_bypass_valid__in_[1][1] = crossbar__bp_port_en[1:1];
   assign send_data_valid[1] = mux_bypass_valid__out[1];
   assign mux_bypass_valid__sel[1] = crossbar__bp_port_sel[1:1];
-  assign mux_bypass_data__in_[1][0] = channel_a__send_msg[1];
   assign mux_bypass_data__in_[1][1] = crossbar__send_bp_data[1];
   assign send_data[1] = mux_bypass_data__out[1];
   assign mux_bypass_data__sel[1] = crossbar__bp_port_sel[1:1];
@@ -6444,7 +6814,6 @@ module TileRTL__ea67303889430dc3
   assign mux_bypass_valid__in_[2][1] = crossbar__bp_port_en[2:2];
   assign send_data_valid[2] = mux_bypass_valid__out[2];
   assign mux_bypass_valid__sel[2] = crossbar__bp_port_sel[2:2];
-  assign mux_bypass_data__in_[2][0] = channel_a__send_msg[2];
   assign mux_bypass_data__in_[2][1] = crossbar__send_bp_data[2];
   assign send_data[2] = mux_bypass_data__out[2];
   assign mux_bypass_data__sel[2] = crossbar__bp_port_sel[2:2];
@@ -6456,7 +6825,6 @@ module TileRTL__ea67303889430dc3
   assign mux_bypass_valid__in_[3][1] = crossbar__bp_port_en[3:3];
   assign send_data_valid[3] = mux_bypass_valid__out[3];
   assign mux_bypass_valid__sel[3] = crossbar__bp_port_sel[3:3];
-  assign mux_bypass_data__in_[3][0] = channel_a__send_msg[3];
   assign mux_bypass_data__in_[3][1] = crossbar__send_bp_data[3];
   assign send_data[3] = mux_bypass_data__out[3];
   assign mux_bypass_data__sel[3] = crossbar__bp_port_sel[3:3];
@@ -6471,23 +6839,22 @@ module TileRTL__ea67303889430dc3
   assign element__cgra_o_imm_bmask_i = tile_ctrl_msg.o_imm_bmask;
   assign element__cgra_signed_mode_i = tile_ctrl_msg.signed_mode;
   assign element__fu_dry_run_ack = tile_dry_run_ack;
-  assign element__fu_local_reset = tile_local_reset_a;
+  assign element__fu_local_reset_a = tile_local_reset_a;
+  assign element__fu_local_reset_c = tile_local_reset_c;
+  assign element__fu_dry_run_done = tile_dry_run_done;
+  assign element__fu_sync_dry_run = tile_sync_dry_run_begin;
   assign element__exe_fsafe_en = tile_exe_fsafe_en;
+  assign element__execution_ini = tile_execution_ini_begin;
   assign element__fu_opt_enable = tile_opt_enable;
   assign element__fu_propagate_en = tile_propagate_en;
-  assign element__recv_port_data[0] = channel_b__send_msg[0];
   assign element__recv_port_en[0:0] = channel_b__send_valid_o[0];
   assign channel_b__send_en_i[0] = element__recv_port_rdy[0:0];
-  assign element__recv_port_data[1] = channel_b__send_msg[1];
   assign element__recv_port_en[1:1] = channel_b__send_valid_o[1];
   assign channel_b__send_en_i[1] = element__recv_port_rdy[1:1];
-  assign element__recv_port_data[2] = channel_b__send_msg[2];
   assign element__recv_port_en[2:2] = channel_b__send_valid_o[2];
   assign channel_b__send_en_i[2] = element__recv_port_rdy[2:2];
-  assign element__recv_port_data[3] = channel_b__send_msg[3];
   assign element__recv_port_en[3:3] = channel_b__send_valid_o[3];
   assign channel_b__send_en_i[3] = element__recv_port_rdy[3:3];
-  assign element__recv_predicate_data = reg_predicate__send_msg;
   assign element__recv_predicate_en = reg_predicate__send_valid_o;
   assign reg_predicate__send_en_i = element__recv_predicate_rdy;
   assign element__recv_const_data = const_queue__send_const_msg;
@@ -6525,13 +6892,21 @@ module CGRARTL__top
   input logic [0:0] cgra_send_ni_data__rdy [0:7] 
 );
   localparam logic [0:0] __const__i_at__lambda__s_cgra_recv_ni_data_0__rdy  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_cgra_send_ni_data_0__en  = 1'd0;
   localparam logic [0:0] __const__i_at__lambda__s_cgra_recv_ni_data_1__rdy  = 1'd1;
+  localparam logic [0:0] __const__i_at__lambda__s_cgra_send_ni_data_1__en  = 1'd1;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_recv_ni_data_2__rdy  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_cgra_send_ni_data_2__en  = 2'd2;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_recv_ni_data_3__rdy  = 2'd3;
+  localparam logic [1:0] __const__i_at__lambda__s_cgra_send_ni_data_3__en  = 2'd3;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_4__rdy  = 3'd4;
+  localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_4__en  = 3'd4;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_5__rdy  = 3'd5;
+  localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_5__en  = 3'd5;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_6__rdy  = 3'd6;
+  localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_6__en  = 3'd6;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_7__rdy  = 3'd7;
+  localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_7__en  = 3'd7;
   localparam logic [3:0] __const__STAGE_IDLE  = 4'd0;
   localparam logic [3:0] __const__STAGE_CONFIG_CTRLREG  = 4'd1;
   localparam logic [3:0] __const__STAGE_CONFIG_LUT  = 4'd2;
@@ -6543,6 +6918,22 @@ module CGRARTL__top
   localparam logic [3:0] __const__STAGE_COMP_S3  = 4'd8;
   localparam logic [3:0] __const__STAGE_COMP_S4  = 4'd9;
   localparam logic [3:0] __const__STAGE_COMP_HALT  = 4'd10;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_dry_run_ack_0_  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_dry_run_ack_1_  = 1'd1;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_dry_run_ack_2_  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_dry_run_ack_3_  = 2'd3;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_dry_run_ack_4_  = 3'd4;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_dry_run_ack_5_  = 3'd5;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_dry_run_ack_6_  = 3'd6;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_dry_run_ack_7_  = 3'd7;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_8_  = 4'd8;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_9_  = 4'd9;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_10_  = 4'd10;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_11_  = 4'd11;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_12_  = 4'd12;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_13_  = 4'd13;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_14_  = 4'd14;
+  localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_15_  = 4'd15;
   localparam logic [2:0] __const__height_at__lambda__s_tile_0__send_data_ack_1_  = 3'd4;
   localparam logic [0:0] __const__i_at__lambda__s_tile_0__send_data_ack_1_  = 1'd0;
   localparam logic [2:0] __const__width_at__lambda__s_tile_0__send_data_ack_1_  = 3'd4;
@@ -6566,6 +6957,7 @@ module CGRARTL__top
   logic [0:0] cgra_chaining_en;
   logic [0:0] cgra_clear_pipe_en;
   logic [0:0] cgra_cmd_dry_run_begin;
+  logic [0:0] cgra_cmd_el_mode_en;
   logic [0:0] cgra_computation_en;
   logic [0:0] cgra_config_cmd_begin;
   logic [4:0] cgra_config_cmd_counter_th;
@@ -6577,6 +6969,7 @@ module CGRARTL__top
   logic [4:0] cgra_config_data_counter_th;
   logic [0:0] cgra_config_data_done;
   logic [0:0] cgra_config_data_en;
+  logic [4:0] cgra_config_dry_run_counter_th;
   logic [0:0] cgra_config_ini_begin;
   logic [0:0] cgra_config_ini_en;
   logic [0:0] cgra_config_lut_begin;
@@ -6586,6 +6979,8 @@ module CGRARTL__top
   logic [15:0] cgra_cur_stage_info;
   logic [0:0] cgra_cycle_th_hit;
   logic [1:0] cgra_dmem_io_mode;
+  logic [0:0] cgra_dry_run_ack;
+  logic [0:0] cgra_dry_run_fin;
   logic [0:0] cgra_exe_fsafe_en;
   logic [0:0] cgra_execution_begin;
   logic [0:0] cgra_execution_ini_begin;
@@ -6602,14 +6997,13 @@ module CGRARTL__top
   logic [0:0] cgra_reset_ini_en;
   logic [0:0] cgra_restart_comp_en;
   logic [3:0] cgra_sub_stage_en;
-  logic [15:0] cgra_sub_stage_iter_th [0:3];
+  logic [31:0] cgra_sub_stage_iter_th [0:3];
   logic [0:0] cgra_sync_dry_run_begin;
   logic [4:0] cgra_tile_cmd_base [0:15];
   logic [4:0] cgra_tile_cmd_th [0:15];
   logic [4:0] cgra_tile_data_base [0:15];
   logic [4:0] cgra_tile_data_th [0:15];
-  logic [31:0] cgra_tile_global_ctrl [0:1];
-  logic [15:0] cgra_tile_iter_th;
+  logic [31:0] cgra_tile_iter_th;
   logic [15:0] cgra_tile_iter_th_info;
   logic [31:0] cgra_tile_local_ctrl_1 [0:15];
   logic [31:0] cgra_tile_local_ctrl_2 [0:15];
@@ -6617,9 +7011,9 @@ module CGRARTL__top
   logic [0:0] cgra_tile_local_reset_a;
   logic [0:0] cgra_tile_local_reset_b;
   logic [0:0] cgra_tile_local_reset_c;
-  logic [3:0] counter_config_cmd_addr;
+  logic [4:0] counter_config_cmd_addr;
   logic [0:0] counter_config_cmd_slice;
-  logic [3:0] counter_config_data_addr;
+  logic [4:0] counter_config_data_addr;
   logic [1:0] counter_config_lut_addr;
   logic [3:0] cur_stage;
   logic [3:0] nxt_stage;
@@ -6632,13 +7026,12 @@ module CGRARTL__top
   logic [511:0] recv_wopt_sliced_flattened;
   logic [0:0] recv_wopt_sliced_flattened_en;
   logic [0:0] recv_wopt_sliced_flattened_rdy;
-  logic [0:0] tile_dry_run_ack;
-  logic [0:0] tile_dry_run_fin;
+  logic [0:0] tile_dry_run_ack [0:15];
   logic [15:0] tile_fu_propagate_rdy_vector;
   logic [7:0] tile_recv_ni_data_ack;
   logic [7:0] tile_recv_ni_data_valid;
   logic [0:0] tile_recv_opt_waddr_en;
-  logic [7:0] tile_send_ni_ack;
+  logic [7:0] tile_send_ni_data_valid;
   logic [15:0] tile_xbar_propagate_rdy_vector;
 
   logic [0:0] lut_array__clk;
@@ -6669,7 +7062,7 @@ module CGRARTL__top
   logic [0:0] tile__clk [0:15];
   logic [4:0] tile__config_cmd_counter_base [0:15];
   logic [4:0] tile__config_cmd_counter_th [0:15];
-  logic [15:0] tile__config_cmd_iter_counter_th [0:15];
+  logic [31:0] tile__config_cmd_iter_counter_th [0:15];
   logic [4:0] tile__config_data_counter_base [0:15];
   logic [4:0] tile__config_data_counter_th [0:15];
   logic [0:0] tile__ctrl_slice_idx [0:15];
@@ -6691,6 +7084,7 @@ module CGRARTL__top
   logic [0:0] tile__send_data_ack [0:15][0:3];
   logic [0:0] tile__send_data_valid [0:15][0:3];
   logic [1:0] tile__send_lut_sel [0:15];
+  logic [0:0] tile__tile_cmd_el_mode_en [0:15];
   logic [0:0] tile__tile_config_ini_begin [0:15];
   logic [0:0] tile__tile_dry_run_ack [0:15];
   logic [0:0] tile__tile_dry_run_done [0:15];
@@ -6746,6 +7140,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[0] ),
     .send_data_valid( tile__send_data_valid[0] ),
     .send_lut_sel( tile__send_lut_sel[0] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[0] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[0] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[0] ),
     .tile_dry_run_done( tile__tile_dry_run_done[0] ),
@@ -6802,6 +7197,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[1] ),
     .send_data_valid( tile__send_data_valid[1] ),
     .send_lut_sel( tile__send_lut_sel[1] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[1] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[1] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[1] ),
     .tile_dry_run_done( tile__tile_dry_run_done[1] ),
@@ -6858,6 +7254,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[2] ),
     .send_data_valid( tile__send_data_valid[2] ),
     .send_lut_sel( tile__send_lut_sel[2] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[2] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[2] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[2] ),
     .tile_dry_run_done( tile__tile_dry_run_done[2] ),
@@ -6914,6 +7311,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[3] ),
     .send_data_valid( tile__send_data_valid[3] ),
     .send_lut_sel( tile__send_lut_sel[3] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[3] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[3] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[3] ),
     .tile_dry_run_done( tile__tile_dry_run_done[3] ),
@@ -6970,6 +7368,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[4] ),
     .send_data_valid( tile__send_data_valid[4] ),
     .send_lut_sel( tile__send_lut_sel[4] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[4] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[4] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[4] ),
     .tile_dry_run_done( tile__tile_dry_run_done[4] ),
@@ -7026,6 +7425,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[5] ),
     .send_data_valid( tile__send_data_valid[5] ),
     .send_lut_sel( tile__send_lut_sel[5] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[5] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[5] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[5] ),
     .tile_dry_run_done( tile__tile_dry_run_done[5] ),
@@ -7082,6 +7482,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[6] ),
     .send_data_valid( tile__send_data_valid[6] ),
     .send_lut_sel( tile__send_lut_sel[6] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[6] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[6] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[6] ),
     .tile_dry_run_done( tile__tile_dry_run_done[6] ),
@@ -7138,6 +7539,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[7] ),
     .send_data_valid( tile__send_data_valid[7] ),
     .send_lut_sel( tile__send_lut_sel[7] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[7] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[7] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[7] ),
     .tile_dry_run_done( tile__tile_dry_run_done[7] ),
@@ -7194,6 +7596,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[8] ),
     .send_data_valid( tile__send_data_valid[8] ),
     .send_lut_sel( tile__send_lut_sel[8] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[8] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[8] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[8] ),
     .tile_dry_run_done( tile__tile_dry_run_done[8] ),
@@ -7250,6 +7653,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[9] ),
     .send_data_valid( tile__send_data_valid[9] ),
     .send_lut_sel( tile__send_lut_sel[9] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[9] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[9] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[9] ),
     .tile_dry_run_done( tile__tile_dry_run_done[9] ),
@@ -7306,6 +7710,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[10] ),
     .send_data_valid( tile__send_data_valid[10] ),
     .send_lut_sel( tile__send_lut_sel[10] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[10] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[10] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[10] ),
     .tile_dry_run_done( tile__tile_dry_run_done[10] ),
@@ -7362,6 +7767,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[11] ),
     .send_data_valid( tile__send_data_valid[11] ),
     .send_lut_sel( tile__send_lut_sel[11] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[11] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[11] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[11] ),
     .tile_dry_run_done( tile__tile_dry_run_done[11] ),
@@ -7418,6 +7824,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[12] ),
     .send_data_valid( tile__send_data_valid[12] ),
     .send_lut_sel( tile__send_lut_sel[12] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[12] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[12] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[12] ),
     .tile_dry_run_done( tile__tile_dry_run_done[12] ),
@@ -7474,6 +7881,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[13] ),
     .send_data_valid( tile__send_data_valid[13] ),
     .send_lut_sel( tile__send_lut_sel[13] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[13] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[13] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[13] ),
     .tile_dry_run_done( tile__tile_dry_run_done[13] ),
@@ -7530,6 +7938,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[14] ),
     .send_data_valid( tile__send_data_valid[14] ),
     .send_lut_sel( tile__send_lut_sel[14] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[14] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[14] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[14] ),
     .tile_dry_run_done( tile__tile_dry_run_done[14] ),
@@ -7586,6 +7995,7 @@ module CGRARTL__top
     .send_data_ack( tile__send_data_ack[15] ),
     .send_data_valid( tile__send_data_valid[15] ),
     .send_lut_sel( tile__send_lut_sel[15] ),
+    .tile_cmd_el_mode_en( tile__tile_cmd_el_mode_en[15] ),
     .tile_config_ini_begin( tile__tile_config_ini_begin[15] ),
     .tile_dry_run_ack( tile__tile_dry_run_ack[15] ),
     .tile_dry_run_done( tile__tile_dry_run_done[15] ),
@@ -7618,27 +8028,27 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_cgra_config_cmd_done
-    cgra_config_cmd_done = ( cgra_config_cmd_wopt_done & cgra_config_cmd_dry_run_done ) & ( tile_dry_run_fin | cgra_chaining_en );
+    cgra_config_cmd_done = ( cgra_config_cmd_wopt_done & cgra_config_cmd_dry_run_done ) & ( ( cgra_dry_run_fin | cgra_chaining_en ) | ( cgra_config_cmd_counter_th != cgra_config_dry_run_counter_th ) );
   end
 
   
   always_comb begin : _lambda__s_cgra_config_cmd_dry_run_done
-    cgra_config_cmd_dry_run_done = 5'( counter_config_cmd_addr ) == cgra_tile_global_ctrl[1'd0][5'd4:5'd0];
+    cgra_config_cmd_dry_run_done = counter_config_cmd_addr >= cgra_config_dry_run_counter_th;
   end
 
   
   always_comb begin : _lambda__s_cgra_config_cmd_wopt_done
-    cgra_config_cmd_wopt_done = 5'( counter_config_cmd_addr ) == cgra_config_cmd_counter_th;
+    cgra_config_cmd_wopt_done = counter_config_cmd_addr == cgra_config_cmd_counter_th;
   end
 
   
   always_comb begin : _lambda__s_cgra_config_data_done
-    cgra_config_data_done = 5'( counter_config_data_addr ) == cgra_config_data_counter_th;
+    cgra_config_data_done = counter_config_data_addr == cgra_config_data_counter_th;
   end
 
   
   always_comb begin : _lambda__s_cgra_config_lut_done
-    cgra_config_lut_done = 2'( counter_config_lut_addr ) == 2'd3;
+    cgra_config_lut_done = counter_config_lut_addr == 2'd3;
   end
 
   
@@ -7648,7 +8058,7 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_cgra_csr_ro_9_
-    cgra_csr_ro[4'd9] = { cgra_tile_iter_th, cgra_tile_iter_th_info };
+    cgra_csr_ro[4'd9] = { cgra_tile_iter_th[5'd20:5'd5], cgra_tile_iter_th_info };
   end
 
   
@@ -7722,13 +8132,68 @@ module CGRARTL__top
   end
 
   
+  always_comb begin : _lambda__s_cgra_send_ni_data_0__en
+    cgra_send_ni_data__en[3'd0] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_0__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_1__en
+    cgra_send_ni_data__en[3'd1] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_1__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_2__en
+    cgra_send_ni_data__en[3'd2] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_2__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_3__en
+    cgra_send_ni_data__en[3'd3] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_3__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_4__en
+    cgra_send_ni_data__en[3'd4] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_4__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_5__en
+    cgra_send_ni_data__en[3'd5] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_5__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_6__en
+    cgra_send_ni_data__en[3'd6] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_6__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_send_ni_data_7__en
+    cgra_send_ni_data__en[3'd7] = tile_send_ni_data_valid[3'( __const__i_at__lambda__s_cgra_send_ni_data_7__en )] & cgra_execution_valid;
+  end
+
+  
+  always_comb begin : _lambda__s_recv_wconst_flattened
+    recv_wconst_flattened = recv_wconst_flattened_en ? cgra_recv_wi_data : 512'd0;
+  end
+
+  
   always_comb begin : _lambda__s_recv_wconst_flattened_en
     recv_wconst_flattened_en = ( cgra_recv_wi_data_rdy & cgra_recv_wi_data_valid ) & cgra_config_data_begin;
   end
 
   
+  always_comb begin : _lambda__s_recv_wlut_flattened
+    recv_wlut_flattened = recv_wlut_flattened_en ? cgra_recv_wi_data : 512'd0;
+  end
+
+  
   always_comb begin : _lambda__s_recv_wlut_flattened_en
     recv_wlut_flattened_en = ( cgra_recv_wi_data_rdy & cgra_recv_wi_data_valid ) & cgra_config_lut_begin;
+  end
+
+  
+  always_comb begin : _lambda__s_recv_wopt_sliced_flattened
+    recv_wopt_sliced_flattened = recv_wopt_sliced_flattened_en ? cgra_recv_wi_data : 512'd0;
   end
 
   
@@ -7738,42 +8203,122 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_tile_0__send_data_ack_1_
-    tile__send_data_ack[4'd0][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_0__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_0__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_0__send_data_ack_1_ ) )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd0][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_0__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_0__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_0__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_0__send_data_ack_1_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_11__send_data_ack_3_
-    tile__send_data_ack[4'd11][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd11][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_15__send_data_ack_3_
-    tile__send_data_ack[4'd15][2'd3] = cgra_send_ni_data__rdy[( 4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ ) + 4'd1 ) / 5'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd15][2'd3] = cgra_send_ni_data__rdy[( 4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ ) + 4'd1 ) / 5'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_1__send_data_ack_1_
-    tile__send_data_ack[4'd1][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_1__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_1__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_1__send_data_ack_1_ ) )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd1][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_1__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_1__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_1__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_1__send_data_ack_1_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_2__send_data_ack_1_
-    tile__send_data_ack[4'd2][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_2__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_2__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_2__send_data_ack_1_ ) )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd2][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_2__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_2__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_2__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_2__send_data_ack_1_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_3__send_data_ack_1_
-    tile__send_data_ack[4'd3][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_3__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_3__send_data_ack_1_ ) )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd3][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_3__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_3__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_3__send_data_ack_1_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_3__send_data_ack_3_
-    tile__send_data_ack[4'd3][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd3][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_7__send_data_ack_3_
-    tile__send_data_ack[4'd7][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ )] | tile_dry_run_ack;
+    tile__send_data_ack[4'd7][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_0_
+    tile_dry_run_ack[4'd0] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_0_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_10_
+    tile_dry_run_ack[4'd10] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_10_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_11_
+    tile_dry_run_ack[4'd11] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_11_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_12_
+    tile_dry_run_ack[4'd12] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_12_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_13_
+    tile_dry_run_ack[4'd13] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_13_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_14_
+    tile_dry_run_ack[4'd14] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_14_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_15_
+    tile_dry_run_ack[4'd15] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_15_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_1_
+    tile_dry_run_ack[4'd1] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_1_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_2_
+    tile_dry_run_ack[4'd2] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_2_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_3_
+    tile_dry_run_ack[4'd3] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_3_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_4_
+    tile_dry_run_ack[4'd4] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_4_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_5_
+    tile_dry_run_ack[4'd5] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_5_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_6_
+    tile_dry_run_ack[4'd6] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_6_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_7_
+    tile_dry_run_ack[4'd7] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_7_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_8_
+    tile_dry_run_ack[4'd8] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_8_ )][5'd12:5'd8] );
+  end
+
+  
+  always_comb begin : _lambda__s_tile_dry_run_ack_9_
+    tile_dry_run_ack[4'd9] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_9_ )][5'd12:5'd8] );
   end
 
   
@@ -7798,7 +8343,7 @@ module CGRARTL__top
       cgra_tile_data_th[4'(i)] = 5'd1;
       cgra_tile_data_base[4'(i)] = 5'd0;
     end
-    cgra_tile_iter_th = 16'd1;
+    cgra_tile_iter_th = 32'd1;
     cgra_re_execution_begin = 1'd0;
     cgra_tile_local_reset = 1'd0;
     cgra_tile_local_reset_a = 1'd0;
@@ -7806,6 +8351,7 @@ module CGRARTL__top
     cgra_tile_local_reset_c = 1'd0;
     if ( nxt_stage == 4'( __const__STAGE_CONFIG_CTRLREG ) ) begin
       cgra_config_ini_begin = 1'd1;
+      cgra_sync_dry_run_begin = ~cgra_chaining_en;
     end
     if ( nxt_stage == 4'( __const__STAGE_CONFIG_LUT ) ) begin
       cgra_config_lut_begin = 1'd1;
@@ -7818,37 +8364,36 @@ module CGRARTL__top
     end
     if ( nxt_stage == 4'( __const__STAGE_CONFIG_DONE ) ) begin
       cgra_execution_ini_begin = 1'd1;
-      cgra_sync_dry_run_begin = ~cgra_chaining_en;
     end
     if ( nxt_stage == 4'( __const__STAGE_COMP_S1 ) ) begin
       for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_global_ctrl[1'd0][5'd4:5'd0];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_global_ctrl[1'd1][5'd4:5'd0];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd4:5'd0];
+        cgra_tile_cmd_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8];
+        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd4:5'd0];
+        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd12:5'd8];
         cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd4:5'd0];
       end
     end
     if ( nxt_stage == 4'( __const__STAGE_COMP_S2 ) ) begin
       for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_global_ctrl[1'd0][5'd12:5'd8];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_global_ctrl[1'd1][5'd12:5'd8];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8];
+        cgra_tile_cmd_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16];
+        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8];
+        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd20:5'd16];
         cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd12:5'd8];
       end
     end
     if ( nxt_stage == 4'( __const__STAGE_COMP_S3 ) ) begin
       for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_global_ctrl[1'd0][5'd20:5'd16];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_global_ctrl[1'd1][5'd20:5'd16];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16];
+        cgra_tile_cmd_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24];
+        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16];
+        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd28:5'd24];
         cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd20:5'd16];
       end
     end
     if ( nxt_stage == 4'( __const__STAGE_COMP_S4 ) ) begin
       for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_global_ctrl[1'd0][5'd28:5'd24];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_global_ctrl[1'd1][5'd28:5'd24];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24];
+        cgra_tile_cmd_th[4'(i)] = cgra_config_cmd_counter_th;
+        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24];
+        cgra_tile_data_th[4'(i)] = cgra_config_data_counter_th;
         cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd28:5'd24];
       end
     end
@@ -8030,16 +8575,16 @@ module CGRARTL__top
       cgra_clear_pipe_en <= 1'd0;
       cgra_exe_fsafe_en <= 1'd0;
       cgra_sub_stage_en <= 4'd0;
+      cgra_cmd_el_mode_en <= 1'd0;
       cgra_config_data_counter_th <= 5'd0;
       cgra_config_cmd_counter_th <= 5'd0;
-      cgra_tile_global_ctrl[1'd0] <= { 8'd1, 8'd1, 8'd1, 8'd1 };
-      cgra_tile_global_ctrl[1'd1] <= { 8'd0, 8'd0, 8'd0, 8'd0 };
+      cgra_config_dry_run_counter_th <= 5'd0;
       for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_local_ctrl_1[4'(i)] <= { 8'd1, 8'd1, 8'd1, 8'd1 };
+        cgra_tile_local_ctrl_1[4'(i)] <= { 8'd3, 8'd2, 8'd1, 8'd0 };
         cgra_tile_local_ctrl_2[4'(i)] <= { 8'd0, 8'd0, 8'd0, 8'd0 };
       end
       for ( int unsigned i = 1'd0; i < 3'd4; i += 1'd1 )
-        cgra_sub_stage_iter_th[2'(i)] <= 16'd1;
+        cgra_sub_stage_iter_th[2'(i)] <= 32'd1;
     end
     else if ( cgra_csr_rw_valid & cgra_csr_rdy ) begin
       cgra_reset_ini_en <= cgra_csr_rw[6'd0][5'd31];
@@ -8052,41 +8597,37 @@ module CGRARTL__top
       cgra_chaining_en <= cgra_csr_rw[6'd0][5'd24];
       cgra_clear_pipe_en <= cgra_csr_rw[6'd0][5'd23];
       cgra_exe_fsafe_en <= cgra_csr_rw[6'd0][5'd22];
-      cgra_sub_stage_en <= cgra_csr_rw[6'd0][5'd13:5'd10];
+      cgra_cmd_el_mode_en <= cgra_csr_rw[6'd0][5'd21];
+      cgra_sub_stage_en <= cgra_csr_rw[6'd0][5'd18:5'd15];
+      cgra_config_dry_run_counter_th <= 5'( cgra_csr_rw[6'd0][5'd14:5'd10] );
       cgra_config_cmd_counter_th <= 5'( cgra_csr_rw[6'd0][5'd9:5'd5] );
       cgra_config_data_counter_th <= 5'( cgra_csr_rw[6'd0][5'd4:5'd0] );
-      for ( int unsigned i = 1'd0; i < 2'd2; i += 1'd1 )
-        cgra_tile_global_ctrl[1'(i)] <= cgra_csr_rw[6'(i) + 6'd1];
       for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_local_ctrl_1[4'(i)] <= cgra_csr_rw[6'(i) + 6'd3];
-        cgra_tile_local_ctrl_2[4'(i)] <= cgra_csr_rw[6'(i) + 6'd19];
+        cgra_tile_local_ctrl_1[4'(i)] <= cgra_csr_rw[6'(i) + 6'd1];
+        cgra_tile_local_ctrl_2[4'(i)] <= cgra_csr_rw[6'(i) + 6'd17];
       end
-      for ( int unsigned i = 1'd0; i < 2'd2; i += 1'd1 ) begin
-        cgra_sub_stage_iter_th[2'(i) * 2'd2] <= cgra_csr_rw[6'(i) + 6'd35][5'd15:5'd0];
-        cgra_sub_stage_iter_th[( 2'(i) * 2'd2 ) + 2'd1] <= cgra_csr_rw[6'(i) + 6'd35][5'd31:5'd16];
-      end
+      for ( int unsigned i = 1'd0; i < 3'd4; i += 1'd1 )
+        cgra_sub_stage_iter_th[2'(i)] <= cgra_csr_rw[6'(i) + 6'd33];
     end
   end
 
   
-  always_ff @(posedge clk) begin : csr_rw_handshake
-    if ( reset ) begin
-      cgra_csr_rw_ack <= 1'd0;
-    end
-    else
-      cgra_csr_rw_ack <= cgra_csr_rw_valid & cgra_csr_rdy;
-  end
-
-  
-  always_ff @(posedge clk) begin : dry_run_process
-    if ( reset | ( ~cgra_config_cmd_begin ) ) begin
-      tile_dry_run_ack <= 1'd0;
-      tile_dry_run_fin <= 1'd0;
+  always_ff @(posedge clk) begin : dry_run_ack
+    if ( ( reset | ( ~cgra_config_cmd_begin ) ) | cgra_config_cmd_dry_run_done ) begin
+      cgra_dry_run_ack <= 1'd0;
     end
     else if ( ~cgra_config_cmd_dry_run_done ) begin
-      tile_dry_run_ack <= tile_recv_opt_waddr_en & ( ~cgra_chaining_en );
-      tile_dry_run_fin <= tile_dry_run_ack;
+      cgra_dry_run_ack <= tile_recv_opt_waddr_en & ( ~cgra_chaining_en );
     end
+  end
+
+  
+  always_ff @(posedge clk) begin : dry_run_fin
+    if ( reset ) begin
+      cgra_dry_run_fin <= 1'd0;
+    end
+    else
+      cgra_dry_run_fin <= cgra_dry_run_ack;
   end
 
   
@@ -8106,7 +8647,7 @@ module CGRARTL__top
         cgra_pref_counter_ckpt[3'(i)] <= 32'd0;
     end
     else begin
-      if ( ( nxt_stage != 4'( __const__STAGE_IDLE ) ) | ( nxt_stage != 4'( __const__STAGE_COMP_HALT ) ) ) begin
+      if ( ( nxt_stage != 4'( __const__STAGE_IDLE ) ) & ( nxt_stage != 4'( __const__STAGE_COMP_HALT ) ) ) begin
         cgra_pref_counter <= cgra_pref_counter + 32'd1;
       end
       if ( cgra_config_ini_begin ) begin
@@ -8138,20 +8679,20 @@ module CGRARTL__top
   
   always_ff @(posedge clk) begin : stage_ctrl_config_cmd
     if ( reset | ( ~cgra_config_cmd_begin ) ) begin
-      counter_config_cmd_addr <= 4'd0;
+      counter_config_cmd_addr <= 5'd0;
     end
     else if ( cgra_cmd_dry_run_begin & ( ~cgra_config_cmd_wopt_done ) ) begin
-      counter_config_cmd_addr <= counter_config_cmd_addr + 4'd1;
+      counter_config_cmd_addr <= counter_config_cmd_addr + 5'd1;
     end
   end
 
   
   always_ff @(posedge clk) begin : stage_ctrl_config_data
     if ( reset | ( ~cgra_config_data_begin ) ) begin
-      counter_config_data_addr <= 4'd0;
+      counter_config_data_addr <= 5'd0;
     end
     else if ( recv_wconst_flattened_en & ( ~cgra_config_data_done ) ) begin
-      counter_config_data_addr <= counter_config_data_addr + 4'd1;
+      counter_config_data_addr <= counter_config_data_addr + 5'd1;
     end
   end
 
@@ -8181,9 +8722,6 @@ module CGRARTL__top
   assign tile_recv_ni_data_valid[6:6] = cgra_recv_ni_data__en[6];
   assign cgra_recv_wi_data[511:448] = cgra_recv_ni_data__msg[7];
   assign tile_recv_ni_data_valid[7:7] = cgra_recv_ni_data__en[7];
-  assign recv_wopt_sliced_flattened = cgra_recv_wi_data;
-  assign recv_wconst_flattened = cgra_recv_wi_data;
-  assign recv_wlut_flattened = cgra_recv_wi_data;
   assign cgra_recv_wi_data_ack = cgra_recv_wi_data_rdy;
   assign tile__clk[0] = clk;
   assign tile__reset[0] = reset;
@@ -8231,14 +8769,16 @@ module CGRARTL__top
   assign recv_wlut_flattened_rdy = cgra_config_lut_begin;
   assign recv_wconst_flattened_rdy = cgra_config_data_begin;
   assign recv_wopt_sliced_flattened_rdy = cgra_config_cmd_begin;
+  assign cgra_csr_rw_ack = cgra_csr_rdy;
   assign tile__tile_config_ini_begin[0] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[0] = cgra_execution_ini_begin;
   assign tile__tile_execution_begin[0] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[0] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[0] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[0] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[0] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[0] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[0] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[0] = tile_dry_run_ack[0];
   assign tile__config_cmd_counter_th[0] = cgra_tile_cmd_th[0];
   assign tile__config_cmd_counter_base[0] = cgra_tile_cmd_base[0];
   assign tile__config_data_counter_th[0] = cgra_tile_data_th[0];
@@ -8254,9 +8794,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[1] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[1] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[1] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[1] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[1] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[1] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[1] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[1] = tile_dry_run_ack[1];
   assign tile__config_cmd_counter_th[1] = cgra_tile_cmd_th[1];
   assign tile__config_cmd_counter_base[1] = cgra_tile_cmd_base[1];
   assign tile__config_data_counter_th[1] = cgra_tile_data_th[1];
@@ -8272,9 +8813,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[2] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[2] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[2] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[2] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[2] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[2] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[2] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[2] = tile_dry_run_ack[2];
   assign tile__config_cmd_counter_th[2] = cgra_tile_cmd_th[2];
   assign tile__config_cmd_counter_base[2] = cgra_tile_cmd_base[2];
   assign tile__config_data_counter_th[2] = cgra_tile_data_th[2];
@@ -8290,9 +8832,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[3] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[3] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[3] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[3] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[3] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[3] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[3] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[3] = tile_dry_run_ack[3];
   assign tile__config_cmd_counter_th[3] = cgra_tile_cmd_th[3];
   assign tile__config_cmd_counter_base[3] = cgra_tile_cmd_base[3];
   assign tile__config_data_counter_th[3] = cgra_tile_data_th[3];
@@ -8308,9 +8851,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[4] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[4] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[4] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[4] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[4] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[4] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[4] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[4] = tile_dry_run_ack[4];
   assign tile__config_cmd_counter_th[4] = cgra_tile_cmd_th[4];
   assign tile__config_cmd_counter_base[4] = cgra_tile_cmd_base[4];
   assign tile__config_data_counter_th[4] = cgra_tile_data_th[4];
@@ -8326,9 +8870,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[5] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[5] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[5] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[5] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[5] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[5] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[5] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[5] = tile_dry_run_ack[5];
   assign tile__config_cmd_counter_th[5] = cgra_tile_cmd_th[5];
   assign tile__config_cmd_counter_base[5] = cgra_tile_cmd_base[5];
   assign tile__config_data_counter_th[5] = cgra_tile_data_th[5];
@@ -8344,9 +8889,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[6] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[6] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[6] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[6] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[6] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[6] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[6] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[6] = tile_dry_run_ack[6];
   assign tile__config_cmd_counter_th[6] = cgra_tile_cmd_th[6];
   assign tile__config_cmd_counter_base[6] = cgra_tile_cmd_base[6];
   assign tile__config_data_counter_th[6] = cgra_tile_data_th[6];
@@ -8362,9 +8908,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[7] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[7] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[7] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[7] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[7] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[7] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[7] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[7] = tile_dry_run_ack[7];
   assign tile__config_cmd_counter_th[7] = cgra_tile_cmd_th[7];
   assign tile__config_cmd_counter_base[7] = cgra_tile_cmd_base[7];
   assign tile__config_data_counter_th[7] = cgra_tile_data_th[7];
@@ -8380,9 +8927,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[8] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[8] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[8] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[8] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[8] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[8] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[8] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[8] = tile_dry_run_ack[8];
   assign tile__config_cmd_counter_th[8] = cgra_tile_cmd_th[8];
   assign tile__config_cmd_counter_base[8] = cgra_tile_cmd_base[8];
   assign tile__config_data_counter_th[8] = cgra_tile_data_th[8];
@@ -8398,9 +8946,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[9] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[9] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[9] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[9] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[9] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[9] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[9] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[9] = tile_dry_run_ack[9];
   assign tile__config_cmd_counter_th[9] = cgra_tile_cmd_th[9];
   assign tile__config_cmd_counter_base[9] = cgra_tile_cmd_base[9];
   assign tile__config_data_counter_th[9] = cgra_tile_data_th[9];
@@ -8416,9 +8965,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[10] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[10] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[10] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[10] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[10] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[10] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[10] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[10] = tile_dry_run_ack[10];
   assign tile__config_cmd_counter_th[10] = cgra_tile_cmd_th[10];
   assign tile__config_cmd_counter_base[10] = cgra_tile_cmd_base[10];
   assign tile__config_data_counter_th[10] = cgra_tile_data_th[10];
@@ -8434,9 +8984,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[11] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[11] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[11] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[11] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[11] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[11] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[11] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[11] = tile_dry_run_ack[11];
   assign tile__config_cmd_counter_th[11] = cgra_tile_cmd_th[11];
   assign tile__config_cmd_counter_base[11] = cgra_tile_cmd_base[11];
   assign tile__config_data_counter_th[11] = cgra_tile_data_th[11];
@@ -8452,9 +9003,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[12] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[12] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[12] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[12] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[12] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[12] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[12] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[12] = tile_dry_run_ack[12];
   assign tile__config_cmd_counter_th[12] = cgra_tile_cmd_th[12];
   assign tile__config_cmd_counter_base[12] = cgra_tile_cmd_base[12];
   assign tile__config_data_counter_th[12] = cgra_tile_data_th[12];
@@ -8470,9 +9022,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[13] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[13] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[13] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[13] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[13] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[13] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[13] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[13] = tile_dry_run_ack[13];
   assign tile__config_cmd_counter_th[13] = cgra_tile_cmd_th[13];
   assign tile__config_cmd_counter_base[13] = cgra_tile_cmd_base[13];
   assign tile__config_data_counter_th[13] = cgra_tile_data_th[13];
@@ -8488,9 +9041,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[14] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[14] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[14] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[14] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[14] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[14] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[14] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[14] = tile_dry_run_ack[14];
   assign tile__config_cmd_counter_th[14] = cgra_tile_cmd_th[14];
   assign tile__config_cmd_counter_base[14] = cgra_tile_cmd_base[14];
   assign tile__config_data_counter_th[14] = cgra_tile_data_th[14];
@@ -8506,9 +9060,10 @@ module CGRARTL__top
   assign tile__tile_execution_begin[15] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[15] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[15] = cgra_execution_valid;
-  assign tile__tile_dry_run_ack[15] = tile_dry_run_ack;
   assign tile__tile_dry_run_done[15] = cgra_config_cmd_done;
   assign tile__tile_exe_fsafe_en[15] = cgra_exe_fsafe_en;
+  assign tile__tile_cmd_el_mode_en[15] = cgra_cmd_el_mode_en;
+  assign tile__tile_dry_run_ack[15] = tile_dry_run_ack[15];
   assign tile__config_cmd_counter_th[15] = cgra_tile_cmd_th[15];
   assign tile__config_cmd_counter_base[15] = cgra_tile_cmd_base[15];
   assign tile__config_data_counter_th[15] = cgra_tile_data_th[15];
@@ -8519,7 +9074,7 @@ module CGRARTL__top
   assign tile__tile_local_reset_c[15] = cgra_tile_local_reset_c;
   assign tile__tile_re_execution_ini_begin[15] = cgra_re_execution_begin;
   assign cgra_tile_iter_th_info[15:15] = tile__tile_iter_th_hit[15];
-  assign lut_array__recv_waddr = counter_config_lut_addr;
+  assign lut_array__recv_waddr = counter_config_lut_addr[1:0];
   assign lut_array__recv_waddr_en = recv_wlut_flattened_en;
   assign lut_array__recv_lut_data = recv_wlut_flattened;
   assign lut_array__recv_raddr[0] = tile__send_lut_sel[0];
@@ -8587,11 +9142,11 @@ module CGRARTL__top
   assign tile__recv_lut_b[15] = lut_array__send_lut_b[15];
   assign tile__recv_lut_p[15] = lut_array__send_lut_p[15];
   assign tile__ctrl_slice_idx[0] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[0] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[0] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[0] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[0] = recv_wopt_sliced_flattened[31:0];
   assign tile__recv_wopt_en[0] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[0] = counter_config_data_addr;
+  assign tile__recv_const_waddr[0] = counter_config_data_addr[3:0];
   assign tile__recv_const[0] = recv_wconst_flattened[31:0];
   assign tile__recv_const_en[0] = recv_wconst_flattened_en;
   assign tile__recv_data[4][1] = tile__send_data[0][0];
@@ -8600,7 +9155,7 @@ module CGRARTL__top
   assign tile__recv_data[1][2] = tile__send_data[0][3];
   assign tile__recv_data_valid[1][2] = tile__send_data_valid[0][3];
   assign tile__send_data_ack[0][3] = tile__recv_data_ack[1][2];
-  assign cgra_send_ni_data__en[4] = tile__send_data_valid[0][1];
+  assign tile_send_ni_data_valid[4:4] = tile__send_data_valid[0][1];
   assign cgra_send_ni_data__msg[4] = tile__send_data[0][1].payload;
   assign tile__recv_data_valid[0][1] = 1'd0;
   assign tile__recv_data[0][1] = { 64'd0, 1'd0 };
@@ -8615,11 +9170,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[0] = 1'd0;
   assign tile__to_mem_wdata__rdy[0] = 1'd0;
   assign tile__ctrl_slice_idx[1] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[1] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[1] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[1] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[1] = recv_wopt_sliced_flattened[63:32];
   assign tile__recv_wopt_en[1] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[1] = counter_config_data_addr;
+  assign tile__recv_const_waddr[1] = counter_config_data_addr[3:0];
   assign tile__recv_const[1] = recv_wconst_flattened[63:32];
   assign tile__recv_const_en[1] = recv_wconst_flattened_en;
   assign tile__recv_data[5][1] = tile__send_data[1][0];
@@ -8631,7 +9186,7 @@ module CGRARTL__top
   assign tile__recv_data[2][2] = tile__send_data[1][3];
   assign tile__recv_data_valid[2][2] = tile__send_data_valid[1][3];
   assign tile__send_data_ack[1][3] = tile__recv_data_ack[2][2];
-  assign cgra_send_ni_data__en[5] = tile__send_data_valid[1][1];
+  assign tile_send_ni_data_valid[5:5] = tile__send_data_valid[1][1];
   assign cgra_send_ni_data__msg[5] = tile__send_data[1][1].payload;
   assign tile__recv_data_valid[1][1] = 1'd0;
   assign tile__recv_data[1][1] = { 64'd0, 1'd0 };
@@ -8641,11 +9196,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[1] = 1'd0;
   assign tile__to_mem_wdata__rdy[1] = 1'd0;
   assign tile__ctrl_slice_idx[2] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[2] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[2] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[2] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[2] = recv_wopt_sliced_flattened[95:64];
   assign tile__recv_wopt_en[2] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[2] = counter_config_data_addr;
+  assign tile__recv_const_waddr[2] = counter_config_data_addr[3:0];
   assign tile__recv_const[2] = recv_wconst_flattened[95:64];
   assign tile__recv_const_en[2] = recv_wconst_flattened_en;
   assign tile__recv_data[6][1] = tile__send_data[2][0];
@@ -8657,7 +9212,7 @@ module CGRARTL__top
   assign tile__recv_data[3][2] = tile__send_data[2][3];
   assign tile__recv_data_valid[3][2] = tile__send_data_valid[2][3];
   assign tile__send_data_ack[2][3] = tile__recv_data_ack[3][2];
-  assign cgra_send_ni_data__en[6] = tile__send_data_valid[2][1];
+  assign tile_send_ni_data_valid[6:6] = tile__send_data_valid[2][1];
   assign cgra_send_ni_data__msg[6] = tile__send_data[2][1].payload;
   assign tile__recv_data_valid[2][1] = 1'd0;
   assign tile__recv_data[2][1] = { 64'd0, 1'd0 };
@@ -8667,11 +9222,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[2] = 1'd0;
   assign tile__to_mem_wdata__rdy[2] = 1'd0;
   assign tile__ctrl_slice_idx[3] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[3] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[3] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[3] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[3] = recv_wopt_sliced_flattened[127:96];
   assign tile__recv_wopt_en[3] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[3] = counter_config_data_addr;
+  assign tile__recv_const_waddr[3] = counter_config_data_addr[3:0];
   assign tile__recv_const[3] = recv_wconst_flattened[127:96];
   assign tile__recv_const_en[3] = recv_wconst_flattened_en;
   assign tile__recv_data[7][1] = tile__send_data[3][0];
@@ -8680,11 +9235,11 @@ module CGRARTL__top
   assign tile__recv_data[2][3] = tile__send_data[3][2];
   assign tile__recv_data_valid[2][3] = tile__send_data_valid[3][2];
   assign tile__send_data_ack[3][2] = tile__recv_data_ack[2][3];
-  assign cgra_send_ni_data__en[7] = tile__send_data_valid[3][1];
+  assign tile_send_ni_data_valid[7:7] = tile__send_data_valid[3][1];
   assign cgra_send_ni_data__msg[7] = tile__send_data[3][1].payload;
   assign tile__recv_data_valid[3][1] = 1'd0;
   assign tile__recv_data[3][1] = { 64'd0, 1'd0 };
-  assign cgra_send_ni_data__en[0] = tile__send_data_valid[3][3];
+  assign tile_send_ni_data_valid[0:0] = tile__send_data_valid[3][3];
   assign cgra_send_ni_data__msg[0] = tile__send_data[3][3].payload;
   assign tile__recv_data_valid[3][3] = 1'd0;
   assign tile__recv_data[3][3] = { 64'd0, 1'd0 };
@@ -8694,11 +9249,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[3] = 1'd0;
   assign tile__to_mem_wdata__rdy[3] = 1'd0;
   assign tile__ctrl_slice_idx[4] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[4] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[4] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[4] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[4] = recv_wopt_sliced_flattened[159:128];
   assign tile__recv_wopt_en[4] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[4] = counter_config_data_addr;
+  assign tile__recv_const_waddr[4] = counter_config_data_addr[3:0];
   assign tile__recv_const[4] = recv_wconst_flattened[159:128];
   assign tile__recv_const_en[4] = recv_wconst_flattened_en;
   assign tile__recv_data[0][0] = tile__send_data[4][1];
@@ -8721,11 +9276,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[4] = 1'd0;
   assign tile__to_mem_wdata__rdy[4] = 1'd0;
   assign tile__ctrl_slice_idx[5] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[5] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[5] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[5] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[5] = recv_wopt_sliced_flattened[191:160];
   assign tile__recv_wopt_en[5] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[5] = counter_config_data_addr;
+  assign tile__recv_const_waddr[5] = counter_config_data_addr[3:0];
   assign tile__recv_const[5] = recv_wconst_flattened[191:160];
   assign tile__recv_const_en[5] = recv_wconst_flattened_en;
   assign tile__recv_data[1][0] = tile__send_data[5][1];
@@ -8746,11 +9301,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[5] = 1'd0;
   assign tile__to_mem_wdata__rdy[5] = 1'd0;
   assign tile__ctrl_slice_idx[6] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[6] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[6] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[6] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[6] = recv_wopt_sliced_flattened[223:192];
   assign tile__recv_wopt_en[6] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[6] = counter_config_data_addr;
+  assign tile__recv_const_waddr[6] = counter_config_data_addr[3:0];
   assign tile__recv_const[6] = recv_wconst_flattened[223:192];
   assign tile__recv_const_en[6] = recv_wconst_flattened_en;
   assign tile__recv_data[2][0] = tile__send_data[6][1];
@@ -8771,11 +9326,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[6] = 1'd0;
   assign tile__to_mem_wdata__rdy[6] = 1'd0;
   assign tile__ctrl_slice_idx[7] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[7] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[7] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[7] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[7] = recv_wopt_sliced_flattened[255:224];
   assign tile__recv_wopt_en[7] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[7] = counter_config_data_addr;
+  assign tile__recv_const_waddr[7] = counter_config_data_addr[3:0];
   assign tile__recv_const[7] = recv_wconst_flattened[255:224];
   assign tile__recv_const_en[7] = recv_wconst_flattened_en;
   assign tile__recv_data[3][0] = tile__send_data[7][1];
@@ -8787,7 +9342,7 @@ module CGRARTL__top
   assign tile__recv_data[6][3] = tile__send_data[7][2];
   assign tile__recv_data_valid[6][3] = tile__send_data_valid[7][2];
   assign tile__send_data_ack[7][2] = tile__recv_data_ack[6][3];
-  assign cgra_send_ni_data__en[1] = tile__send_data_valid[7][3];
+  assign tile_send_ni_data_valid[1:1] = tile__send_data_valid[7][3];
   assign cgra_send_ni_data__msg[1] = tile__send_data[7][3].payload;
   assign tile__recv_data_valid[7][3] = 1'd0;
   assign tile__recv_data[7][3] = { 64'd0, 1'd0 };
@@ -8797,11 +9352,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[7] = 1'd0;
   assign tile__to_mem_wdata__rdy[7] = 1'd0;
   assign tile__ctrl_slice_idx[8] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[8] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[8] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[8] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[8] = recv_wopt_sliced_flattened[287:256];
   assign tile__recv_wopt_en[8] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[8] = counter_config_data_addr;
+  assign tile__recv_const_waddr[8] = counter_config_data_addr[3:0];
   assign tile__recv_const[8] = recv_wconst_flattened[287:256];
   assign tile__recv_const_en[8] = recv_wconst_flattened_en;
   assign tile__recv_data[4][0] = tile__send_data[8][1];
@@ -8824,11 +9379,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[8] = 1'd0;
   assign tile__to_mem_wdata__rdy[8] = 1'd0;
   assign tile__ctrl_slice_idx[9] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[9] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[9] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[9] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[9] = recv_wopt_sliced_flattened[319:288];
   assign tile__recv_wopt_en[9] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[9] = counter_config_data_addr;
+  assign tile__recv_const_waddr[9] = counter_config_data_addr[3:0];
   assign tile__recv_const[9] = recv_wconst_flattened[319:288];
   assign tile__recv_const_en[9] = recv_wconst_flattened_en;
   assign tile__recv_data[5][0] = tile__send_data[9][1];
@@ -8849,11 +9404,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[9] = 1'd0;
   assign tile__to_mem_wdata__rdy[9] = 1'd0;
   assign tile__ctrl_slice_idx[10] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[10] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[10] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[10] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[10] = recv_wopt_sliced_flattened[351:320];
   assign tile__recv_wopt_en[10] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[10] = counter_config_data_addr;
+  assign tile__recv_const_waddr[10] = counter_config_data_addr[3:0];
   assign tile__recv_const[10] = recv_wconst_flattened[351:320];
   assign tile__recv_const_en[10] = recv_wconst_flattened_en;
   assign tile__recv_data[6][0] = tile__send_data[10][1];
@@ -8874,11 +9429,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[10] = 1'd0;
   assign tile__to_mem_wdata__rdy[10] = 1'd0;
   assign tile__ctrl_slice_idx[11] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[11] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[11] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[11] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[11] = recv_wopt_sliced_flattened[383:352];
   assign tile__recv_wopt_en[11] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[11] = counter_config_data_addr;
+  assign tile__recv_const_waddr[11] = counter_config_data_addr[3:0];
   assign tile__recv_const[11] = recv_wconst_flattened[383:352];
   assign tile__recv_const_en[11] = recv_wconst_flattened_en;
   assign tile__recv_data[7][0] = tile__send_data[11][1];
@@ -8890,7 +9445,7 @@ module CGRARTL__top
   assign tile__recv_data[10][3] = tile__send_data[11][2];
   assign tile__recv_data_valid[10][3] = tile__send_data_valid[11][2];
   assign tile__send_data_ack[11][2] = tile__recv_data_ack[10][3];
-  assign cgra_send_ni_data__en[2] = tile__send_data_valid[11][3];
+  assign tile_send_ni_data_valid[2:2] = tile__send_data_valid[11][3];
   assign cgra_send_ni_data__msg[2] = tile__send_data[11][3].payload;
   assign tile__recv_data_valid[11][3] = 1'd0;
   assign tile__recv_data[11][3] = { 64'd0, 1'd0 };
@@ -8900,11 +9455,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[11] = 1'd0;
   assign tile__to_mem_wdata__rdy[11] = 1'd0;
   assign tile__ctrl_slice_idx[12] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[12] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[12] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[12] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[12] = recv_wopt_sliced_flattened[415:384];
   assign tile__recv_wopt_en[12] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[12] = counter_config_data_addr;
+  assign tile__recv_const_waddr[12] = counter_config_data_addr[3:0];
   assign tile__recv_const[12] = recv_wconst_flattened[415:384];
   assign tile__recv_const_en[12] = recv_wconst_flattened_en;
   assign tile__recv_data[8][0] = tile__send_data[12][1];
@@ -8929,11 +9484,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[12] = 1'd0;
   assign tile__to_mem_wdata__rdy[12] = 1'd0;
   assign tile__ctrl_slice_idx[13] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[13] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[13] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[13] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[13] = recv_wopt_sliced_flattened[447:416];
   assign tile__recv_wopt_en[13] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[13] = counter_config_data_addr;
+  assign tile__recv_const_waddr[13] = counter_config_data_addr[3:0];
   assign tile__recv_const[13] = recv_wconst_flattened[447:416];
   assign tile__recv_const_en[13] = recv_wconst_flattened_en;
   assign tile__recv_data[9][0] = tile__send_data[13][1];
@@ -8956,11 +9511,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[13] = 1'd0;
   assign tile__to_mem_wdata__rdy[13] = 1'd0;
   assign tile__ctrl_slice_idx[14] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[14] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[14] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[14] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[14] = recv_wopt_sliced_flattened[479:448];
   assign tile__recv_wopt_en[14] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[14] = counter_config_data_addr;
+  assign tile__recv_const_waddr[14] = counter_config_data_addr[3:0];
   assign tile__recv_const[14] = recv_wconst_flattened[479:448];
   assign tile__recv_const_en[14] = recv_wconst_flattened_en;
   assign tile__recv_data[10][0] = tile__send_data[14][1];
@@ -8983,11 +9538,11 @@ module CGRARTL__top
   assign tile__to_mem_waddr__rdy[14] = 1'd0;
   assign tile__to_mem_wdata__rdy[14] = 1'd0;
   assign tile__ctrl_slice_idx[15] = counter_config_cmd_slice;
-  assign tile__recv_opt_waddr[15] = counter_config_cmd_addr;
+  assign tile__recv_opt_waddr[15] = counter_config_cmd_addr[3:0];
   assign tile__recv_opt_waddr_en[15] = tile_recv_opt_waddr_en;
   assign tile__recv_wopt[15] = recv_wopt_sliced_flattened[511:480];
   assign tile__recv_wopt_en[15] = recv_wopt_sliced_flattened_en;
-  assign tile__recv_const_waddr[15] = counter_config_data_addr;
+  assign tile__recv_const_waddr[15] = counter_config_data_addr[3:0];
   assign tile__recv_const[15] = recv_wconst_flattened[511:480];
   assign tile__recv_const_en[15] = recv_wconst_flattened_en;
   assign tile__recv_data[11][0] = tile__send_data[15][1];
@@ -9001,7 +9556,7 @@ module CGRARTL__top
   assign tile__recv_data_valid[15][0] = cgra_recv_ni_data__en[7];
   assign tile__recv_data[15][0].payload = cgra_recv_ni_data__msg[7];
   assign tile__recv_data[15][0].predicate = 1'd1;
-  assign cgra_send_ni_data__en[3] = tile__send_data_valid[15][3];
+  assign tile_send_ni_data_valid[3:3] = tile__send_data_valid[15][3];
   assign cgra_send_ni_data__msg[3] = tile__send_data[15][3].payload;
   assign tile__recv_data_valid[15][3] = 1'd0;
   assign tile__recv_data[15][3] = { 64'd0, 1'd0 };
