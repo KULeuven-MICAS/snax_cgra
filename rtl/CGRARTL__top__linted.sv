@@ -897,10 +897,10 @@ module CrossbarRTL__549e61f8d5b6eb92
   
   always_comb begin : data_routing
     for ( int unsigned i = 1'd0; i < 4'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-      send_port_data[3'(i)] = { 64'd0, 1'd1 };
+      send_port_data[3'(i)] = { 64'd0, 1'd0 };
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_inports_at_data_routing ); i += 1'd1 )
-      send_bp_data[2'(i)] = { 64'd0, 1'd1 };
-    send_predicate = 1'd1;
+      send_bp_data[2'(i)] = { 64'd0, 1'd0 };
+    send_predicate = 1'd0;
     for ( int unsigned i = 1'd0; i < 3'( __const__num_connect_outports_at_data_routing ); i += 1'd1 ) begin
       for ( int unsigned j = 1'd0; j < 3'( __const__num_connect_inports_at_data_routing ); j += 1'd1 ) begin
         send_port_data[3'(i)].payload = send_port_data[3'(i)].payload | ( recv_port_data[3'(j)].payload & { { 63 { xbar_outport_sel[4'(i)][3'(j)] } }, xbar_outport_sel[4'(i)][3'(j)] } );
@@ -5390,9 +5390,9 @@ module CGRAFURTL__0090f6af61ee96c5
   
   always_comb begin : data_routing
     for ( int unsigned i = 1'd0; i < 2'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
-      fu_xbar_send_data[2'(i)] = { 64'd0, 1'd1 };
+      fu_xbar_send_data[2'(i)] = { 64'd0, 1'd0 };
     for ( int unsigned i = 1'd0; i < 2'( __const__num_outports_at_data_routing ); i += 1'd1 )
-      send_port_data[1'(i)] = { 64'd0, 1'd1 };
+      send_port_data[1'(i)] = { 64'd0, 1'd0 };
     for ( int unsigned i = 1'd0; i < 2'( __const__num_xbar_outports_at_data_routing ); i += 1'd1 )
       for ( int unsigned j = 1'd0; j < 3'( __const__num_xbar_inports_at_data_routing ); j += 1'd1 ) begin
         fu_xbar_send_data[2'(i)].payload = fu_xbar_send_data[2'(i)].payload | ( recv_port_data[2'(j)].payload & { { 63 { fu_xbar_outport_sel[2'(i)][2'(j)] } }, fu_xbar_outport_sel[2'(i)][2'(j)] } );
@@ -8208,12 +8208,12 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_tile_11__send_data_ack_3_
-    tile__send_data_ack[4'd11][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ )];
+    tile__send_data_ack[4'd11][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_15__send_data_ack_3_
-    tile__send_data_ack[4'd15][2'd3] = cgra_send_ni_data__rdy[( 4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ ) + 4'd1 ) / 5'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ )];
+    tile__send_data_ack[4'd15][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ )];
   end
 
   
@@ -8233,12 +8233,12 @@ module CGRARTL__top
 
   
   always_comb begin : _lambda__s_tile_3__send_data_ack_3_
-    tile__send_data_ack[4'd3][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ )];
+    tile__send_data_ack[4'd3][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ )];
   end
 
   
   always_comb begin : _lambda__s_tile_7__send_data_ack_3_
-    tile__send_data_ack[4'd7][2'd3] = cgra_send_ni_data__rdy[( 3'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ ) + 3'd1 ) / 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ )];
+    tile__send_data_ack[4'd7][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ )];
   end
 
   
