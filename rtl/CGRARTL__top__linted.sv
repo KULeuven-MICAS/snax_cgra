@@ -781,6 +781,7 @@ module ConstQueueRTL__a54094f779e9bc58
   logic [4:0] data_counter_biased;
   logic [4:0] data_counter_biased_nxt;
   logic [4:0] data_counter_nxt;
+  logic [4:0] send_const_raddr;
 
   logic [0:0] reg_file__clk;
   logic [3:0] reg_file__raddr [0:0];
@@ -821,9 +822,11 @@ module ConstQueueRTL__a54094f779e9bc58
   always_ff @(posedge clk) begin : update_raddr
     if ( reset | execution_ini ) begin
       data_counter <= 5'd0;
+      send_const_raddr <= 5'd0;
     end
     else if ( send_const_en ) begin
       data_counter <= ( data_counter_biased_nxt == data_counter_th ) ? 5'd0 : data_counter_nxt;
+      send_const_raddr <= data_counter_biased;
     end
   end
 
@@ -832,7 +835,7 @@ module ConstQueueRTL__a54094f779e9bc58
   assign reg_file__waddr[0] = recv_const_waddr;
   assign reg_file__wdata[0] = recv_const;
   assign reg_file__wen[0] = recv_const_en;
-  assign reg_file__raddr[0] = data_counter_biased[3:0];
+  assign reg_file__raddr[0] = send_const_raddr[3:0];
   assign send_const_msg = reg_file__rdata[0];
 
 endmodule
