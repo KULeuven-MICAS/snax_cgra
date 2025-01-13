@@ -1063,7 +1063,7 @@ module CtrlMemRTL__d3d31847de3fc702
   input  logic [4:0] cmd_counter_base ,
   input  logic [4:0] cmd_counter_th ,
   input  logic [0:0] cmd_el_mode_en ,
-  output logic [0:0] cmd_iter_th_hit ,
+  output logic [0:0] cmd_iter_th_hit_nxt ,
   input  logic [31:0] cmd_iter_th_info ,
   input  logic [0:0] execution_ini ,
   input  logic [0:0] nxt_ctrl_en ,
@@ -1083,13 +1083,14 @@ module CtrlMemRTL__d3d31847de3fc702
   logic [4:0] cmd_counter_biased_nxt;
   logic [4:0] cmd_counter_nxt;
   logic [26:0] cmd_iter_counter;
+  logic [26:0] cmd_iter_counter_nxt;
   logic [26:0] cmd_iter_counter_th;
   logic [63:0] concat_ctrl_msg;
-  logic [0:0] global_iter_hit;
+  logic [0:0] global_iter_hit_nxt;
   logic [4:0] iter_counter;
   logic [4:0] iter_counter_nxt;
   logic [4:0] iter_counter_th;
-  logic [0:0] local_iter_hit;
+  logic [0:0] local_iter_hit_nxt;
   logic [31:0] opt_slice_regs [0:1];
 
   logic [0:0] reg_file__clk;
@@ -1128,13 +1129,18 @@ module CtrlMemRTL__d3d31847de3fc702
   end
 
   
-  always_comb begin : _lambda__s_tile_0__ctrl_mem_cmd_iter_th_hit
-    cmd_iter_th_hit = cmd_iter_counter == cmd_iter_counter_th;
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_cmd_iter_counter_nxt
+    cmd_iter_counter_nxt = cmd_iter_counter + 27'd1;
   end
 
   
-  always_comb begin : _lambda__s_tile_0__ctrl_mem_global_iter_hit
-    global_iter_hit = ( ( ~cmd_el_mode_en ) & ( iter_counter_nxt == iter_counter_th ) ) | ( cmd_el_mode_en & local_iter_hit );
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_cmd_iter_th_hit_nxt
+    cmd_iter_th_hit_nxt = ( cmd_iter_counter_nxt == cmd_iter_counter_th ) & global_iter_hit_nxt;
+  end
+
+  
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_global_iter_hit_nxt
+    global_iter_hit_nxt = ( ( ~cmd_el_mode_en ) & ( iter_counter_nxt == iter_counter_th ) ) | ( cmd_el_mode_en & local_iter_hit_nxt );
   end
 
   
@@ -1143,8 +1149,8 @@ module CtrlMemRTL__d3d31847de3fc702
   end
 
   
-  always_comb begin : _lambda__s_tile_0__ctrl_mem_local_iter_hit
-    local_iter_hit = cmd_counter_biased_nxt == cmd_counter_th;
+  always_comb begin : _lambda__s_tile_0__ctrl_mem_local_iter_hit_nxt
+    local_iter_hit_nxt = cmd_counter_biased_nxt == cmd_counter_th;
   end
 
   
@@ -1160,11 +1166,11 @@ module CtrlMemRTL__d3d31847de3fc702
 
   
   always_ff @(posedge clk) begin : update_iter
-    if ( ( reset | re_execution_ini ) | execution_ini ) begin
-      cmd_iter_counter <= ( iter_counter_th == 5'd1 ) ? 27'd1 : 27'd0;
+    if ( ( reset | execution_ini ) | ( nxt_ctrl_en & cmd_iter_th_hit_nxt ) ) begin
+      cmd_iter_counter <= 27'd0;
     end
-    else if ( nxt_ctrl_en & global_iter_hit ) begin
-      cmd_iter_counter <= cmd_iter_counter + 27'd1;
+    else if ( nxt_ctrl_en & global_iter_hit_nxt ) begin
+      cmd_iter_counter <= cmd_iter_counter_nxt;
     end
   end
 
@@ -1175,8 +1181,8 @@ module CtrlMemRTL__d3d31847de3fc702
       iter_counter <= 5'd0;
     end
     else if ( nxt_ctrl_en ) begin
-      cmd_counter <= local_iter_hit ? 5'd0 : cmd_counter_nxt;
-      iter_counter <= global_iter_hit ? 5'd0 : iter_counter_nxt;
+      cmd_counter <= local_iter_hit_nxt ? 5'd0 : cmd_counter_nxt;
+      iter_counter <= global_iter_hit_nxt ? 5'd0 : iter_counter_nxt;
     end
   end
 
@@ -5925,11 +5931,10 @@ module TileRTL__ea67303889430dc3
   input  logic [0:0] tile_dry_run_ack ,
   input  logic [0:0] tile_dry_run_done ,
   input  logic [0:0] tile_exe_fsafe_en ,
-  input  logic [0:0] tile_execution_begin ,
   input  logic [0:0] tile_execution_ini_begin ,
   input  logic [0:0] tile_execution_valid ,
   output logic [0:0] tile_fu_propagate_rdy ,
-  output logic [0:0] tile_iter_th_hit ,
+  output logic [0:0] tile_iter_th_hit_nxt ,
   input  logic [0:0] tile_local_reset_a ,
   input  logic [0:0] tile_local_reset_b ,
   input  logic [0:0] tile_local_reset_c ,
@@ -6224,7 +6229,7 @@ module TileRTL__ea67303889430dc3
   logic [4:0] ctrl_mem__cmd_counter_base;
   logic [4:0] ctrl_mem__cmd_counter_th;
   logic [0:0] ctrl_mem__cmd_el_mode_en;
-  logic [0:0] ctrl_mem__cmd_iter_th_hit;
+  logic [0:0] ctrl_mem__cmd_iter_th_hit_nxt;
   logic [31:0] ctrl_mem__cmd_iter_th_info;
   logic [0:0] ctrl_mem__execution_ini;
   logic [0:0] ctrl_mem__nxt_ctrl_en;
@@ -6244,7 +6249,7 @@ module TileRTL__ea67303889430dc3
     .cmd_counter_base( ctrl_mem__cmd_counter_base ),
     .cmd_counter_th( ctrl_mem__cmd_counter_th ),
     .cmd_el_mode_en( ctrl_mem__cmd_el_mode_en ),
-    .cmd_iter_th_hit( ctrl_mem__cmd_iter_th_hit ),
+    .cmd_iter_th_hit_nxt( ctrl_mem__cmd_iter_th_hit_nxt ),
     .cmd_iter_th_info( ctrl_mem__cmd_iter_th_info ),
     .execution_ini( ctrl_mem__execution_ini ),
     .nxt_ctrl_en( ctrl_mem__nxt_ctrl_en ),
@@ -6611,12 +6616,12 @@ module TileRTL__ea67303889430dc3
 
   
   always_comb begin : _lambda__s_tile_0__tile_opt_enable
-    tile_opt_enable = tile_dry_run_begin | tile_execution_begin;
+    tile_opt_enable = tile_dry_run_begin | tile_re_execution_ini_begin;
   end
 
   
   always_comb begin : _lambda__s_tile_0__tile_propagate_en
-    tile_propagate_en = ( crossbar__xbar_propagate_rdy & element__fu_propagate_rdy ) & ( ( ~ctrl_mem__cmd_iter_th_hit ) | tile_re_execution_ini_begin );
+    tile_propagate_en = ( crossbar__xbar_propagate_rdy & element__fu_propagate_rdy ) & tile_opt_enable;
   end
 
   assign element__clk = clk;
@@ -6691,7 +6696,7 @@ module TileRTL__ea67303889430dc3
   assign ctrl_mem__re_execution_ini = tile_re_execution_ini_begin;
   assign ctrl_mem__cmd_el_mode_en = tile_cmd_el_mode_en;
   assign ctrl_mem__nxt_ctrl_en = tile_propagate_en;
-  assign tile_iter_th_hit = ctrl_mem__cmd_iter_th_hit;
+  assign tile_iter_th_hit_nxt = ctrl_mem__cmd_iter_th_hit_nxt;
   assign channel_a__local_reset_b[0] = tile_local_reset_b;
   assign channel_a__local_reset_c[0] = tile_local_reset_c;
   assign channel_a__dry_run_ack[0] = tile_dry_run_ack;
@@ -6893,31 +6898,40 @@ module CGRARTL__top
 );
   localparam logic [0:0] __const__i_at__lambda__s_cgra_recv_ni_data_0__rdy  = 1'd0;
   localparam logic [0:0] __const__i_at__lambda__s_cgra_send_ni_data_0__en  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_0_1_  = 1'd0;
   localparam logic [0:0] __const__i_at__lambda__s_cgra_recv_ni_data_1__rdy  = 1'd1;
   localparam logic [0:0] __const__i_at__lambda__s_cgra_send_ni_data_1__en  = 1'd1;
+  localparam logic [0:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_1_2_  = 1'd1;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_recv_ni_data_2__rdy  = 2'd2;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_send_ni_data_2__en  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_2_3_  = 2'd2;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_recv_ni_data_3__rdy  = 2'd3;
   localparam logic [1:0] __const__i_at__lambda__s_cgra_send_ni_data_3__en  = 2'd3;
+  localparam logic [1:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_3_4_  = 2'd3;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_4__rdy  = 3'd4;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_4__en  = 3'd4;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_4_5_  = 3'd4;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_5__rdy  = 3'd5;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_5__en  = 3'd5;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_5_6_  = 3'd5;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_6__rdy  = 3'd6;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_6__en  = 3'd6;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_6_7_  = 3'd6;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_recv_ni_data_7__rdy  = 3'd7;
   localparam logic [2:0] __const__i_at__lambda__s_cgra_send_ni_data_7__en  = 3'd7;
+  localparam logic [2:0] __const__i_at__lambda__s_tile_send_ni_data_rdy_7_8_  = 3'd7;
   localparam logic [3:0] __const__STAGE_IDLE  = 4'd0;
   localparam logic [3:0] __const__STAGE_CONFIG_CTRLREG  = 4'd1;
   localparam logic [3:0] __const__STAGE_CONFIG_LUT  = 4'd2;
   localparam logic [3:0] __const__STAGE_CONFIG_DATA  = 4'd3;
   localparam logic [3:0] __const__STAGE_CONFIG_CMD  = 4'd4;
   localparam logic [3:0] __const__STAGE_CONFIG_DONE  = 4'd5;
-  localparam logic [3:0] __const__STAGE_COMP_S1  = 4'd6;
-  localparam logic [3:0] __const__STAGE_COMP_S2  = 4'd7;
-  localparam logic [3:0] __const__STAGE_COMP_S3  = 4'd8;
-  localparam logic [3:0] __const__STAGE_COMP_S4  = 4'd9;
+  localparam logic [3:0] __const__STAGE_COMP  = 4'd6;
   localparam logic [3:0] __const__STAGE_COMP_HALT  = 4'd10;
+  localparam logic [0:0] __const__i_at__lambda__s_cgra_cycle_th_hit_0_1_  = 1'd0;
+  localparam logic [0:0] __const__i_at__lambda__s_cgra_cycle_th_hit_1_2_  = 1'd1;
+  localparam logic [1:0] __const__i_at__lambda__s_cgra_cycle_th_hit_2_3_  = 2'd2;
+  localparam logic [1:0] __const__i_at__lambda__s_cgra_cycle_th_hit_3_4_  = 2'd3;
   localparam logic [0:0] __const__i_at__lambda__s_tile_dry_run_ack_0_  = 1'd0;
   localparam logic [0:0] __const__i_at__lambda__s_tile_dry_run_ack_1_  = 1'd1;
   localparam logic [1:0] __const__i_at__lambda__s_tile_dry_run_ack_2_  = 2'd2;
@@ -6934,26 +6948,6 @@ module CGRARTL__top
   localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_13_  = 4'd13;
   localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_14_  = 4'd14;
   localparam logic [3:0] __const__i_at__lambda__s_tile_dry_run_ack_15_  = 4'd15;
-  localparam logic [2:0] __const__height_at__lambda__s_tile_0__send_data_ack_1_  = 3'd4;
-  localparam logic [0:0] __const__i_at__lambda__s_tile_0__send_data_ack_1_  = 1'd0;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_0__send_data_ack_1_  = 3'd4;
-  localparam logic [2:0] __const__height_at__lambda__s_tile_1__send_data_ack_1_  = 3'd4;
-  localparam logic [0:0] __const__i_at__lambda__s_tile_1__send_data_ack_1_  = 1'd1;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_1__send_data_ack_1_  = 3'd4;
-  localparam logic [2:0] __const__height_at__lambda__s_tile_2__send_data_ack_1_  = 3'd4;
-  localparam logic [1:0] __const__i_at__lambda__s_tile_2__send_data_ack_1_  = 2'd2;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_2__send_data_ack_1_  = 3'd4;
-  localparam logic [2:0] __const__height_at__lambda__s_tile_3__send_data_ack_1_  = 3'd4;
-  localparam logic [1:0] __const__i_at__lambda__s_tile_3__send_data_ack_1_  = 2'd3;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_3__send_data_ack_1_  = 3'd4;
-  localparam logic [1:0] __const__i_at__lambda__s_tile_3__send_data_ack_3_  = 2'd3;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_3__send_data_ack_3_  = 3'd4;
-  localparam logic [2:0] __const__i_at__lambda__s_tile_7__send_data_ack_3_  = 3'd7;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_7__send_data_ack_3_  = 3'd4;
-  localparam logic [3:0] __const__i_at__lambda__s_tile_11__send_data_ack_3_  = 4'd11;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_11__send_data_ack_3_  = 3'd4;
-  localparam logic [3:0] __const__i_at__lambda__s_tile_15__send_data_ack_3_  = 4'd15;
-  localparam logic [2:0] __const__width_at__lambda__s_tile_15__send_data_ack_3_  = 3'd4;
   logic [0:0] cgra_chaining_en;
   logic [0:0] cgra_clear_pipe_en;
   logic [0:0] cgra_cmd_dry_run_begin;
@@ -6977,19 +6971,18 @@ module CGRARTL__top
   logic [0:0] cgra_config_lut_en;
   logic [0:0] cgra_csr_rdy;
   logic [15:0] cgra_cur_stage_info;
-  logic [0:0] cgra_cycle_th_hit;
+  logic [3:0] cgra_cycle_th_hit;
   logic [1:0] cgra_dmem_io_mode;
   logic [0:0] cgra_dry_run_ack;
   logic [0:0] cgra_dry_run_fin;
   logic [0:0] cgra_exe_fsafe_en;
-  logic [0:0] cgra_execution_begin;
   logic [0:0] cgra_execution_ini_begin;
   logic [0:0] cgra_execution_valid;
   logic [15:0] cgra_nxt_stage_info;
   logic [31:0] cgra_pref_counter;
   logic [31:0] cgra_pref_counter_ckpt [0:6];
   logic [31:0] cgra_propagate_rdy_info;
-  logic [0:0] cgra_re_execution_begin;
+  logic [15:0] cgra_re_execution_begin;
   logic [511:0] cgra_recv_wi_data;
   logic [0:0] cgra_recv_wi_data_ack;
   logic [0:0] cgra_recv_wi_data_rdy;
@@ -7003,8 +6996,7 @@ module CGRARTL__top
   logic [4:0] cgra_tile_cmd_th [0:15];
   logic [4:0] cgra_tile_data_base [0:15];
   logic [4:0] cgra_tile_data_th [0:15];
-  logic [31:0] cgra_tile_iter_th;
-  logic [15:0] cgra_tile_iter_th_info;
+  logic [31:0] cgra_tile_iter_th [0:15];
   logic [31:0] cgra_tile_local_ctrl_1 [0:15];
   logic [31:0] cgra_tile_local_ctrl_2 [0:15];
   logic [0:0] cgra_tile_local_reset;
@@ -7026,11 +7018,16 @@ module CGRARTL__top
   logic [511:0] recv_wopt_sliced_flattened;
   logic [0:0] recv_wopt_sliced_flattened_en;
   logic [0:0] recv_wopt_sliced_flattened_rdy;
+  logic [3:0] sub_stage_done [0:15];
+  logic [3:0] sub_stage_done_nxt [0:15];
+  logic [15:0] sub_stage_done_t [0:3];
+  logic [3:0] sub_stage_sel [0:15];
   logic [0:0] tile_dry_run_ack [0:15];
   logic [15:0] tile_fu_propagate_rdy_vector;
   logic [7:0] tile_recv_ni_data_ack;
   logic [7:0] tile_recv_ni_data_valid;
   logic [0:0] tile_recv_opt_waddr_en;
+  logic [7:0] tile_send_ni_data_rdy;
   logic [7:0] tile_send_ni_data_valid;
   logic [15:0] tile_xbar_propagate_rdy_vector;
 
@@ -7089,11 +7086,10 @@ module CGRARTL__top
   logic [0:0] tile__tile_dry_run_ack [0:15];
   logic [0:0] tile__tile_dry_run_done [0:15];
   logic [0:0] tile__tile_exe_fsafe_en [0:15];
-  logic [0:0] tile__tile_execution_begin [0:15];
   logic [0:0] tile__tile_execution_ini_begin [0:15];
   logic [0:0] tile__tile_execution_valid [0:15];
   logic [0:0] tile__tile_fu_propagate_rdy [0:15];
-  logic [0:0] tile__tile_iter_th_hit [0:15];
+  logic [0:0] tile__tile_iter_th_hit_nxt [0:15];
   logic [0:0] tile__tile_local_reset_a [0:15];
   logic [0:0] tile__tile_local_reset_b [0:15];
   logic [0:0] tile__tile_local_reset_c [0:15];
@@ -7145,11 +7141,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[0] ),
     .tile_dry_run_done( tile__tile_dry_run_done[0] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[0] ),
-    .tile_execution_begin( tile__tile_execution_begin[0] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[0] ),
     .tile_execution_valid( tile__tile_execution_valid[0] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[0] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[0] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[0] ),
     .tile_local_reset_a( tile__tile_local_reset_a[0] ),
     .tile_local_reset_b( tile__tile_local_reset_b[0] ),
     .tile_local_reset_c( tile__tile_local_reset_c[0] ),
@@ -7202,11 +7197,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[1] ),
     .tile_dry_run_done( tile__tile_dry_run_done[1] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[1] ),
-    .tile_execution_begin( tile__tile_execution_begin[1] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[1] ),
     .tile_execution_valid( tile__tile_execution_valid[1] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[1] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[1] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[1] ),
     .tile_local_reset_a( tile__tile_local_reset_a[1] ),
     .tile_local_reset_b( tile__tile_local_reset_b[1] ),
     .tile_local_reset_c( tile__tile_local_reset_c[1] ),
@@ -7259,11 +7253,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[2] ),
     .tile_dry_run_done( tile__tile_dry_run_done[2] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[2] ),
-    .tile_execution_begin( tile__tile_execution_begin[2] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[2] ),
     .tile_execution_valid( tile__tile_execution_valid[2] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[2] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[2] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[2] ),
     .tile_local_reset_a( tile__tile_local_reset_a[2] ),
     .tile_local_reset_b( tile__tile_local_reset_b[2] ),
     .tile_local_reset_c( tile__tile_local_reset_c[2] ),
@@ -7316,11 +7309,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[3] ),
     .tile_dry_run_done( tile__tile_dry_run_done[3] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[3] ),
-    .tile_execution_begin( tile__tile_execution_begin[3] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[3] ),
     .tile_execution_valid( tile__tile_execution_valid[3] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[3] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[3] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[3] ),
     .tile_local_reset_a( tile__tile_local_reset_a[3] ),
     .tile_local_reset_b( tile__tile_local_reset_b[3] ),
     .tile_local_reset_c( tile__tile_local_reset_c[3] ),
@@ -7373,11 +7365,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[4] ),
     .tile_dry_run_done( tile__tile_dry_run_done[4] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[4] ),
-    .tile_execution_begin( tile__tile_execution_begin[4] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[4] ),
     .tile_execution_valid( tile__tile_execution_valid[4] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[4] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[4] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[4] ),
     .tile_local_reset_a( tile__tile_local_reset_a[4] ),
     .tile_local_reset_b( tile__tile_local_reset_b[4] ),
     .tile_local_reset_c( tile__tile_local_reset_c[4] ),
@@ -7430,11 +7421,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[5] ),
     .tile_dry_run_done( tile__tile_dry_run_done[5] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[5] ),
-    .tile_execution_begin( tile__tile_execution_begin[5] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[5] ),
     .tile_execution_valid( tile__tile_execution_valid[5] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[5] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[5] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[5] ),
     .tile_local_reset_a( tile__tile_local_reset_a[5] ),
     .tile_local_reset_b( tile__tile_local_reset_b[5] ),
     .tile_local_reset_c( tile__tile_local_reset_c[5] ),
@@ -7487,11 +7477,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[6] ),
     .tile_dry_run_done( tile__tile_dry_run_done[6] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[6] ),
-    .tile_execution_begin( tile__tile_execution_begin[6] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[6] ),
     .tile_execution_valid( tile__tile_execution_valid[6] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[6] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[6] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[6] ),
     .tile_local_reset_a( tile__tile_local_reset_a[6] ),
     .tile_local_reset_b( tile__tile_local_reset_b[6] ),
     .tile_local_reset_c( tile__tile_local_reset_c[6] ),
@@ -7544,11 +7533,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[7] ),
     .tile_dry_run_done( tile__tile_dry_run_done[7] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[7] ),
-    .tile_execution_begin( tile__tile_execution_begin[7] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[7] ),
     .tile_execution_valid( tile__tile_execution_valid[7] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[7] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[7] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[7] ),
     .tile_local_reset_a( tile__tile_local_reset_a[7] ),
     .tile_local_reset_b( tile__tile_local_reset_b[7] ),
     .tile_local_reset_c( tile__tile_local_reset_c[7] ),
@@ -7601,11 +7589,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[8] ),
     .tile_dry_run_done( tile__tile_dry_run_done[8] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[8] ),
-    .tile_execution_begin( tile__tile_execution_begin[8] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[8] ),
     .tile_execution_valid( tile__tile_execution_valid[8] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[8] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[8] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[8] ),
     .tile_local_reset_a( tile__tile_local_reset_a[8] ),
     .tile_local_reset_b( tile__tile_local_reset_b[8] ),
     .tile_local_reset_c( tile__tile_local_reset_c[8] ),
@@ -7658,11 +7645,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[9] ),
     .tile_dry_run_done( tile__tile_dry_run_done[9] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[9] ),
-    .tile_execution_begin( tile__tile_execution_begin[9] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[9] ),
     .tile_execution_valid( tile__tile_execution_valid[9] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[9] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[9] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[9] ),
     .tile_local_reset_a( tile__tile_local_reset_a[9] ),
     .tile_local_reset_b( tile__tile_local_reset_b[9] ),
     .tile_local_reset_c( tile__tile_local_reset_c[9] ),
@@ -7715,11 +7701,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[10] ),
     .tile_dry_run_done( tile__tile_dry_run_done[10] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[10] ),
-    .tile_execution_begin( tile__tile_execution_begin[10] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[10] ),
     .tile_execution_valid( tile__tile_execution_valid[10] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[10] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[10] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[10] ),
     .tile_local_reset_a( tile__tile_local_reset_a[10] ),
     .tile_local_reset_b( tile__tile_local_reset_b[10] ),
     .tile_local_reset_c( tile__tile_local_reset_c[10] ),
@@ -7772,11 +7757,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[11] ),
     .tile_dry_run_done( tile__tile_dry_run_done[11] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[11] ),
-    .tile_execution_begin( tile__tile_execution_begin[11] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[11] ),
     .tile_execution_valid( tile__tile_execution_valid[11] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[11] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[11] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[11] ),
     .tile_local_reset_a( tile__tile_local_reset_a[11] ),
     .tile_local_reset_b( tile__tile_local_reset_b[11] ),
     .tile_local_reset_c( tile__tile_local_reset_c[11] ),
@@ -7829,11 +7813,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[12] ),
     .tile_dry_run_done( tile__tile_dry_run_done[12] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[12] ),
-    .tile_execution_begin( tile__tile_execution_begin[12] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[12] ),
     .tile_execution_valid( tile__tile_execution_valid[12] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[12] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[12] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[12] ),
     .tile_local_reset_a( tile__tile_local_reset_a[12] ),
     .tile_local_reset_b( tile__tile_local_reset_b[12] ),
     .tile_local_reset_c( tile__tile_local_reset_c[12] ),
@@ -7886,11 +7869,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[13] ),
     .tile_dry_run_done( tile__tile_dry_run_done[13] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[13] ),
-    .tile_execution_begin( tile__tile_execution_begin[13] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[13] ),
     .tile_execution_valid( tile__tile_execution_valid[13] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[13] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[13] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[13] ),
     .tile_local_reset_a( tile__tile_local_reset_a[13] ),
     .tile_local_reset_b( tile__tile_local_reset_b[13] ),
     .tile_local_reset_c( tile__tile_local_reset_c[13] ),
@@ -7943,11 +7925,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[14] ),
     .tile_dry_run_done( tile__tile_dry_run_done[14] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[14] ),
-    .tile_execution_begin( tile__tile_execution_begin[14] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[14] ),
     .tile_execution_valid( tile__tile_execution_valid[14] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[14] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[14] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[14] ),
     .tile_local_reset_a( tile__tile_local_reset_a[14] ),
     .tile_local_reset_b( tile__tile_local_reset_b[14] ),
     .tile_local_reset_c( tile__tile_local_reset_c[14] ),
@@ -8000,11 +7981,10 @@ module CGRARTL__top
     .tile_dry_run_ack( tile__tile_dry_run_ack[15] ),
     .tile_dry_run_done( tile__tile_dry_run_done[15] ),
     .tile_exe_fsafe_en( tile__tile_exe_fsafe_en[15] ),
-    .tile_execution_begin( tile__tile_execution_begin[15] ),
     .tile_execution_ini_begin( tile__tile_execution_ini_begin[15] ),
     .tile_execution_valid( tile__tile_execution_valid[15] ),
     .tile_fu_propagate_rdy( tile__tile_fu_propagate_rdy[15] ),
-    .tile_iter_th_hit( tile__tile_iter_th_hit[15] ),
+    .tile_iter_th_hit_nxt( tile__tile_iter_th_hit_nxt[15] ),
     .tile_local_reset_a( tile__tile_local_reset_a[15] ),
     .tile_local_reset_b( tile__tile_local_reset_b[15] ),
     .tile_local_reset_c( tile__tile_local_reset_c[15] ),
@@ -8052,13 +8032,18 @@ module CGRARTL__top
   end
 
   
+  always_comb begin : _lambda__s_cgra_csr_ro_10_
+    cgra_csr_ro[4'd10] = { sub_stage_done_t[2'd3], sub_stage_done_t[2'd2] };
+  end
+
+  
   always_comb begin : _lambda__s_cgra_csr_ro_8_
     cgra_csr_ro[4'd8] = { cgra_cur_stage_info, cgra_nxt_stage_info };
   end
 
   
   always_comb begin : _lambda__s_cgra_csr_ro_9_
-    cgra_csr_ro[4'd9] = { cgra_tile_iter_th[5'd20:5'd5], cgra_tile_iter_th_info };
+    cgra_csr_ro[4'd9] = { sub_stage_done_t[2'd1], sub_stage_done_t[2'd0] };
   end
 
   
@@ -8067,8 +8052,23 @@ module CGRARTL__top
   end
 
   
-  always_comb begin : _lambda__s_cgra_cycle_th_hit
-    cgra_cycle_th_hit = ( & cgra_tile_iter_th_info );
+  always_comb begin : _lambda__s_cgra_cycle_th_hit_0_1_
+    cgra_cycle_th_hit[2'd0:2'd0] = ( & sub_stage_done_t[2'( __const__i_at__lambda__s_cgra_cycle_th_hit_0_1_ )] );
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_cycle_th_hit_1_2_
+    cgra_cycle_th_hit[2'd1:2'd1] = ( & sub_stage_done_t[2'( __const__i_at__lambda__s_cgra_cycle_th_hit_1_2_ )] );
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_cycle_th_hit_2_3_
+    cgra_cycle_th_hit[2'd2:2'd2] = ( & sub_stage_done_t[2'( __const__i_at__lambda__s_cgra_cycle_th_hit_2_3_ )] );
+  end
+
+  
+  always_comb begin : _lambda__s_cgra_cycle_th_hit_3_4_
+    cgra_cycle_th_hit[2'd3:2'd3] = ( & sub_stage_done_t[2'( __const__i_at__lambda__s_cgra_cycle_th_hit_3_4_ )] );
   end
 
   
@@ -8202,46 +8202,6 @@ module CGRARTL__top
   end
 
   
-  always_comb begin : _lambda__s_tile_0__send_data_ack_1_
-    tile__send_data_ack[4'd0][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_0__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_0__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_0__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_0__send_data_ack_1_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_11__send_data_ack_3_
-    tile__send_data_ack[4'd11][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_11__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_11__send_data_ack_3_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_15__send_data_ack_3_
-    tile__send_data_ack[4'd15][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_15__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_15__send_data_ack_3_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_1__send_data_ack_1_
-    tile__send_data_ack[4'd1][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_1__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_1__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_1__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_1__send_data_ack_1_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_2__send_data_ack_1_
-    tile__send_data_ack[4'd2][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_2__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_2__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_2__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_2__send_data_ack_1_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_3__send_data_ack_1_
-    tile__send_data_ack[4'd3][2'd1] = cgra_send_ni_data__rdy[3'( __const__height_at__lambda__s_tile_3__send_data_ack_1_ ) + ( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_1_ ) % 3'( __const__width_at__lambda__s_tile_3__send_data_ack_1_ ) )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_3__send_data_ack_1_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_3__send_data_ack_3_
-    tile__send_data_ack[4'd3][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_3__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_3__send_data_ack_3_ )];
-  end
-
-  
-  always_comb begin : _lambda__s_tile_7__send_data_ack_3_
-    tile__send_data_ack[4'd7][2'd3] = cgra_send_ni_data__rdy[( ( 3'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ ) + 3'd1 ) - 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ ) ) / 3'( __const__width_at__lambda__s_tile_7__send_data_ack_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_7__send_data_ack_3_ )];
-  end
-
-  
   always_comb begin : _lambda__s_tile_dry_run_ack_0_
     tile_dry_run_ack[4'd0] = cgra_dry_run_ack & ( counter_config_cmd_addr <= cgra_tile_local_ctrl_1[4'( __const__i_at__lambda__s_tile_dry_run_ack_0_ )][5'd12:5'd8] );
   end
@@ -8327,24 +8287,56 @@ module CGRARTL__top
   end
 
   
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_0_1_
+    tile_send_ni_data_rdy[3'd0:3'd0] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_0_1_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_0_1_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_1_2_
+    tile_send_ni_data_rdy[3'd1:3'd1] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_1_2_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_1_2_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_2_3_
+    tile_send_ni_data_rdy[3'd2:3'd2] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_2_3_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_2_3_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_3_4_
+    tile_send_ni_data_rdy[3'd3:3'd3] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_3_4_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_3_4_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_4_5_
+    tile_send_ni_data_rdy[3'd4:3'd4] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_4_5_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_4_5_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_5_6_
+    tile_send_ni_data_rdy[3'd5:3'd5] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_5_6_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_5_6_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_6_7_
+    tile_send_ni_data_rdy[3'd6:3'd6] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_6_7_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_6_7_ )];
+  end
+
+  
+  always_comb begin : _lambda__s_tile_send_ni_data_rdy_7_8_
+    tile_send_ni_data_rdy[3'd7:3'd7] = cgra_send_ni_data__rdy[3'( __const__i_at__lambda__s_tile_send_ni_data_rdy_7_8_ )] | tile_dry_run_ack[4'( __const__i_at__lambda__s_tile_send_ni_data_rdy_7_8_ )];
+  end
+
+  
   always_comb begin : fsm_ctrl_signals
     cgra_config_ini_begin = 1'd0;
     cgra_config_lut_begin = 1'd0;
     cgra_config_data_begin = 1'd0;
     cgra_config_cmd_begin = 1'd0;
-    cgra_execution_begin = 1'd0;
     cgra_execution_ini_begin = 1'd0;
     cgra_sync_dry_run_begin = 1'd0;
     cgra_execution_valid = 1'd0;
     cgra_csr_rdy = 1'd0;
-    for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-      cgra_tile_cmd_th[4'(i)] = 5'd1;
-      cgra_tile_cmd_base[4'(i)] = 5'd0;
-      cgra_tile_data_th[4'(i)] = 5'd1;
-      cgra_tile_data_base[4'(i)] = 5'd0;
-    end
-    cgra_tile_iter_th = 32'd1;
-    cgra_re_execution_begin = 1'd0;
+    cgra_re_execution_begin = 16'd0;
     cgra_tile_local_reset = 1'd0;
     cgra_tile_local_reset_a = 1'd0;
     cgra_tile_local_reset_b = 1'd0;
@@ -8365,55 +8357,11 @@ module CGRARTL__top
     if ( nxt_stage == 4'( __const__STAGE_CONFIG_DONE ) ) begin
       cgra_execution_ini_begin = 1'd1;
     end
-    if ( nxt_stage == 4'( __const__STAGE_COMP_S1 ) ) begin
-      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd4:5'd0];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd12:5'd8];
-        cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd4:5'd0];
-      end
+    if ( ( cur_stage == 4'( __const__STAGE_CONFIG_DONE ) ) | ( cur_stage == 4'( __const__STAGE_COMP ) ) ) begin
+      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 )
+        cgra_re_execution_begin[4'(i)] = ( | sub_stage_sel[4'(i)] ) & cgra_computation_en;
     end
-    if ( nxt_stage == 4'( __const__STAGE_COMP_S2 ) ) begin
-      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd20:5'd16];
-        cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd12:5'd8];
-      end
-    end
-    if ( nxt_stage == 4'( __const__STAGE_COMP_S3 ) ) begin
-      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24];
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16];
-        cgra_tile_data_th[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd28:5'd24];
-        cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd20:5'd16];
-      end
-    end
-    if ( nxt_stage == 4'( __const__STAGE_COMP_S4 ) ) begin
-      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
-        cgra_tile_cmd_th[4'(i)] = cgra_config_cmd_counter_th;
-        cgra_tile_cmd_base[4'(i)] = cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24];
-        cgra_tile_data_th[4'(i)] = cgra_config_data_counter_th;
-        cgra_tile_data_base[4'(i)] = cgra_tile_local_ctrl_2[4'(i)][5'd28:5'd24];
-      end
-    end
-    if ( ( ( ( nxt_stage == 4'( __const__STAGE_COMP_S1 ) ) | ( nxt_stage == 4'( __const__STAGE_COMP_S2 ) ) ) | ( nxt_stage == 4'( __const__STAGE_COMP_S3 ) ) ) | ( nxt_stage == 4'( __const__STAGE_COMP_S4 ) ) ) begin
-      cgra_execution_begin = 1'd1;
-      cgra_re_execution_begin = cgra_cycle_th_hit;
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S1 ) ) begin
-      cgra_tile_iter_th = cgra_sub_stage_iter_th[2'd0];
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S2 ) ) begin
-      cgra_tile_iter_th = cgra_sub_stage_iter_th[2'd1];
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S3 ) ) begin
-      cgra_tile_iter_th = cgra_sub_stage_iter_th[2'd2];
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S4 ) ) begin
-      cgra_tile_iter_th = cgra_sub_stage_iter_th[2'd3];
-    end
-    if ( ( ( ( cur_stage == 4'( __const__STAGE_COMP_S1 ) ) | ( cur_stage == 4'( __const__STAGE_COMP_S2 ) ) ) | ( cur_stage == 4'( __const__STAGE_COMP_S3 ) ) ) | ( cur_stage == 4'( __const__STAGE_COMP_S4 ) ) ) begin
+    if ( cur_stage == 4'( __const__STAGE_COMP ) ) begin
       cgra_execution_valid = 1'd1;
     end
     if ( ( ( ( cur_stage == 4'( __const__STAGE_IDLE ) ) | ( cur_stage == 4'( __const__STAGE_CONFIG_CTRLREG ) ) ) | ( cur_stage == 4'( __const__STAGE_CONFIG_DONE ) ) ) | ( cur_stage == 4'( __const__STAGE_COMP_HALT ) ) ) begin
@@ -8476,64 +8424,37 @@ module CGRARTL__top
     end
     if ( cur_stage == 4'( __const__STAGE_CONFIG_DONE ) ) begin
       if ( cgra_computation_en ) begin
-        if ( cgra_sub_stage_en[2'd0] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S1 );
-        end
-        else if ( cgra_sub_stage_en[2'd1] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S2 );
-        end
-        else if ( cgra_sub_stage_en[2'd2] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S3 );
-        end
-        else if ( cgra_sub_stage_en[2'd3] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S4 );
-        end
+        nxt_stage = 4'( __const__STAGE_COMP );
       end
     end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S1 ) ) begin
-      if ( cgra_cycle_th_hit ) begin
-        if ( cgra_sub_stage_en[2'd1] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S2 );
-        end
-        else if ( cgra_sub_stage_en[2'd2] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S3 );
-        end
-        else if ( cgra_sub_stage_en[2'd3] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S4 );
-        end
-        else
-          nxt_stage = 4'( __const__STAGE_COMP_HALT );
-      end
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S2 ) ) begin
-      if ( cgra_cycle_th_hit ) begin
-        if ( cgra_sub_stage_en[2'd2] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S3 );
-        end
-        else if ( cgra_sub_stage_en[2'd3] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S4 );
-        end
-        else
-          nxt_stage = 4'( __const__STAGE_COMP_HALT );
-      end
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S3 ) ) begin
-      if ( cgra_cycle_th_hit ) begin
-        if ( cgra_sub_stage_en[2'd3] ) begin
-          nxt_stage = 4'( __const__STAGE_COMP_S4 );
-        end
-        else
-          nxt_stage = 4'( __const__STAGE_COMP_HALT );
-      end
-    end
-    if ( cur_stage == 4'( __const__STAGE_COMP_S4 ) ) begin
-      if ( cgra_cycle_th_hit ) begin
+    if ( cur_stage == 4'( __const__STAGE_COMP ) ) begin
+      if ( ( & cgra_cycle_th_hit ) ) begin
         nxt_stage = 4'( __const__STAGE_COMP_HALT );
       end
     end
     if ( cur_stage == 4'( __const__STAGE_COMP_HALT ) ) begin
       if ( cgra_restart_comp_en ) begin
         nxt_stage = 4'( __const__STAGE_CONFIG_CTRLREG );
+      end
+    end
+  end
+
+  
+  always_comb begin : sub_fsm_ctrl_signals
+    for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 ) begin
+      sub_stage_done_nxt[4'(i)] = cgra_execution_ini_begin ? ~cgra_sub_stage_en : sub_stage_done[4'(i)];
+      sub_stage_sel[4'(i)][2'd0] = ~sub_stage_done[4'(i)][2'd0];
+      sub_stage_sel[4'(i)][2'd1] = ( ~sub_stage_done[4'(i)][2'd1] ) & sub_stage_done[4'(i)][2'd0];
+      sub_stage_sel[4'(i)][2'd2] = ( ( ~sub_stage_done[4'(i)][2'd2] ) & sub_stage_done[4'(i)][2'd1] ) & sub_stage_done[4'(i)][2'd0];
+      sub_stage_sel[4'(i)][2'd3] = ( ( ( ~sub_stage_done[4'(i)][2'd3] ) & sub_stage_done[4'(i)][2'd2] ) & sub_stage_done[4'(i)][2'd1] ) & sub_stage_done[4'(i)][2'd0];
+      cgra_tile_cmd_th[4'(i)] = ( ( ( cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8] & { { 4 { sub_stage_sel[4'(i)][2'd0] } }, sub_stage_sel[4'(i)][2'd0] } ) | ( cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16] & { { 4 { sub_stage_sel[4'(i)][2'd1] } }, sub_stage_sel[4'(i)][2'd1] } ) ) | ( cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24] & { { 4 { sub_stage_sel[4'(i)][2'd2] } }, sub_stage_sel[4'(i)][2'd2] } ) ) | ( cgra_config_cmd_counter_th & { { 4 { sub_stage_sel[4'(i)][2'd3] } }, sub_stage_sel[4'(i)][2'd3] } );
+      cgra_tile_cmd_base[4'(i)] = ( ( ( cgra_tile_local_ctrl_1[4'(i)][5'd4:5'd0] & { { 4 { sub_stage_sel[4'(i)][2'd0] } }, sub_stage_sel[4'(i)][2'd0] } ) | ( cgra_tile_local_ctrl_1[4'(i)][5'd12:5'd8] & { { 4 { sub_stage_sel[4'(i)][2'd1] } }, sub_stage_sel[4'(i)][2'd1] } ) ) | ( cgra_tile_local_ctrl_1[4'(i)][5'd20:5'd16] & { { 4 { sub_stage_sel[4'(i)][2'd2] } }, sub_stage_sel[4'(i)][2'd2] } ) ) | ( cgra_tile_local_ctrl_1[4'(i)][5'd28:5'd24] & { { 4 { sub_stage_sel[4'(i)][2'd3] } }, sub_stage_sel[4'(i)][2'd3] } );
+      cgra_tile_data_th[4'(i)] = ( ( ( cgra_tile_local_ctrl_2[4'(i)][5'd12:5'd8] & { { 4 { sub_stage_sel[4'(i)][2'd0] } }, sub_stage_sel[4'(i)][2'd0] } ) | ( cgra_tile_local_ctrl_2[4'(i)][5'd20:5'd16] & { { 4 { sub_stage_sel[4'(i)][2'd1] } }, sub_stage_sel[4'(i)][2'd1] } ) ) | ( cgra_tile_local_ctrl_2[4'(i)][5'd28:5'd24] & { { 4 { sub_stage_sel[4'(i)][2'd2] } }, sub_stage_sel[4'(i)][2'd2] } ) ) | ( cgra_config_data_counter_th & { { 4 { sub_stage_sel[4'(i)][2'd3] } }, sub_stage_sel[4'(i)][2'd3] } );
+      cgra_tile_data_base[4'(i)] = ( ( ( cgra_tile_local_ctrl_2[4'(i)][5'd4:5'd0] & { { 4 { sub_stage_sel[4'(i)][2'd0] } }, sub_stage_sel[4'(i)][2'd0] } ) | ( cgra_tile_local_ctrl_2[4'(i)][5'd12:5'd8] & { { 4 { sub_stage_sel[4'(i)][2'd1] } }, sub_stage_sel[4'(i)][2'd1] } ) ) | ( cgra_tile_local_ctrl_2[4'(i)][5'd20:5'd16] & { { 4 { sub_stage_sel[4'(i)][2'd2] } }, sub_stage_sel[4'(i)][2'd2] } ) ) | ( cgra_tile_local_ctrl_2[4'(i)][5'd28:5'd24] & { { 4 { sub_stage_sel[4'(i)][2'd3] } }, sub_stage_sel[4'(i)][2'd3] } );
+      cgra_tile_iter_th[4'(i)] = ( ( ( cgra_sub_stage_iter_th[2'd0] & { { 31 { sub_stage_sel[4'(i)][2'd0] } }, sub_stage_sel[4'(i)][2'd0] } ) | ( cgra_sub_stage_iter_th[2'd1] & { { 31 { sub_stage_sel[4'(i)][2'd1] } }, sub_stage_sel[4'(i)][2'd1] } ) ) | ( cgra_sub_stage_iter_th[2'd2] & { { 31 { sub_stage_sel[4'(i)][2'd2] } }, sub_stage_sel[4'(i)][2'd2] } ) ) | ( cgra_sub_stage_iter_th[2'd3] & { { 31 { sub_stage_sel[4'(i)][2'd3] } }, sub_stage_sel[4'(i)][2'd3] } );
+      if ( cgra_re_execution_begin ) begin
+        for ( int unsigned j = 1'd0; j < 3'd4; j += 1'd1 )
+          sub_stage_done_nxt[4'(i)][2'(j)] = sub_stage_done_nxt[4'(i)][2'(j)] | ( ( ( sub_stage_sel[4'(i)][2'(j)] & tile__tile_iter_th_hit_nxt[4'(i)] ) & tile__tile_fu_propagate_rdy[4'(i)] ) & tile__tile_xbar_propagate_rdy[4'(i)] );
       end
     end
   end
@@ -8659,19 +8580,11 @@ module CGRARTL__top
       if ( cgra_execution_ini_begin ) begin
         cgra_pref_counter_ckpt[3'd2] <= cgra_pref_counter;
       end
-      if ( cgra_execution_begin ) begin
-        if ( nxt_stage == 4'( __const__STAGE_COMP_S1 ) ) begin
-          cgra_pref_counter_ckpt[3'd3] <= cgra_pref_counter;
-        end
-        if ( nxt_stage == 4'( __const__STAGE_COMP_S2 ) ) begin
-          cgra_pref_counter_ckpt[3'd4] <= cgra_pref_counter;
-        end
-        if ( nxt_stage == 4'( __const__STAGE_COMP_S3 ) ) begin
-          cgra_pref_counter_ckpt[3'd5] <= cgra_pref_counter;
-        end
-        if ( nxt_stage == 4'( __const__STAGE_COMP_S4 ) ) begin
-          cgra_pref_counter_ckpt[3'd6] <= cgra_pref_counter;
-        end
+      if ( cgra_re_execution_begin ) begin
+        for ( int unsigned i = 1'd0; i < 3'd4; i += 1'd1 )
+          if ( ~cgra_cycle_th_hit[2'(i)] ) begin
+            cgra_pref_counter_ckpt[3'(i) + 3'd3] <= cgra_pref_counter;
+          end
       end
     end
   end
@@ -8704,6 +8617,17 @@ module CGRARTL__top
     else if ( recv_wlut_flattened_en & ( ~cgra_config_lut_done ) ) begin
       counter_config_lut_addr <= counter_config_lut_addr + 2'd1;
     end
+  end
+
+  
+  always_ff @(posedge clk) begin : sub_fsm_update
+    if ( reset | cgra_config_ini_begin ) begin
+      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 )
+        sub_stage_done[4'(i)] <= 4'd0;
+    end
+    else
+      for ( int unsigned i = 1'd0; i < 5'd16; i += 1'd1 )
+        sub_stage_done[4'(i)] <= sub_stage_done_nxt[4'(i)];
   end
 
   assign cgra_recv_wi_data[63:0] = cgra_recv_ni_data__msg[0];
@@ -8765,14 +8689,76 @@ module CGRARTL__top
   assign cgra_csr_ro[5] = cgra_pref_counter_ckpt[4];
   assign cgra_csr_ro[6] = cgra_pref_counter_ckpt[5];
   assign cgra_csr_ro[7] = cgra_pref_counter_ckpt[6];
-  assign cgra_csr_ro[10] = cgra_propagate_rdy_info;
   assign recv_wlut_flattened_rdy = cgra_config_lut_begin;
   assign recv_wconst_flattened_rdy = cgra_config_data_begin;
   assign recv_wopt_sliced_flattened_rdy = cgra_config_cmd_begin;
   assign cgra_csr_rw_ack = cgra_csr_rdy;
+  assign sub_stage_done_t[0][0:0] = sub_stage_done[0][0:0];
+  assign sub_stage_done_t[0][1:1] = sub_stage_done[1][0:0];
+  assign sub_stage_done_t[0][2:2] = sub_stage_done[2][0:0];
+  assign sub_stage_done_t[0][3:3] = sub_stage_done[3][0:0];
+  assign sub_stage_done_t[0][4:4] = sub_stage_done[4][0:0];
+  assign sub_stage_done_t[0][5:5] = sub_stage_done[5][0:0];
+  assign sub_stage_done_t[0][6:6] = sub_stage_done[6][0:0];
+  assign sub_stage_done_t[0][7:7] = sub_stage_done[7][0:0];
+  assign sub_stage_done_t[0][8:8] = sub_stage_done[8][0:0];
+  assign sub_stage_done_t[0][9:9] = sub_stage_done[9][0:0];
+  assign sub_stage_done_t[0][10:10] = sub_stage_done[10][0:0];
+  assign sub_stage_done_t[0][11:11] = sub_stage_done[11][0:0];
+  assign sub_stage_done_t[0][12:12] = sub_stage_done[12][0:0];
+  assign sub_stage_done_t[0][13:13] = sub_stage_done[13][0:0];
+  assign sub_stage_done_t[0][14:14] = sub_stage_done[14][0:0];
+  assign sub_stage_done_t[0][15:15] = sub_stage_done[15][0:0];
+  assign sub_stage_done_t[1][0:0] = sub_stage_done[0][1:1];
+  assign sub_stage_done_t[1][1:1] = sub_stage_done[1][1:1];
+  assign sub_stage_done_t[1][2:2] = sub_stage_done[2][1:1];
+  assign sub_stage_done_t[1][3:3] = sub_stage_done[3][1:1];
+  assign sub_stage_done_t[1][4:4] = sub_stage_done[4][1:1];
+  assign sub_stage_done_t[1][5:5] = sub_stage_done[5][1:1];
+  assign sub_stage_done_t[1][6:6] = sub_stage_done[6][1:1];
+  assign sub_stage_done_t[1][7:7] = sub_stage_done[7][1:1];
+  assign sub_stage_done_t[1][8:8] = sub_stage_done[8][1:1];
+  assign sub_stage_done_t[1][9:9] = sub_stage_done[9][1:1];
+  assign sub_stage_done_t[1][10:10] = sub_stage_done[10][1:1];
+  assign sub_stage_done_t[1][11:11] = sub_stage_done[11][1:1];
+  assign sub_stage_done_t[1][12:12] = sub_stage_done[12][1:1];
+  assign sub_stage_done_t[1][13:13] = sub_stage_done[13][1:1];
+  assign sub_stage_done_t[1][14:14] = sub_stage_done[14][1:1];
+  assign sub_stage_done_t[1][15:15] = sub_stage_done[15][1:1];
+  assign sub_stage_done_t[2][0:0] = sub_stage_done[0][2:2];
+  assign sub_stage_done_t[2][1:1] = sub_stage_done[1][2:2];
+  assign sub_stage_done_t[2][2:2] = sub_stage_done[2][2:2];
+  assign sub_stage_done_t[2][3:3] = sub_stage_done[3][2:2];
+  assign sub_stage_done_t[2][4:4] = sub_stage_done[4][2:2];
+  assign sub_stage_done_t[2][5:5] = sub_stage_done[5][2:2];
+  assign sub_stage_done_t[2][6:6] = sub_stage_done[6][2:2];
+  assign sub_stage_done_t[2][7:7] = sub_stage_done[7][2:2];
+  assign sub_stage_done_t[2][8:8] = sub_stage_done[8][2:2];
+  assign sub_stage_done_t[2][9:9] = sub_stage_done[9][2:2];
+  assign sub_stage_done_t[2][10:10] = sub_stage_done[10][2:2];
+  assign sub_stage_done_t[2][11:11] = sub_stage_done[11][2:2];
+  assign sub_stage_done_t[2][12:12] = sub_stage_done[12][2:2];
+  assign sub_stage_done_t[2][13:13] = sub_stage_done[13][2:2];
+  assign sub_stage_done_t[2][14:14] = sub_stage_done[14][2:2];
+  assign sub_stage_done_t[2][15:15] = sub_stage_done[15][2:2];
+  assign sub_stage_done_t[3][0:0] = sub_stage_done[0][3:3];
+  assign sub_stage_done_t[3][1:1] = sub_stage_done[1][3:3];
+  assign sub_stage_done_t[3][2:2] = sub_stage_done[2][3:3];
+  assign sub_stage_done_t[3][3:3] = sub_stage_done[3][3:3];
+  assign sub_stage_done_t[3][4:4] = sub_stage_done[4][3:3];
+  assign sub_stage_done_t[3][5:5] = sub_stage_done[5][3:3];
+  assign sub_stage_done_t[3][6:6] = sub_stage_done[6][3:3];
+  assign sub_stage_done_t[3][7:7] = sub_stage_done[7][3:3];
+  assign sub_stage_done_t[3][8:8] = sub_stage_done[8][3:3];
+  assign sub_stage_done_t[3][9:9] = sub_stage_done[9][3:3];
+  assign sub_stage_done_t[3][10:10] = sub_stage_done[10][3:3];
+  assign sub_stage_done_t[3][11:11] = sub_stage_done[11][3:3];
+  assign sub_stage_done_t[3][12:12] = sub_stage_done[12][3:3];
+  assign sub_stage_done_t[3][13:13] = sub_stage_done[13][3:3];
+  assign sub_stage_done_t[3][14:14] = sub_stage_done[14][3:3];
+  assign sub_stage_done_t[3][15:15] = sub_stage_done[15][3:3];
   assign tile__tile_config_ini_begin[0] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[0] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[0] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[0] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[0] = cgra_execution_valid;
   assign tile__tile_dry_run_done[0] = cgra_config_cmd_done;
@@ -8783,15 +8769,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[0] = cgra_tile_cmd_base[0];
   assign tile__config_data_counter_th[0] = cgra_tile_data_th[0];
   assign tile__config_data_counter_base[0] = cgra_tile_data_base[0];
-  assign tile__config_cmd_iter_counter_th[0] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[0] = cgra_tile_iter_th[0];
   assign tile__tile_local_reset_a[0] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[0] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[0] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[0] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[0:0] = tile__tile_iter_th_hit[0];
+  assign tile__tile_re_execution_ini_begin[0] = cgra_re_execution_begin[0:0];
   assign tile__tile_config_ini_begin[1] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[1] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[1] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[1] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[1] = cgra_execution_valid;
   assign tile__tile_dry_run_done[1] = cgra_config_cmd_done;
@@ -8802,15 +8786,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[1] = cgra_tile_cmd_base[1];
   assign tile__config_data_counter_th[1] = cgra_tile_data_th[1];
   assign tile__config_data_counter_base[1] = cgra_tile_data_base[1];
-  assign tile__config_cmd_iter_counter_th[1] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[1] = cgra_tile_iter_th[1];
   assign tile__tile_local_reset_a[1] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[1] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[1] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[1] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[1:1] = tile__tile_iter_th_hit[1];
+  assign tile__tile_re_execution_ini_begin[1] = cgra_re_execution_begin[1:1];
   assign tile__tile_config_ini_begin[2] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[2] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[2] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[2] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[2] = cgra_execution_valid;
   assign tile__tile_dry_run_done[2] = cgra_config_cmd_done;
@@ -8821,15 +8803,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[2] = cgra_tile_cmd_base[2];
   assign tile__config_data_counter_th[2] = cgra_tile_data_th[2];
   assign tile__config_data_counter_base[2] = cgra_tile_data_base[2];
-  assign tile__config_cmd_iter_counter_th[2] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[2] = cgra_tile_iter_th[2];
   assign tile__tile_local_reset_a[2] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[2] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[2] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[2] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[2:2] = tile__tile_iter_th_hit[2];
+  assign tile__tile_re_execution_ini_begin[2] = cgra_re_execution_begin[2:2];
   assign tile__tile_config_ini_begin[3] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[3] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[3] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[3] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[3] = cgra_execution_valid;
   assign tile__tile_dry_run_done[3] = cgra_config_cmd_done;
@@ -8840,15 +8820,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[3] = cgra_tile_cmd_base[3];
   assign tile__config_data_counter_th[3] = cgra_tile_data_th[3];
   assign tile__config_data_counter_base[3] = cgra_tile_data_base[3];
-  assign tile__config_cmd_iter_counter_th[3] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[3] = cgra_tile_iter_th[3];
   assign tile__tile_local_reset_a[3] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[3] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[3] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[3] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[3:3] = tile__tile_iter_th_hit[3];
+  assign tile__tile_re_execution_ini_begin[3] = cgra_re_execution_begin[3:3];
   assign tile__tile_config_ini_begin[4] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[4] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[4] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[4] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[4] = cgra_execution_valid;
   assign tile__tile_dry_run_done[4] = cgra_config_cmd_done;
@@ -8859,15 +8837,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[4] = cgra_tile_cmd_base[4];
   assign tile__config_data_counter_th[4] = cgra_tile_data_th[4];
   assign tile__config_data_counter_base[4] = cgra_tile_data_base[4];
-  assign tile__config_cmd_iter_counter_th[4] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[4] = cgra_tile_iter_th[4];
   assign tile__tile_local_reset_a[4] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[4] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[4] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[4] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[4:4] = tile__tile_iter_th_hit[4];
+  assign tile__tile_re_execution_ini_begin[4] = cgra_re_execution_begin[4:4];
   assign tile__tile_config_ini_begin[5] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[5] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[5] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[5] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[5] = cgra_execution_valid;
   assign tile__tile_dry_run_done[5] = cgra_config_cmd_done;
@@ -8878,15 +8854,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[5] = cgra_tile_cmd_base[5];
   assign tile__config_data_counter_th[5] = cgra_tile_data_th[5];
   assign tile__config_data_counter_base[5] = cgra_tile_data_base[5];
-  assign tile__config_cmd_iter_counter_th[5] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[5] = cgra_tile_iter_th[5];
   assign tile__tile_local_reset_a[5] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[5] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[5] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[5] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[5:5] = tile__tile_iter_th_hit[5];
+  assign tile__tile_re_execution_ini_begin[5] = cgra_re_execution_begin[5:5];
   assign tile__tile_config_ini_begin[6] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[6] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[6] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[6] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[6] = cgra_execution_valid;
   assign tile__tile_dry_run_done[6] = cgra_config_cmd_done;
@@ -8897,15 +8871,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[6] = cgra_tile_cmd_base[6];
   assign tile__config_data_counter_th[6] = cgra_tile_data_th[6];
   assign tile__config_data_counter_base[6] = cgra_tile_data_base[6];
-  assign tile__config_cmd_iter_counter_th[6] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[6] = cgra_tile_iter_th[6];
   assign tile__tile_local_reset_a[6] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[6] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[6] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[6] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[6:6] = tile__tile_iter_th_hit[6];
+  assign tile__tile_re_execution_ini_begin[6] = cgra_re_execution_begin[6:6];
   assign tile__tile_config_ini_begin[7] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[7] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[7] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[7] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[7] = cgra_execution_valid;
   assign tile__tile_dry_run_done[7] = cgra_config_cmd_done;
@@ -8916,15 +8888,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[7] = cgra_tile_cmd_base[7];
   assign tile__config_data_counter_th[7] = cgra_tile_data_th[7];
   assign tile__config_data_counter_base[7] = cgra_tile_data_base[7];
-  assign tile__config_cmd_iter_counter_th[7] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[7] = cgra_tile_iter_th[7];
   assign tile__tile_local_reset_a[7] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[7] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[7] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[7] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[7:7] = tile__tile_iter_th_hit[7];
+  assign tile__tile_re_execution_ini_begin[7] = cgra_re_execution_begin[7:7];
   assign tile__tile_config_ini_begin[8] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[8] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[8] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[8] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[8] = cgra_execution_valid;
   assign tile__tile_dry_run_done[8] = cgra_config_cmd_done;
@@ -8935,15 +8905,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[8] = cgra_tile_cmd_base[8];
   assign tile__config_data_counter_th[8] = cgra_tile_data_th[8];
   assign tile__config_data_counter_base[8] = cgra_tile_data_base[8];
-  assign tile__config_cmd_iter_counter_th[8] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[8] = cgra_tile_iter_th[8];
   assign tile__tile_local_reset_a[8] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[8] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[8] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[8] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[8:8] = tile__tile_iter_th_hit[8];
+  assign tile__tile_re_execution_ini_begin[8] = cgra_re_execution_begin[8:8];
   assign tile__tile_config_ini_begin[9] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[9] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[9] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[9] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[9] = cgra_execution_valid;
   assign tile__tile_dry_run_done[9] = cgra_config_cmd_done;
@@ -8954,15 +8922,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[9] = cgra_tile_cmd_base[9];
   assign tile__config_data_counter_th[9] = cgra_tile_data_th[9];
   assign tile__config_data_counter_base[9] = cgra_tile_data_base[9];
-  assign tile__config_cmd_iter_counter_th[9] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[9] = cgra_tile_iter_th[9];
   assign tile__tile_local_reset_a[9] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[9] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[9] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[9] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[9:9] = tile__tile_iter_th_hit[9];
+  assign tile__tile_re_execution_ini_begin[9] = cgra_re_execution_begin[9:9];
   assign tile__tile_config_ini_begin[10] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[10] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[10] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[10] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[10] = cgra_execution_valid;
   assign tile__tile_dry_run_done[10] = cgra_config_cmd_done;
@@ -8973,15 +8939,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[10] = cgra_tile_cmd_base[10];
   assign tile__config_data_counter_th[10] = cgra_tile_data_th[10];
   assign tile__config_data_counter_base[10] = cgra_tile_data_base[10];
-  assign tile__config_cmd_iter_counter_th[10] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[10] = cgra_tile_iter_th[10];
   assign tile__tile_local_reset_a[10] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[10] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[10] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[10] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[10:10] = tile__tile_iter_th_hit[10];
+  assign tile__tile_re_execution_ini_begin[10] = cgra_re_execution_begin[10:10];
   assign tile__tile_config_ini_begin[11] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[11] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[11] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[11] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[11] = cgra_execution_valid;
   assign tile__tile_dry_run_done[11] = cgra_config_cmd_done;
@@ -8992,15 +8956,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[11] = cgra_tile_cmd_base[11];
   assign tile__config_data_counter_th[11] = cgra_tile_data_th[11];
   assign tile__config_data_counter_base[11] = cgra_tile_data_base[11];
-  assign tile__config_cmd_iter_counter_th[11] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[11] = cgra_tile_iter_th[11];
   assign tile__tile_local_reset_a[11] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[11] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[11] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[11] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[11:11] = tile__tile_iter_th_hit[11];
+  assign tile__tile_re_execution_ini_begin[11] = cgra_re_execution_begin[11:11];
   assign tile__tile_config_ini_begin[12] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[12] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[12] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[12] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[12] = cgra_execution_valid;
   assign tile__tile_dry_run_done[12] = cgra_config_cmd_done;
@@ -9011,15 +8973,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[12] = cgra_tile_cmd_base[12];
   assign tile__config_data_counter_th[12] = cgra_tile_data_th[12];
   assign tile__config_data_counter_base[12] = cgra_tile_data_base[12];
-  assign tile__config_cmd_iter_counter_th[12] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[12] = cgra_tile_iter_th[12];
   assign tile__tile_local_reset_a[12] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[12] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[12] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[12] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[12:12] = tile__tile_iter_th_hit[12];
+  assign tile__tile_re_execution_ini_begin[12] = cgra_re_execution_begin[12:12];
   assign tile__tile_config_ini_begin[13] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[13] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[13] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[13] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[13] = cgra_execution_valid;
   assign tile__tile_dry_run_done[13] = cgra_config_cmd_done;
@@ -9030,15 +8990,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[13] = cgra_tile_cmd_base[13];
   assign tile__config_data_counter_th[13] = cgra_tile_data_th[13];
   assign tile__config_data_counter_base[13] = cgra_tile_data_base[13];
-  assign tile__config_cmd_iter_counter_th[13] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[13] = cgra_tile_iter_th[13];
   assign tile__tile_local_reset_a[13] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[13] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[13] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[13] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[13:13] = tile__tile_iter_th_hit[13];
+  assign tile__tile_re_execution_ini_begin[13] = cgra_re_execution_begin[13:13];
   assign tile__tile_config_ini_begin[14] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[14] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[14] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[14] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[14] = cgra_execution_valid;
   assign tile__tile_dry_run_done[14] = cgra_config_cmd_done;
@@ -9049,15 +9007,13 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[14] = cgra_tile_cmd_base[14];
   assign tile__config_data_counter_th[14] = cgra_tile_data_th[14];
   assign tile__config_data_counter_base[14] = cgra_tile_data_base[14];
-  assign tile__config_cmd_iter_counter_th[14] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[14] = cgra_tile_iter_th[14];
   assign tile__tile_local_reset_a[14] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[14] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[14] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[14] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[14:14] = tile__tile_iter_th_hit[14];
+  assign tile__tile_re_execution_ini_begin[14] = cgra_re_execution_begin[14:14];
   assign tile__tile_config_ini_begin[15] = cgra_config_ini_begin;
   assign tile__tile_execution_ini_begin[15] = cgra_execution_ini_begin;
-  assign tile__tile_execution_begin[15] = cgra_execution_begin;
   assign tile__tile_sync_dry_run_begin[15] = cgra_sync_dry_run_begin;
   assign tile__tile_execution_valid[15] = cgra_execution_valid;
   assign tile__tile_dry_run_done[15] = cgra_config_cmd_done;
@@ -9068,12 +9024,11 @@ module CGRARTL__top
   assign tile__config_cmd_counter_base[15] = cgra_tile_cmd_base[15];
   assign tile__config_data_counter_th[15] = cgra_tile_data_th[15];
   assign tile__config_data_counter_base[15] = cgra_tile_data_base[15];
-  assign tile__config_cmd_iter_counter_th[15] = cgra_tile_iter_th;
+  assign tile__config_cmd_iter_counter_th[15] = cgra_tile_iter_th[15];
   assign tile__tile_local_reset_a[15] = cgra_tile_local_reset_a;
   assign tile__tile_local_reset_b[15] = cgra_tile_local_reset_b;
   assign tile__tile_local_reset_c[15] = cgra_tile_local_reset_c;
-  assign tile__tile_re_execution_ini_begin[15] = cgra_re_execution_begin;
-  assign cgra_tile_iter_th_info[15:15] = tile__tile_iter_th_hit[15];
+  assign tile__tile_re_execution_ini_begin[15] = cgra_re_execution_begin[15:15];
   assign lut_array__recv_waddr = counter_config_lut_addr[1:0];
   assign lut_array__recv_waddr_en = recv_wlut_flattened_en;
   assign lut_array__recv_lut_data = recv_wlut_flattened;
@@ -9155,6 +9110,7 @@ module CGRARTL__top
   assign tile__recv_data[1][2] = tile__send_data[0][3];
   assign tile__recv_data_valid[1][2] = tile__send_data_valid[0][3];
   assign tile__send_data_ack[0][3] = tile__recv_data_ack[1][2];
+  assign tile__send_data_ack[0][1] = tile_send_ni_data_rdy[4:4];
   assign tile_send_ni_data_valid[4:4] = tile__send_data_valid[0][1];
   assign cgra_send_ni_data__msg[4] = tile__send_data[0][1].payload;
   assign tile__recv_data_valid[0][1] = 1'd0;
@@ -9186,6 +9142,7 @@ module CGRARTL__top
   assign tile__recv_data[2][2] = tile__send_data[1][3];
   assign tile__recv_data_valid[2][2] = tile__send_data_valid[1][3];
   assign tile__send_data_ack[1][3] = tile__recv_data_ack[2][2];
+  assign tile__send_data_ack[1][1] = tile_send_ni_data_rdy[5:5];
   assign tile_send_ni_data_valid[5:5] = tile__send_data_valid[1][1];
   assign cgra_send_ni_data__msg[5] = tile__send_data[1][1].payload;
   assign tile__recv_data_valid[1][1] = 1'd0;
@@ -9212,6 +9169,7 @@ module CGRARTL__top
   assign tile__recv_data[3][2] = tile__send_data[2][3];
   assign tile__recv_data_valid[3][2] = tile__send_data_valid[2][3];
   assign tile__send_data_ack[2][3] = tile__recv_data_ack[3][2];
+  assign tile__send_data_ack[2][1] = tile_send_ni_data_rdy[6:6];
   assign tile_send_ni_data_valid[6:6] = tile__send_data_valid[2][1];
   assign cgra_send_ni_data__msg[6] = tile__send_data[2][1].payload;
   assign tile__recv_data_valid[2][1] = 1'd0;
@@ -9235,10 +9193,12 @@ module CGRARTL__top
   assign tile__recv_data[2][3] = tile__send_data[3][2];
   assign tile__recv_data_valid[2][3] = tile__send_data_valid[3][2];
   assign tile__send_data_ack[3][2] = tile__recv_data_ack[2][3];
+  assign tile__send_data_ack[3][1] = tile_send_ni_data_rdy[7:7];
   assign tile_send_ni_data_valid[7:7] = tile__send_data_valid[3][1];
   assign cgra_send_ni_data__msg[7] = tile__send_data[3][1].payload;
   assign tile__recv_data_valid[3][1] = 1'd0;
   assign tile__recv_data[3][1] = { 64'd0, 1'd0 };
+  assign tile__send_data_ack[3][3] = tile_send_ni_data_rdy[0:0];
   assign tile_send_ni_data_valid[0:0] = tile__send_data_valid[3][3];
   assign cgra_send_ni_data__msg[0] = tile__send_data[3][3].payload;
   assign tile__recv_data_valid[3][3] = 1'd0;
@@ -9342,6 +9302,7 @@ module CGRARTL__top
   assign tile__recv_data[6][3] = tile__send_data[7][2];
   assign tile__recv_data_valid[6][3] = tile__send_data_valid[7][2];
   assign tile__send_data_ack[7][2] = tile__recv_data_ack[6][3];
+  assign tile__send_data_ack[7][3] = tile_send_ni_data_rdy[1:1];
   assign tile_send_ni_data_valid[1:1] = tile__send_data_valid[7][3];
   assign cgra_send_ni_data__msg[1] = tile__send_data[7][3].payload;
   assign tile__recv_data_valid[7][3] = 1'd0;
@@ -9445,6 +9406,7 @@ module CGRARTL__top
   assign tile__recv_data[10][3] = tile__send_data[11][2];
   assign tile__recv_data_valid[10][3] = tile__send_data_valid[11][2];
   assign tile__send_data_ack[11][2] = tile__recv_data_ack[10][3];
+  assign tile__send_data_ack[11][3] = tile_send_ni_data_rdy[2:2];
   assign tile_send_ni_data_valid[2:2] = tile__send_data_valid[11][3];
   assign cgra_send_ni_data__msg[2] = tile__send_data[11][3].payload;
   assign tile__recv_data_valid[11][3] = 1'd0;
@@ -9556,6 +9518,7 @@ module CGRARTL__top
   assign tile__recv_data_valid[15][0] = cgra_recv_ni_data__en[7];
   assign tile__recv_data[15][0].payload = cgra_recv_ni_data__msg[7];
   assign tile__recv_data[15][0].predicate = 1'd1;
+  assign tile__send_data_ack[15][3] = tile_send_ni_data_rdy[3:3];
   assign tile_send_ni_data_valid[3:3] = tile__send_data_valid[15][3];
   assign cgra_send_ni_data__msg[3] = tile__send_data[15][3].payload;
   assign tile__recv_data_valid[15][3] = 1'd0;
