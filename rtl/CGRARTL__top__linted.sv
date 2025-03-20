@@ -2591,6 +2591,10 @@ module vec_mult #(
 
 
     always_comb begin 
+      op_signed_mask_s1 = '0;
+      l1_p_en_s1 = 1'b0;
+      l2_p_en_s1 = 1'b0;
+      l3_p_en_s1 = 1'b0;
       unique case ({vector_mode_s1, is_cplx_s1})
         {VEC_MODE32, 1'b0}: begin
           op_signed_mask_s1 = 4'b1000;
@@ -2604,12 +2608,7 @@ module vec_mult #(
           op_signed_mask_s1 = 4'b1111;
           l1_p_en_s1 = 1'b1;
         end 
-        default: begin
-          op_signed_mask_s1 = '0;
-          l1_p_en_s1 = 1'b0;
-          l2_p_en_s1 = 1'b0;
-          l3_p_en_s1 = 1'b0;
-        end
+        default: ;
       endcase
     end
 
